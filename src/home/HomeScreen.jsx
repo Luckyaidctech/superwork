@@ -1,0 +1,826 @@
+import { useState, useEffect } from 'react'
+import { Icon, initials, Header, ResultPopup, ReasonModal } from '../flow/shared.jsx'
+import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf } from './data.js'
+import PointsRequest from './PointsRequest.jsx'
+
+// avatar style: ຮູບໂປຣไฟล์ (ຖ້າມີ) ຫຼື ສີພື້ນ
+const avBg = (id) => { const u = avatarOf(id); return u ? { backgroundImage: `url("${u}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: colorOf(id) } }
+
+// ─────────── avatar ───────────
+function Av({ id, done, rej }) {
+  const url = avatarOf(id)
+  return (
+    <span className="doc-av" style={avBg(id)}>
+      {!url && initials(nameOf(id))}
+      {done && <span className="doc-av-check"><Icon.check /></span>}
+    </span>
+  )
+}
+
+// ─────────── document card ───────────
+function DocCard({ d, me, onOpen }) {
+  const { done, total, pct } = progress(d)
+  const myTurn = isMyTurn(d, me)
+  const rejected = d.signers.some((s) => s.status === 'rejected')
+  const st = d.status === 'done'
+    ? { t: 'ສຳເລັດແລ້ວ', c: 'done' }
+    : d.status === 'cancelled'
+      ? { t: 'ຍົກເລີກແລ້ວ', c: 'cancel' }
+      : rejected ? { t: 'ຖືກປະຕິເສດ', c: 'rej' } : { t: 'ກຳລັງດຳເນີນການ', c: '' }
+  return (
+    <button className={`doc-card ${myTurn ? 'myturn' : ''}`} onClick={() => onOpen(d.id)}>
+      {myTurn && <span className="doc-turn-flag"><Icon.pen /> ຮອບຂອງທ່ານ</span>}
+      <div className="doc-card-top">
+        <span className="doc-card-icon"><Icon.doc /></span>
+        <b className="doc-card-title">{d.title}</b>
+        {!myTurn && <span className={`doc-status ${st.c}`}>{st.t}</span>}
+      </div>
+      <p className="doc-meta">ສ້າງໂດຍ: {nameOf(d.creatorId)} · {d.date}</p>
+      <div className="doc-chips">
+        <span className="doc-chip"><Icon.doc /> {d.files.length} ໄຟລ໌</span>
+        {d.attachments.length > 0 && <span className="doc-chip alt"><Icon.layers /> ໄຟລ໌ແນບ {d.attachments.length}</span>}
+        {d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me) && <span className="doc-chip cc"><Icon.users /> CC</span>}
+      </div>
+      <p className="doc-prog-label">ລົງນາມແລ້ວ {done}/{total}</p>
+      <div className="doc-prog"><span className="doc-prog-fill" style={{ width: `${pct}%` }} /></div>
+      <div className="doc-signers">
+        <span className="doc-signers-lbl"><Icon.users /> ຜູ້ລົງນາມ ({total})</span>
+        <div className="doc-avs">
+          {d.signers.map((s, i) => <Av key={i} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
+        </div>
+        <span className="doc-pct">{pct}%</span>
+      </div>
+      {rejected && d.status !== 'done' && (() => {
+        const rj = d.signers.find((s) => s.status === 'rejected')
+        return <div className="doc-you rej"><span className="doc-you-txt"><b>{nameOf(rj.id)}</b>: {rj.reason || 'ໄດ້ປະຕິເສດການລົງນາມ'}</span></div>
+      })()}
+      {d.status === 'progress' && !rejected && d.signers.some((s) => s.id === me && s.status === 'signed') &&
+        <div className="doc-note-min"><Icon.clock /> ທ່ານໄດ້ເຊັນແລ້ວ · ລໍຖ້າຜູ້ອື່ນລົງນາມ</div>}
+    </button>
+  )
+}
+
+// ─────────── reusable dropdown ───────────
+const CATS = [{ key: 'all', label: 'ທຸກສະຖານະ' }, { key: 'progress', label: 'ກຳລັງດຳເນີນການ' }, { key: 'done', label: 'ສຳເລັດແລ້ວ' }, { key: 'rejected', label: 'ຖືກປະຕິເສດ' }, { key: 'cancelled', label: 'ຍົກເລີກແລ້ວ' }]
+const CREATORS = [{ key: 'all', label: 'ຜູ້ສ້າງທັງໝົດ' }, { key: 'mine', label: 'ຂ້ອຍສ້າງ' }, { key: 'others', label: 'ຄົນອື່ນສ້າງ' }]
+const TIMES = [{ key: 'all', label: 'ທຸກໄລຍະເວລາ' }, { key: '7d', label: '7 ວັນທີ່ຜ່ານມາ' }, { key: '30d', label: '30 ວັນທີ່ຜ່ານມາ' }, { key: 'custom', label: 'ກຳນົດຊ່ວງເອງ' }]
+const parseDMY = (s) => { const [d, m, y] = s.split('/').map(Number); return new Date(y, m - 1, d) }
+const SORTS_SENT = [{ key: 'recent', label: 'ສົ່ງລ່າສຸດກ່ອນ' }, { key: 'oldest', label: 'ສົ່ງເກົ່າສຸດກ່ອນ' }, { key: 'az', label: 'ຊື່ເອກະສານ A-Z' }, { key: 'za', label: 'ຊື່ເອກະສານ Z-A' }]
+const SORTS_SIGNED = [{ key: 'recent', label: 'ເຊັນລ່າສຸດກ່ອນ' }, { key: 'oldest', label: 'ເຊັນເກົ່າສຸດກ່ອນ' }, { key: 'az', label: 'ຊື່ເອກະສານ A-Z' }, { key: 'za', label: 'ຊື່ເອກະສານ Z-A' }]
+
+function FilterDropdown({ btnLabel, title, options, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="fdrop">
+      <button className="home-filter" onClick={() => setOpen(true)}>{btnLabel} <Icon.chevron /></button>
+      {open && (
+        <div className="fsheet-overlay" onClick={() => setOpen(false)}>
+          <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+            {title && <p className="fsheet-title">{title}</p>}
+            {options.map((o) => (
+              <button key={o.key} className={`sort-opt ${value === o.key ? 'on' : ''}`} onClick={() => { onChange(o.key); setOpen(false) }}>
+                {o.label}{value === o.key && <Icon.check />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────── time dropdown (มีช่วงวันที่ในตัว popup) ───────────
+function TimeDropdown({ value, onChange, range, setRange }) {
+  const [open, setOpen] = useState(false)
+  const label = value === 'custom' && (range.from || range.to)
+    ? `${range.from || '...'} → ${range.to || '...'}`
+    : TIMES.find((t) => t.key === value).label
+  return (
+    <div className="fdrop">
+      <button className="home-filter" onClick={() => setOpen(true)}>{label} <Icon.chevron /></button>
+      {open && (
+        <div className="fsheet-overlay" onClick={() => setOpen(false)}>
+          <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+            <p className="fsheet-title">ໄລຍະເວລາ</p>
+            {TIMES.map((o) => (
+              <button key={o.key} className={`sort-opt ${value === o.key ? 'on' : ''}`} onClick={() => { onChange(o.key); if (o.key !== 'custom') setOpen(false) }}>
+                {o.label}{value === o.key && <Icon.check />}
+              </button>
+            ))}
+            {value === 'custom' && (
+              <div className="date-range-pop">
+                <label><span>ວັນທີເລີ່ມ</span><input type="date" value={range.from} max={range.to || undefined} onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))} /></label>
+                <label><span>ວັນທີສິ້ນສຸດ</span><input type="date" value={range.to} min={range.from || undefined} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} /></label>
+                <div className="date-range-btns">
+                  <button className="drp-clear" onClick={() => setRange({ from: '', to: '' })}>ລ້າງ</button>
+                  <button className="drp-apply" onClick={() => setOpen(false)}>ນຳໃຊ້</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────── list view ───────────
+function DocList({ docs, me, onOpen, empty, creatorMode }) {
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState('all')
+  const [who, setWho] = useState('all')
+  const [time, setTime] = useState('all')
+  const [range, setRange] = useState({ from: '', to: '' })
+  const [sort, setSort] = useState('recent')
+  const [sortOpen, setSortOpen] = useState(false)
+  const SORTS = creatorMode ? SORTS_SIGNED : SORTS_SENT // tab 2 (ເຊັນແລ້ວ) = ເຊັນລ່າສຸດ/ເກົ່າສຸດ
+  const REF = 14
+
+  let list = docs.filter((d) => {
+    if (q && !d.title.toLowerCase().includes(q.trim().toLowerCase())) return false
+    if (cat !== 'all' && d.status !== cat) return false
+    if (creatorMode && who === 'mine' && d.creatorId !== me) return false
+    if (creatorMode && who === 'others' && d.creatorId === me) return false
+    if (time === '7d' && REF - d.ts > 7) return false
+    if (time === '30d' && REF - d.ts > 30) return false
+    if (time === 'custom') {
+      const dt = parseDMY(d.date)
+      if (range.from && dt < new Date(range.from)) return false
+      if (range.to && dt > new Date(range.to)) return false
+    }
+    return true
+  })
+  list = [...list].sort((a, b) => {
+    if (sort === 'recent') return b.ts - a.ts
+    if (sort === 'oldest') return a.ts - b.ts
+    if (sort === 'az') return a.title.localeCompare(b.title, 'lo')
+    return b.title.localeCompare(a.title, 'lo')
+  })
+  const catLabel = CATS.find((c) => c.key === cat).label
+  const timeLabel = TIMES.find((t) => t.key === time).label
+
+  return (
+    <>
+      <div className="home-search"><Icon.search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ຄົ້ນຫາເອກະສານ..." /></div>
+      <div className="home-filters">
+        {creatorMode && <FilterDropdown btnLabel={CREATORS.find((c) => c.key === who).label} title="ຜູ້ສ້າງ" options={CREATORS} value={who} onChange={setWho} />}
+        <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title="ສະຖານະ" options={CATS} value={cat} onChange={setCat} />
+        <TimeDropdown value={time} onChange={setTime} range={range} setRange={setRange} />
+        <div className="sort-wrap">
+          <button className="home-filter" onClick={() => setSortOpen(true)}><Icon.sort /> {SORTS.find((s) => s.key === sort).label}</button>
+          {sortOpen && (
+            <div className="fsheet-overlay" onClick={() => setSortOpen(false)}>
+              <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+                <p className="fsheet-title">ຈັດລຳດັບຕາມ</p>
+                {SORTS.map((s) => (
+                  <button key={s.key} className={`sort-opt ${sort === s.key ? 'on' : ''}`} onClick={() => { setSort(s.key); setSortOpen(false) }}>
+                    {s.label}{sort === s.key && <Icon.check />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {list.length === 0 ? <p className="empty-list">{empty || 'ບໍ່ພົບເອກະສານ'}</p> : list.map((d) => <DocCard key={d.id} d={d} me={me} onOpen={onOpen} />)}
+    </>
+  )
+}
+
+// ─────────── overview ───────────
+function Donut({ pct }) {
+  const r = 52, c = 2 * Math.PI * r, len = (c * pct) / 100
+  return (
+    <svg viewBox="0 0 140 140" width="128" height="128">
+      <circle cx="70" cy="70" r={r} fill="none" stroke="#d97706" strokeWidth="17" />
+      <circle cx="70" cy="70" r={r} fill="none" stroke="#16a34a" strokeWidth="17" strokeDasharray={`${len} ${c - len}`} strokeLinecap="round" transform="rotate(-90 70 70)" />
+      <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#1a2233">{pct}%</text>
+      <text x="70" y="86" textAnchor="middle" fontSize="10" fill="#8b93a7">ລົງນາມແລ້ວ</text>
+    </svg>
+  )
+}
+
+const PERIODS = [{ key: 'week', label: 'ອາທິດນີ້' }, { key: 'month', label: 'ເດືອນນີ້' }, { key: 'all', label: 'ທັງໝົດ' }]
+// ຖານ trend 3 ເດືອນກ່ອນ (mock) — ເດືອນປັດຈຸບັນຄິດจาก docs ຈິງ
+const TREND_BASE = [{ m: 'ເມສາ', total: 6, done: 5 }, { m: 'ພຶດສະພາ', total: 9, done: 7 }, { m: 'ມິຖຸນາ', total: 8, done: 7 }]
+
+function PeriodDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="fdrop ov-period">
+      <button className="home-filter" onClick={() => setOpen((o) => !o)}>{PERIODS.find((p) => p.key === value).label} <Icon.chevron /></button>
+      {open && (<>
+        <div className="sort-backdrop" onClick={() => setOpen(false)} />
+        <div className="sort-pop">
+          {PERIODS.map((p) => (
+            <button key={p.key} className={`sort-opt ${value === p.key ? 'on' : ''}`} onClick={() => { onChange(p.key); setOpen(false) }}>
+              {p.label}{value === p.key && <Icon.check />}
+            </button>
+          ))}
+        </div>
+      </>)}
+    </div>
+  )
+}
+
+function Overview({ docs, me, onOpen }) {
+  const [period, setPeriod] = useState('all')
+  const [drill, setDrill] = useState(null) // { title, list }
+  const REF = 14
+  const inPeriod = (d) => (period === 'all' ? true : period === 'week' ? REF - d.ts <= 7 : REF - d.ts <= 30)
+  const scoped = docs.filter((d) => (d.creatorId === me || d.signers.some((s) => s.id === me) || (d.cc || []).includes(me)) && inPeriod(d))
+
+  // ── ຕາມແຫຼ່ງ (source) ──
+  const created = scoped.filter((d) => d.creatorId === me)
+  const received = scoped.filter((d) => d.creatorId !== me && d.signers.some((s) => s.id === me))
+  const ccMe = scoped.filter((d) => d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me))
+  // ── ຕາມການກະທຳ ──
+  const waitMe = scoped.filter((d) => isMyTurn(d, me))
+  const waitOthers = scoped.filter((d) => d.creatorId === me && d.status === 'progress')
+  const signedMe = scoped.filter((d) => d.signers.some((s) => s.id === me && s.status === 'signed'))
+  // ── ຕາມສະຖານະ ──
+  const progressList = scoped.filter((d) => d.status === 'progress')
+  const doneList = scoped.filter((d) => d.status === 'done')
+  const rejectedList = scoped.filter((d) => d.status === 'rejected' || d.signers.some((s) => s.status === 'rejected'))
+  const cancelledList = scoped.filter((d) => d.status === 'cancelled')
+  let sg = 0, tot = 0
+  scoped.forEach((d) => d.signers.forEach((s) => { tot++; if (s.status === 'signed') sg++ }))
+  const pct = tot ? Math.round((sg / tot) * 100) : 0
+
+  const stats = [
+    { n: scoped.length, label: 'ເອກະສານທັງໝົດ', icon: Icon.doc, c: '#1f3fb5', bg: '#eaeefb', list: scoped },
+    { n: created.length, label: 'ຂ້ອຍສ້າງ', icon: Icon.pen, c: '#7c3aed', bg: '#efe9fe', list: created },
+    { n: received.length, label: 'ຮັບຈາກຄົນອື່ນ', icon: Icon.mail, c: '#0891b2', bg: '#e0f5fa', list: received },
+    { n: waitMe.length, label: 'ລໍຖ້າຂ້ອຍລົງນາມ', icon: Icon.clock, c: '#d97706', bg: '#fdf0dd', list: waitMe },
+    { n: signedMe.length, label: 'ຂ້ອຍລົງນາມແລ້ວ', icon: Icon.checkCircle, c: '#16a34a', bg: '#e7f6ec', list: signedMe },
+    { n: doneList.length, label: 'ສຳເລັດແລ້ວ', icon: Icon.checkCircle, c: '#059669', bg: '#dcfce7', list: doneList },
+  ]
+  const srcMax = Math.max(created.length, received.length, ccMe.length, 1)
+  const srcRows = [
+    { label: 'ຂ້ອຍສ້າງ', n: created.length, c: '#7c3aed', list: created },
+    { label: 'ຮັບຈາກຄົນອື່ນ (ຜູ້ເຊັນ)', n: received.length, c: '#0891b2', list: received },
+    { label: 'ໄດ້ຮັບສຳເນົາ (CC)', n: ccMe.length, c: '#64748b', list: ccMe },
+  ]
+  const statusRows = [
+    { label: 'ກຳລັງດຳເນີນການ', n: progressList.length, c: '#2563eb', list: progressList },
+    { label: 'ສຳເລັດແລ້ວ', n: doneList.length, c: '#16a34a', list: doneList },
+    { label: 'ຖືກປະຕິເສດ', n: rejectedList.length, c: '#dc2626', list: rejectedList },
+    { label: 'ຍົກເລີກ', n: cancelledList.length, c: '#94a3b8', list: cancelledList },
+  ]
+  const statusMax = Math.max(...statusRows.map((r) => r.n), 1)
+  const trend = [...TREND_BASE, { m: 'ກໍລະກົດ', total: scoped.length, done: scoped.filter((d) => d.status === 'done').length }]
+  const maxT = Math.max(...trend.map((t) => t.total), 1)
+  const urgent = waitMe.slice(0, 3)
+
+  return (
+    <>
+      <div className="ov-head"><h2 className="ov-title">e-Signature</h2><PeriodDropdown value={period} onChange={setPeriod} /></div>
+
+      <div className="ov-stats">
+        {stats.map((s, i) => (
+          <button className="ov-stat" key={i} onClick={() => setDrill({ title: s.label, list: s.list })}>
+            <span className="ov-stat-icon" style={{ background: s.bg, color: s.c }}>{s.icon()}</span>
+            <b className="ov-stat-n">{s.n}</b><span className="ov-stat-label">{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="card">
+        <b className="ov-donut-title">ຕາມແຫຼ່ງເອກະສານ</b>
+        <div className="ov-brk">
+          {srcRows.map((r, i) => (
+            <button className="ov-brk-row" key={i} onClick={() => setDrill({ title: r.label, list: r.list })}>
+              <span className="ov-brk-label">{r.label}</span>
+              <span className="ov-brk-track"><span className="ov-brk-fill" style={{ width: `${(r.n / srcMax) * 100}%`, background: r.c }} /></span>
+              <b className="ov-brk-n" style={{ color: r.c }}>{r.n}</b>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <b className="ov-donut-title">ຕາມສະຖານະ</b>
+        <div className="ov-brk">
+          {statusRows.map((r, i) => (
+            <button className="ov-brk-row" key={i} onClick={() => setDrill({ title: r.label, list: r.list })}>
+              <span className="ov-brk-label">{r.label}</span>
+              <span className="ov-brk-track"><span className="ov-brk-fill" style={{ width: `${(r.n / statusMax) * 100}%`, background: r.c }} /></span>
+              <b className="ov-brk-n" style={{ color: r.c }}>{r.n}</b>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card ov-donut-card">
+        <b className="ov-donut-title">ຄວາມຄືບໜ້າການລົງນາມ</b>
+        <div className="ov-donut-row">
+          <Donut pct={pct} />
+          <div className="ov-legend">
+            <button className="ov-leg" onClick={() => setDrill({ title: 'ລົງນາມແລ້ວ', list: signedMe })}><span className="ov-dot" style={{ background: '#16a34a' }} /> ລົງນາມແລ້ວ <b>{sg}</b></button>
+            <button className="ov-leg" onClick={() => setDrill({ title: 'ຍັງລໍຖ້າ', list: scoped.filter((d) => d.status === 'progress') })}><span className="ov-dot" style={{ background: '#d97706' }} /> ຍັງບໍ່ລົງນາມ <b>{tot - sg}</b></button>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <b className="ov-donut-title">ສະຖິຕິການອະນຸມັດ</b>
+        <div className="ov-bars">
+          {trend.map((t, i) => (
+            <div className="ov-bar-col" key={i}>
+              <div className="ov-bar-track">
+                <div className="ov-bar total" style={{ height: `${(t.total / maxT) * 100}%` }}><em>{t.total}</em></div>
+                <div className="ov-bar done" style={{ height: `${(t.done / maxT) * 100}%` }} />
+              </div>
+              <span className="ov-bar-label">{t.m}</span>
+            </div>
+          ))}
+        </div>
+        <div className="ov-bar-legend">
+          <span><i style={{ background: '#1f3fb5' }} /> ຄຳຂໍທັງໝົດ</span>
+          <span><i style={{ background: '#16a34a' }} /> ສຳເລັດ</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <b className="ov-donut-title">ເອກະສານຮີບດ່ວນ</b>
+        {urgent.length === 0
+          ? <p className="empty-list sm">ບໍ່ມີເອກະສານທີ່ລໍຖ້າທ່ານ</p>
+          : urgent.map((d) => (
+            <div className="ov-urgent" key={d.id}>
+              <span className="ov-urgent-ic"><Icon.pen /></span>
+              <div className="ov-urgent-body"><b>{d.title}</b><span className="ov-urgent-time">{REF - d.ts <= 0 ? 'ມື້ນີ້' : `${REF - d.ts} ວັນກ່ອນ`}</span></div>
+              <button className="ov-urgent-go" onClick={() => onOpen(d.id)}>ໄປເຊັນ</button>
+            </div>
+          ))}
+      </div>
+
+      {drill && (
+        <div className="modal-overlay" onClick={() => setDrill(null)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head"><b>{drill.title} ({drill.list.length})</b><button className="icon-mini" onClick={() => setDrill(null)}><Icon.x /></button></div>
+            <div className="modal-list">
+              {drill.list.length === 0
+                ? <p className="empty-list sm">ບໍ່ມີເອກະສານ</p>
+                : drill.list.map((d) => (
+                  <button className="drill-row" key={d.id} onClick={() => { setDrill(null); onOpen(d.id) }}>
+                    <span className="drill-ic"><Icon.doc /></span>
+                    <div className="drill-info"><b>{d.title}</b><span>ສ້າງໂດຍ {nameOf(d.creatorId)} · {d.date}</span></div>
+                    <span className={`doc-status ${d.status === 'done' ? 'done' : d.status === 'rejected' ? 'rej' : ''}`}>{d.status === 'done' ? 'ສຳເລັດ' : d.status === 'rejected' ? 'ປະຕິເສດ' : 'ດຳເນີນການ'}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─────────── Approval Center (bottom tab ອະນຸມັດ) — ລວມ request ທຸກປະເພດຈາກ Superwork · ຂໍລາຍເຊັນ ຢູ່ທຳອິດ ───────────
+const AC_CATS = [
+  { key: 'all', label: 'ທັງໝົດ', icon: Icon.layers },
+  { key: 'esign', label: 'ຂໍລາຍເຊັນ', icon: Icon.pen },
+  { key: 'ot', label: 'ໂອທີ', icon: Icon.clock },
+  { key: 'leave', label: 'ລາພັກ', icon: Icon.user },
+  { key: 'offsite', label: 'ວຽກນອກສະຖານທີ', icon: Icon.pin },
+  { key: 'booking', label: 'ການຈອງ', icon: Icon.book },
+  { key: 'knowledge', label: 'ຄວາມຮູ້', icon: Icon.doc },
+  { key: 'points', label: 'ຄະແນນ', icon: Icon.chart },
+]
+// icon ຂອງ card ໃຫ້ຕົງກັບ tab หมวด
+const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.user, offsite: Icon.pin, booking: Icon.book, knowledge: Icon.doc, points: Icon.chart }
+const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', leave: 'ລາພັກ', offsite: 'ວຽກນອກສະຖານທີ', booking: 'ການຈອງ', knowledge: 'ຄວາມຮູ້', points: 'ຄະແນນ' }
+// byId = ຜູ້ຂໍຈິງ (ຈາກ USERS) → ເມື່ອອະນຸມັດ/ປະຕິເສດ ຈະສົ່ງແຈ້ງເຕືອນຫາຄົນນັ້ນໄດ້ຈິງ (end-to-end)
+const AC_MOCK = {
+  ot: [
+    { id: 'ot1', title: 'AIDC work', byId: 'G', note: 'Urgent deadline', date: '14/07/2026', status: 'approved' },
+    { id: 'ot2', title: 'AIDC work', byId: 'G', note: 'Client request', date: '12/07/2026', status: 'progress' },
+  ],
+  leave: [
+    { id: 'lv1', title: 'Sick leave', byId: 'G', note: 'Feeling unwell / fever', date: '9/08/2026', status: 'approved' },
+    { id: 'lv2', title: 'Other leave', byId: 'G', note: 'Personal errand', date: '4/08/2026', status: 'progress' },
+    { id: 'lv3', title: 'Annual leave', byId: 'F', note: 'Vacation', date: '20/08/2026', status: 'rejected' },
+  ],
+  offsite: [
+    { id: 'of1', title: 'ພົບລູກຄ້າ ທະນາຄານ BCEL', byId: 'G', note: 'ນະຄອນຫຼວງວຽງຈັນ', date: '15/07/2026', status: 'progress' },
+    { id: 'of2', title: 'ຕິດຕັ້ງລະບົບ ໜ້າງານ HAIXIN', byId: 'F', note: 'ໂຮງງານ ນອກເມືອງ', date: '13/07/2026', status: 'approved' },
+    { id: 'of3', title: 'ອົບຮົມ ທີມງານ ສາຂາ ປາກເຊ', byId: 'B', note: 'ແຂວງ ຈຳປາສັກ', date: '10/07/2026', status: 'progress' },
+  ],
+  booking: [
+    { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'Conference Room A', date: '2/04/2026', status: 'cancelled' },
+    { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ', date: '3/07/2026', status: 'approved' },
+  ],
+  knowledge: [
+    { id: 'kn1', title: 'Run for our forest', byId: 'G', note: 'Compliance · General', date: '23/06/2026', status: 'approved' },
+  ],
+}
+const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: '' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' } }
+const AC_SF = [{ key: 'all', label: 'ທັງໝົດ' }, { key: 'waiting', label: 'ລໍຖ້າອະນຸມັດ' }, { key: 'approved', label: 'ອະນຸມັດແລ້ວ' }, { key: 'rejected', label: 'ປະຕິເສດ' }]
+
+function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, onMockAction, openReqId, onConsumeOpen }) {
+  const [cat, setCat] = useState('all')
+  const [sf, setSf] = useState('all')
+  const [acDetail, setAcDetail] = useState(null) // request detail (mock ຫຼື points req)
+  const [acFlash, setAcFlash] = useState('')
+  const [acPopup, setAcPopup] = useState(null) // { msg, ok } dark success popup
+  const [cmtText, setCmtText] = useState('')
+  const [cmtReplyTo, setCmtReplyTo] = useState(null) // { id, name } กำลังตอบกลับ
+  const [cmtEditId, setCmtEditId] = useState(null)
+  const [cmtEditText, setCmtEditText] = useState('')
+  const [rejMode, setRejMode] = useState(false)
+  const [mocks, setMocks] = useState(() => JSON.parse(JSON.stringify(AC_MOCK))) // mock request → state ໃຫ້ approve/reject ປ່ຽນ status ໄດ້
+  const acAct = (m) => { setAcDetail(null); setRejMode(false); setAcFlash(m); setTimeout(() => setAcFlash(''), 2200) }
+  // เปิด detail ของ req ที่เพิ่งสร้าง (หลังกด "ເບิ่งรายละเอียด")
+  useEffect(() => {
+    if (!openReqId) return
+    const r = pointsReqs.find((p) => p.id === openReqId)
+    if (r) { setCat('points'); setAcDetail({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, req: r }) }
+    onConsumeOpen && onConsumeOpen()
+  }, [openReqId])
+  const detailReq = acDetail?.req ? pointsReqs.find((p) => p.id === acDetail.req.id) : null // live points req
+  // request ຂໍລາຍເຊັນ: ລໍຖ້າ me (esign) + ທີ່ me ເຊັນແລ້ວ (approved) + ທີ່ me ປະຕິເສດ (rejected) → ຢູ່ຄົບທຸກ tab
+  const esignItems = docs
+    .filter((d) => d.signers.some((s) => s.id === me) && (isMyTurn(d, me) || d.signers.some((s) => s.id === me && (s.status === 'signed' || s.status === 'rejected'))))
+    .map((d) => {
+      const mine = d.signers.find((s) => s.id === me)
+      const status = mine.status === 'signed' ? 'approved' : mine.status === 'rejected' ? 'rejected' : 'esign'
+      return { kind: 'esign', id: d.id, title: d.title, by: nameOf(d.creatorId), date: d.date, status, docId: d.id }
+    })
+  const esignPending = esignItems.filter((i) => i.status === 'esign').length // badge = ທີ່ລໍຖ້າ me ເຊັນ
+  const pointsItems = pointsReqs.map((r) => ({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, sub: r.target === 'task' ? 'Task' : 'Activity', proj: r.projectName, req: r }))
+  const mockItems = (k) => (mocks[k] || []).map((m) => ({ kind: k, ...m, by: nameOf(m.byId) }))
+  const base = cat === 'all'
+    ? [...esignItems, ...pointsItems, ...Object.keys(mocks).flatMap(mockItems)]
+    : cat === 'esign' ? esignItems
+      : cat === 'points' ? pointsItems
+        : mockItems(cat)
+  const matchSf = (m) => sf === 'all'
+    || (sf === 'waiting' && (m.status === 'esign' || m.status === 'progress'))
+    || (sf === 'approved' && m.status === 'approved')
+    || (sf === 'rejected' && (m.status === 'rejected' || m.status === 'cancelled'))
+  const list = base.filter(matchSf)
+
+  const Card = (m) => {
+    const isEsign = m.kind === 'esign'
+    const st = isEsign
+      ? (m.status === 'esign' ? { t: 'ລໍຖ້າລົງນາມ', c: '' } : m.status === 'approved' ? { t: 'ເຊັນແລ້ວ', c: 'done' } : { t: 'ປະຕິເສດ', c: 'rej' })
+      : AC_STATUS[m.status]
+    const CardIcon = AC_ICON[m.kind] || Icon.checkCircle
+    const inner = (<>
+      <span className={`ac-ic ${isEsign ? 'esign' : ''} ${m.kind}`}><CardIcon /></span>
+      <div className="ac-body">
+        <b>{m.title}</b>
+        <span className="ac-by">{m.by}</span>
+        <span className="ac-date">
+          <span className="ac-type">{AC_LABEL[m.kind]}</span>
+          {m.sub && <span className={`ac-sub ${m.sub.toLowerCase()}`}>{m.sub}</span>}
+          {m.proj ? ` ${m.proj} · ` : ' · '}{m.date}
+        </span>
+      </div>
+      <span className={`ac-status ${st.c}`}>{st.t}</span>
+    </>)
+    return (
+      <button className="ac-card" key={m.id} onClick={() => (isEsign ? onOpen(m.docId) : setAcDetail(m))}>{inner}</button>
+    )
+  }
+  return (
+    <>
+      <div className="ac-cats">
+        {AC_CATS.map((c) => (
+          <button key={c.key} className={`ac-cat ${cat === c.key ? 'on' : ''}`} onClick={() => setCat(c.key)}>
+            {c.icon()}<span>{c.label}</span>{(c.key === 'esign' || c.key === 'all') && esignPending > 0 && <em>{esignPending}</em>}
+          </button>
+        ))}
+      </div>
+      <div className="ac-sf">
+        {AC_SF.map((s) => (
+          <button key={s.key} className={`ac-sf-btn ${sf === s.key ? 'on' : ''}`} onClick={() => setSf(s.key)}>{s.label}</button>
+        ))}
+      </div>
+      {list.length === 0 ? <p className="empty-list">ບໍ່ມີຄຳຂໍ</p> : list.map(Card)}
+      <p className="ac-note">* ໂອທີ, ລາພັກ, ການຈອງ, ຄວາມຮູ້, ຄະແນນ = request ຈາກ Superwork (ຕົວຢ່າງ)</p>
+      {acFlash && <div className="ac-flash"><Icon.checkCircle /> {acFlash}</div>}
+      {acDetail && (
+        <div className="app ac-detail-screen">
+          <Header title="ລາຍລະອຽດຄຳຂໍ" onBack={() => { setAcDetail(null); setRejMode(false) }} />
+          <div className="scroll">
+            <div className="ac-detail">
+              {detailReq ? (() => {
+                const cur = detailReq.current ?? 0, total = cur + detailReq.points
+                const pctUp = cur ? Math.round((detailReq.points / cur) * 100) : 100
+                return (<>
+                  {/* HERO */}
+                  <div className="ptd-hero">
+                    <div className="ptd-hero-top"><span className="ptd-hero-label"><Icon.chart /> ຂໍເພີ່ມຄະແນນ Workboard</span></div>
+                    <div className="ptd-hero-num">+{detailReq.points} <em>ຄະແນນ</em></div>
+                    <div className="ptd-hero-bar"><span className="cur" style={{ width: `${(cur / (total || 1)) * 100}%` }} /><span className="add" style={{ width: `${(detailReq.points / (total || 1)) * 100}%` }} /></div>
+                    <div className="ptd-hero-stats"><span>ປັດຈຸບັນ <b>{cur}</b></span><span className="up">▲ {pctUp}%</span><span>ໃໝ່ <b>{total}</b></span></div>
+                  </div>
+                  {/* INFO ROWS (ຂໍ້ຄວາມເຕັມ ບໍ່ຕັດ) */}
+                  <div className="ptd-info">
+                    <div className="ptd-info-row"><span className="ptd-info-ic blue"><Icon.chart /></span><div className="ptd-info-txt"><span>{detailReq.target === 'task' ? 'Task' : 'Activity'}</span><b>{detailReq.targetName}</b></div></div>
+                    <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.layers /></span><div className="ptd-info-txt"><span>ໂຄງການ (Project)</span><b>{detailReq.projectName}</b></div></div>
+                    <div className="ptd-info-row"><span className="ptd-info-av" style={avBg(detailReq.by)}>{!avatarOf(detailReq.by) && initials(nameOf(detailReq.by))}</span><div className="ptd-info-txt"><span>ຜູ້ຂໍຄະແນນ</span><b>{nameOf(detailReq.by)}</b></div></div>
+                    <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.clock /></span><div className="ptd-info-txt"><span>ວັນທີຂໍ</span><b>{detailReq.date}</b></div></div>
+                  </div>
+                  {/* REASON */}
+                  {detailReq.justify && <div className="ptd-reason"><span className="ptd-reason-label"><Icon.info /> ເຫດຜົນ</span><p>{detailReq.justify}</p></div>}
+                  {/* TIMELINE CARD */}
+                  <div className="ptd-tl-card">
+                    <p className="ptd-card-label">ສະຖານະຄຳຂໍ</p>
+                    <div className="ptd-timeline">
+                      <div className="ptd-tl-item done"><span className="ptd-tl-dot"><Icon.check /></span><div><b>ສ້າງຄຳຂໍ</b><span>{nameOf(detailReq.by)} · {detailReq.date}</span></div></div>
+                      <div className={`ptd-tl-item ${detailReq.status !== 'progress' ? 'done' : 'now'}`}><span className={`ptd-tl-dot ${detailReq.status === 'rejected' ? 'rej' : ''}`}>{detailReq.status === 'approved' ? <Icon.check /> : detailReq.status === 'rejected' ? <Icon.x /> : <Icon.clock />}</span><div><b>{detailReq.status === 'approved' ? 'ອະນຸມັດແລ້ວ' : detailReq.status === 'rejected' ? 'ຖືກປະຕິເສດ' : 'ລໍຖ້າອະນຸມັດ'}</b><span>{nameOf(director)}</span></div></div>
+                    </div>
+                  </div>
+                </>)
+              })() : (() => {
+                const MockIcon = AC_ICON[acDetail.kind] || Icon.checkCircle
+                return (<>
+                  <div className="ac-req-head">
+                    <span className="ac-req-av" style={avBg(acDetail.by)}>{initials(acDetail.by)}</span>
+                    <div className="ac-req-info"><b>{acDetail.by}</b><span>{AC_LABEL[acDetail.kind]} · {acDetail.date}</span></div>
+                    <span className={`ac-status ${AC_STATUS[acDetail.status].c}`}>{AC_STATUS[acDetail.status].t}</span>
+                  </div>
+                  <div className="ac-pts-target"><span className={`ac-pts-ic ${acDetail.kind}`}><MockIcon /></span><div><b>{acDetail.title}</b><span>{AC_LABEL[acDetail.kind]}</span></div></div>
+                  <div className="ptd-info">
+                    <div className="ptd-info-row"><span className="ptd-info-av" style={avBg(acDetail.by)}>{initials(acDetail.by)}</span><div className="ptd-info-txt"><span>ຜູ້ຂໍ</span><b>{acDetail.by}</b></div></div>
+                    <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.clock /></span><div className="ptd-info-txt"><span>ວັນທີ</span><b>{acDetail.date}</b></div></div>
+                    {acDetail.note && <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.info /></span><div className="ptd-info-txt"><span>ໝາຍເຫດ</span><b>{acDetail.note}</b></div></div>}
+                  </div>
+                  <div className="ptd-tl-card">
+                    <p className="ptd-card-label">ສະຖານະຄຳຂໍ</p>
+                    <div className="ptd-timeline">
+                      <div className="ptd-tl-item done"><span className="ptd-tl-dot"><Icon.check /></span><div><b>ສ້າງຄຳຂໍ</b><span>{acDetail.by} · {acDetail.date}</span></div></div>
+                      <div className={`ptd-tl-item ${acDetail.status !== 'progress' ? 'done' : 'now'}`}><span className={`ptd-tl-dot ${acDetail.status === 'rejected' || acDetail.status === 'cancelled' ? 'rej' : ''}`}>{acDetail.status === 'approved' ? <Icon.check /> : (acDetail.status === 'rejected' || acDetail.status === 'cancelled') ? <Icon.x /> : <Icon.clock />}</span><div><b>{AC_STATUS[acDetail.status].t}</b><span>{nameOf(director)}</span></div></div>
+                    </div>
+                  </div>
+                </>)
+              })()}
+
+              {detailReq && (() => {
+                const roots = detailReq.comments.filter((c) => !c.parentId)
+                const repliesOf = (id) => detailReq.comments.filter((c) => c.parentId === id)
+                const sendCmt = () => { if (cmtText.trim()) { onPointsComment(detailReq.id, cmtText.trim(), cmtReplyTo?.id); setCmtText(''); setCmtReplyTo(null) } }
+                const saveEdit = (c) => { if (cmtEditText.trim()) onPointsEditComment(detailReq.id, c.id, cmtEditText.trim()); setCmtEditId(null) }
+                const CmtItem = (c, reply) => {
+                  const mine = c.byId === me
+                  const editing = cmtEditId === c.id
+                  return (
+                    <div className={`dd-cmt ${reply ? 'reply' : ''}`} key={c.id}>
+                      <div className="dd-cmt-av" style={avBg(c.byId)}>{!avatarOf(c.byId) && initials(nameOf(c.byId))}</div>
+                      <div className="dd-cmt-body">
+                        <div className="dd-cmt-head"><b>{nameOf(c.byId)}</b><span>{c.time}{c.edited ? ' · ແກ້ໄຂແລ້ວ' : ''}</span></div>
+                        {editing ? (
+                          <div className="dd-cmt-edit"><input value={cmtEditText} onChange={(e) => setCmtEditText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(c)} autoFocus />
+                            <button className="dd-cmt-esave" onClick={() => saveEdit(c)}>ບັນທຶກ</button><button className="dd-cmt-ecancel" onClick={() => setCmtEditId(null)}>ຍົກເລີກ</button></div>
+                        ) : <p>{c.text}</p>}
+                        {!editing && detailReq.status === 'progress' && (
+                          <div className="dd-cmt-acts">
+                            <button className="dd-cmt-reply" onClick={() => setCmtReplyTo({ id: reply ? c.parentId : c.id, name: nameOf(c.byId) })}><Icon.reply /> ຕອບກັບ</button>
+                            {mine && (<>
+                              <button className="dd-cmt-reply" onClick={() => { setCmtEditId(c.id); setCmtEditText(c.text) }}><Icon.pen /> ແກ້ໄຂ</button>
+                              <button className="dd-cmt-reply del" onClick={() => onPointsDeleteComment(detailReq.id, c.id)}><Icon.trash /> ລຶບ</button>
+                            </>)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="ptd-cmt-card">
+                    <p className="ptd-card-label">ຄວາມຄິດເຫັນ ({detailReq.comments.length})</p>
+                    {detailReq.comments.length === 0 && <p className="empty-list sm" style={{ padding: '4px 0 10px' }}>ຍັງບໍ່ມີຄວາມຄິດເຫັນ</p>}
+                    {roots.map((c) => (<div key={c.id}>{CmtItem(c, false)}{repliesOf(c.id).map((r) => CmtItem(r, true))}</div>))}
+                    {cmtReplyTo && <div className="dd-replybar"><span><Icon.reply /> ຕອບກັບ {cmtReplyTo.name}</span><button onClick={() => setCmtReplyTo(null)}><Icon.x /></button></div>}
+                    <div className="dd-cmt-input" style={{ marginTop: 10 }}>
+                      <input value={cmtText} onChange={(e) => setCmtText(e.target.value)} placeholder={cmtReplyTo ? `ຕອບກັບ ${cmtReplyTo.name}...` : 'ຂຽນຄວາມຄິດເຫັນ...'} onKeyDown={(e) => e.key === 'Enter' && sendCmt()} />
+                      <button className="dd-cmt-send" onClick={sendCmt}><Icon.send /></button>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const isProgress = (detailReq || acDetail).status === 'progress'
+                const canAct = detailReq ? (me === director && isProgress) : isProgress // points: director / mock: ใครก็อนุมัดได้
+                const setMockStatus = (st, rsn) => setMocks((ms) => ({ ...ms, [acDetail.kind]: (ms[acDetail.kind] || []).map((m) => m.id === acDetail.id ? { ...m, status: st, ...(rsn ? { reason: rsn } : {}) } : m) }))
+                const doApprove = () => {
+                  if (detailReq) onPointsAction(detailReq.id, 'approved')
+                  else { setMockStatus('approved'); onMockAction?.(acDetail, 'approved') }
+                  setAcPopup({ msg: 'ອະນຸມັດຄຳຂໍສຳເລັດ!' })
+                }
+                const doReject = (rsn) => {
+                  if (detailReq) onPointsAction(detailReq.id, 'rejected', rsn)
+                  else { setMockStatus('rejected', rsn); onMockAction?.(acDetail, 'rejected', rsn) }
+                  setRejMode(false)
+                  setAcPopup({ msg: 'ໄດ້ປະຕິເສດຄຳຂໍແລ້ວ', danger: true })
+                }
+                if (!canAct) return <button className="btn ghost" style={{ marginTop: 14, width: '100%' }} onClick={() => setAcDetail(null)}>ປິດ</button>
+                return (<>
+                  <div className="success-btns" style={{ marginTop: 16, maxWidth: 'none' }}>
+                    <button className="btn danger" onClick={() => setRejMode(true)}><Icon.x /> ປະຕິເສດ</button>
+                    <button className="btn primary" onClick={doApprove}><Icon.check /> ອະນຸມັດ</button>
+                  </div>
+                  {rejMode && (
+                    <ReasonModal title="ປະຕິເສດຄຳຂໍ" hint="ກະລຸນາລະບຸເຫດຜົນ (ຜູ້ຂໍຈະໄດ້ຮັບການແຈ້ງເຕືອນ)"
+                      placeholder="ເຫດຜົນທີ່ປະຕິເສດ..." confirmLabel="ຢືນຢັນປະຕິເສດ"
+                      onConfirm={doReject} onClose={() => setRejMode(false)} />
+                  )}
+                </>)
+              })()}
+            </div>
+          </div>
+          {/* ຜົນລັບ: ອະນຸມັດ / ປະຕິເສດ — popup ດຽວກັນທຸກທີ່ */}
+          {acPopup && (
+            <ResultPopup danger={!!acPopup.danger} title={acPopup.msg} desc="ລະບົບໄດ້ບັນທຶກ ແລະ ແຈ້ງເຕືອນຜູ້ກ່ຽວຂ້ອງແລ້ວ"
+              onOk={() => { setAcPopup(null); setAcDetail(null); setRejMode(false) }} />
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─────────── notification panel ───────────
+function NotiPanel({ notis, onClose, onOpen }) {
+  return (
+    <div className="modal-overlay noti-overlay" onClick={onClose}>
+      <div className="noti-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="noti-head"><b><Icon.bell /> ການແຈ້ງເຕືອນ</b><button className="icon-mini" onClick={onClose}><Icon.x2 /></button></div>
+        <div className="noti-list">
+          {notis.length === 0 ? <p className="empty-list">ຍັງບໍ່ມີການແຈ້ງເຕືອນ</p> : notis.map((n) => (
+            <button key={n.id} className={`noti-item ${n.read ? '' : 'unread'}`} onClick={() => { onClose(); if (n.docId) onOpen(n.docId) }}>
+              <span className="noti-dot" />
+              <div className="noti-body"><p>{n.text}</p><span>{n.time}</span></div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────── main ───────────
+const TABS = [
+  { key: 'created', label: 'ລໍຖ້າຜູ້ອື່ນ', icon: Icon.clock },
+  { key: 'signed', label: 'ລົງນາມແລ້ວ', icon: Icon.checkCircle },
+  { key: 'cc', label: 'ໄດ້ຮັບ CC', icon: Icon.users },
+  { key: 'overview', label: 'ພາບລວມ', icon: Icon.chart },
+]
+
+// ─────────── noti: ໄອຄອນ · ສີ · ຫົວຂໍ້ ຕາມປະເພດ (ຄືແອັບຈິງ) ───────────
+const NOTI_META = {
+  sign:      { icon: Icon.pen,         cls: 'blue',   title: 'ຄຳຂໍລົງນາມ' },
+  reminder:  { icon: Icon.bell,        cls: 'amber',  title: 'ເຕືອນລົງນາມ' },
+  signed:    { icon: Icon.checkCircle, cls: 'green',  title: 'ມີການລົງນາມ' },
+  done:      { icon: Icon.checkCircle, cls: 'green',  title: 'ສຳເລັດຄົບຖ້ວນ' },
+  rejected:  { icon: Icon.warn,        cls: 'red',    title: 'ຖືກປະຕິເສດ' },
+  cancelled: { icon: Icon.x2,          cls: 'red',    title: 'ຍົກເລີກຄຳຂໍ' },
+  comment:   { icon: Icon.chat,        cls: 'violet', title: 'ຄວາມຄິດເຫັນ' },
+  reply:     { icon: Icon.reply,       cls: 'violet', title: 'ຕອບກັບຄຳເຫັນ' },
+  mention:   { icon: Icon.at,          cls: 'violet', title: 'ກ່າວເຖິງທ່ານ' },
+  cc:        { icon: Icon.mail,        cls: 'slate',  title: 'ໄດ້ຮັບສຳເນົາ (CC)' },
+  info:      { icon: Icon.bell,        cls: 'slate',  title: 'ການແຈ້ງເຕືອນ' },
+}
+function NotiCard({ n, onOpen }) {
+  const m = NOTI_META[n.kind] || NOTI_META.info
+  return (
+    <button className={`noti-card kind-${m.cls} ${n.read ? '' : 'unread'}`} onClick={() => n.docId && onOpen(n.docId)}>
+      <span className="noti-ic">{m.icon()}</span>
+      <div className="noti-c">
+        <b className="noti-title">{m.title}</b>
+        <p className="noti-txt">{n.text}</p>
+        <span className="noti-time">{n.time}</span>
+      </div>
+      {!n.read && <span className="noti-unread" />}
+    </button>
+  )
+}
+
+export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, onMockAction, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
+  const [tab, setTab] = useState('created')
+  const [nav, setNav] = useState('sign')
+  const [userMenu, setUserMenu] = useState(false)
+  const [fabMenu, setFabMenu] = useState(false)
+  const [pointsForm, setPointsForm] = useState(false)
+  const [openReqId, setOpenReqId] = useState(null) // เปิด detail ของ points req หลังสร้าง
+
+  // tab 1 ລໍຖ້າຜູ້ອື່ນ = request ທີ່ຂ້ອຍສ້າງ ແລະ ຍັງບໍ່ສຳເລັດ
+  // tab 2 ລົງນາມແລ້ວ = ຄົນອື່ນສ້າງ+ຂ້ອຍເຊັນແລ້ວ  ຫຼື  ຂ້ອຍສ້າງ+ເຊັນຄົບແລ້ວ (ບໍ່ແຍກຕາມຜູ້ສ້າງ)
+  const created = docs.filter((d) => d.creatorId === me && d.status !== 'done')
+  const signed = docs.filter((d) =>
+    (d.creatorId !== me && d.signers.some((s) => s.id === me && s.status === 'signed')) ||
+    (d.creatorId === me && d.status === 'done'))
+  // ໄດ້ຮັບ CC = ຄົນອื่นสร้าง + ฉันไม่ได้เป็นผู้เซ็น + ฉันอยู่ใน cc
+  const ccDocs = docs.filter((d) => d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me))
+  const myNotis = notis.filter((n) => n.forId === me)
+  const unread = myNotis.filter((n) => !n.read).length
+  const badge = { created: created.filter((d) => d.status === 'progress').length, signed: signed.length }
+
+  return (
+    <div className="app home">
+      <div className="home-header">
+        <div className="home-title-row">
+          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'profile' ? 'ໂປຣໄຟລ໌' : 'My e-Signature'}</h1>
+          <div className="home-actions">
+            {nav === 'sign' && <button className="home-iconbtn" onClick={onOpenSettings} title="ຕັ້ງຄ່າ"><Icon.gear /></button>}
+            <div className="user-wrap">
+              <button className="user-pill" onClick={() => setUserMenu((o) => !o)}>
+                <span className="user-pill-av" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
+                <Icon.chevron />
+              </button>
+              {userMenu && (<>
+                <div className="sort-backdrop" onClick={() => setUserMenu(false)} />
+                <div className="user-menu">
+                  <p className="user-menu-title"><Icon.swap /> ສະຫຼັບຜູ້ໃຊ້ (demo)</p>
+                  {USERS.map((u) => (
+                    <button key={u.id} className={`user-opt ${me === u.id ? 'on' : ''}`} onClick={() => { setMe(u.id); setUserMenu(false); setTab('created') }}>
+                      <span className="user-opt-av" style={avBg(u.id)}>{!avatarOf(u.id) && initials(u.name)}</span>
+                      <span className="user-opt-info"><b>{u.name}</b><em>{u.role}</em></span>
+                      {me === u.id && <Icon.check />}
+                    </button>
+                  ))}
+                </div>
+              </>)}
+            </div>
+          </div>
+        </div>
+        {nav === 'sign' && (
+          <div className="home-tabs">
+            {TABS.map((t) => (
+              <button key={t.key} className={`home-tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+                <span className="home-tab-ic">
+                  {t.icon()}
+                  {badge[t.key] > 0 && <span className="home-tab-badge">{badge[t.key]}</span>}
+                </span>
+                <span className="home-tab-lbl">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="scroll home-scroll">
+        {nav === 'approve' ? (
+          <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} onMockAction={onMockAction} openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
+        ) : nav === 'noti' ? (
+          myNotis.length === 0
+            ? <p className="empty-list">ຍັງບໍ່ມີການແຈ້ງເຕືອນ</p>
+            : myNotis.map((n) => <NotiCard key={n.id} n={n} onOpen={onOpenFromNoti} />)
+        ) : nav === 'profile' ? (
+          <div className="profile-view">
+            <span className="user-opt-av lg" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
+            <b className="profile-name">{nameOf(me)}</b>
+            <span className="profile-role">{USERS.find((u) => u.id === me)?.role}</span>
+          </div>
+        ) : tab === 'overview'
+          ? <Overview docs={docs} me={me} onOpen={onOpenDoc} />
+          : tab === 'cc'
+            ? (<><p className="cc-note"><Icon.users /> ເອກະສານທີ່ທ່ານໄດ້ຮັບສຳເນົາ (CC) — ເບິ່ງໄດ້ ບໍ່ຕ້ອງເຊັນ</p><DocList docs={ccDocs} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ໄດ້ຮັບ CC" creatorMode /></>)
+            : tab === 'created'
+              ? <DocList docs={created} me={me} onOpen={onOpenDoc} empty="ທ່ານຍັງບໍ່ໄດ້ສ້າງເອກະສານ" />
+              : <DocList docs={signed} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ທ່ານລົງນາມແລ້ວ" creatorMode />}
+      </div>
+
+      <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>
+      {fabMenu && (
+        <div className="modal-overlay" onClick={() => setFabMenu(false)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head"><b><Icon.plus /> ສ້າງຄຳຂໍໃໝ່</b><button className="icon-mini" onClick={() => setFabMenu(false)}><Icon.x /></button></div>
+            <div className="fab-opts">
+              <button className="fab-opt" onClick={() => { setFabMenu(false); setPointsForm(true) }}>
+                <span className="fab-opt-ic points"><Icon.chart /></span>
+                <div><b>ຂໍຄະແນນ Workboard</b><span>ຂໍຄະແນນ ໃຫ້ Activity ຫຼື Task</span></div><Icon.chevron />
+              </button>
+              <button className="fab-opt" onClick={() => { setFabMenu(false); onNew() }}>
+                <span className="fab-opt-ic esign"><Icon.pen /></span>
+                <div><b>ຂໍ e-Signature</b><span>ສ້າງເອກະສານ ຂໍລາຍເຊັນ / ອະນຸມັດ</span></div><Icon.chevron />
+              </button>
+              <button className="fab-opt" onClick={() => setFabMenu(false)}>
+                <span className="fab-opt-ic work"><Icon.book /></span>
+                <div><b>Work request</b><span>ຄຳຂໍວຽກ — ກຳລັງພັດທະນາ (ໄວໆນີ້)</span></div><Icon.chevron />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pointsForm && <PointsRequest me={me} onSubmit={onCreatePoints} onViewDetail={(r) => { setPointsForm(false); setNav('approve'); setOpenReqId(r.id) }} onClose={() => setPointsForm(false)} />}
+
+      <div className="home-bottomnav">
+        {[
+          { key: 'approve', label: 'ອະນຸມັດ', icon: Icon.checkCircle },
+          { key: 'sign', label: 'ລົງນາມ', icon: Icon.pen },
+          { key: 'noti', label: 'ແຈ້ງເຕືອນ', icon: Icon.bell, badge: unread },
+          { key: 'profile', label: 'ໂປຣໄຟລ໌', icon: Icon.user },
+        ].map((b) => (
+          <button key={b.key} className={`bnav ${nav === b.key ? 'active' : ''}`} onClick={() => { setNav(b.key); if (b.key === 'noti') onMarkRead() }}>
+            <span className="bnav-ic">{b.icon()}{b.badge > 0 && <span className="bnav-badge">{b.badge}</span>}</span>
+            <span>{b.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
