@@ -457,7 +457,9 @@ body {
 .fab { position: absolute; left: 50%; transform: translateX(-50%); bottom: 78px; z-index: 20; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2a4fd0, var(--blue-dark)); color: #fff; border: none; border-radius: 28px; padding: 14px 24px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 8px 22px rgba(31,63,181,.45); }
 .fab:active { transform: translateX(-50%) scale(.97); }
 .home-bottomnav { display: flex; background: #fff; border-top: 1px solid var(--line); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
-.bnav { flex: 1; background: none; border: none; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; padding: 4px; }
+/* 5 ປຸ່ມ → ບີບ padding/font ໃຫ້ພໍດີຈໍມືຖື */
+.bnav { flex: 1; min-width: 0; background: none; border: none; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); font-size: 10.5px; padding: 4px 2px; }
+.bnav > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bnav svg { width: 22px; height: 22px; }
 .bnav.active { color: #1f3fb5; font-weight: 700; }
 
@@ -1193,6 +1195,77 @@ button.ac-card:active { transform: scale(.99); }
 /* ─────────── settings: ລຶບລາຍເຊັນ ─────────── */
 .btn.danger-ghost { background: #fff; border: 1px solid #fecaca; color: #dc2626; }
 .btn.danger-ghost:hover { background: #fef2f2; }
+
+/* ═══════════ ໂມດູນ "ຄຳຂໍ" (Request) — ລາພັກ / ວຽກນອກ / ໂອທີ ═══════════ */
+/* tab ຫຼັກ 3 ໝວດ */
+.req-tabs { display: flex; background: #fff; border-bottom: 1px solid var(--line); }
+.req-tab { flex: 1; min-width: 0; background: none; border: none; border-bottom: 2.5px solid transparent; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 4px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.req-tab svg { width: 17px; height: 17px; flex-shrink: 0; }
+.req-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-tab.on { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ຕົວກອງຍ່ອຍ (ຄຳຂໍຂອງຂ້ອຍ / ລໍຖ້າອະນຸມັດ) */
+.req-subs { display: flex; gap: 8px; padding: 12px 16px 4px; }
+.req-sub { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.req-sub.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* ການ໌ດຄຳຂໍ */
+.req-list { padding: 10px 16px 90px; display: flex; flex-direction: column; gap: 10px; }
+.req-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px; cursor: pointer; font-family: inherit; box-shadow: 0 1px 3px rgba(16,24,40,.04); }
+.req-card:hover { border-color: #c7d2fe; box-shadow: 0 4px 14px rgba(31,63,181,.08); }
+.req-card > svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; transform: rotate(-90deg); }
+.req-card-ic { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; color: #fff; }
+.req-card-ic svg { width: 21px; height: 21px; }
+.req-card-ic.leave { background: #8b5e3c; }
+.req-card-ic.offsite { background: var(--blue); }
+.req-card-ic.ot { background: #7c3aed; }
+.req-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.req-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.req-card-top b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-card-when { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text); }
+.req-card-when svg { width: 13px; height: 13px; color: var(--muted); }
+.req-card-when svg:nth-of-type(2) { margin-left: 6px; }
+.req-card-note { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* chip ຂອງ ໂອທີ (ຊົ່ວໂມງ / ຈຳນວນ / ຜູ້ຂໍ) */
+.req-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.req-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px;
+  font-size: 11px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-chip svg { width: 12px; height: 12px; flex-shrink: 0; }
+.req-chip.hl { background: #eff4ff; border-color: #c7d2fe; color: var(--blue); font-weight: 700; }
+
+/* ສະຖານະ */
+.req-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 9px; white-space: nowrap; flex-shrink: 0; }
+.req-badge.wait { background: #fff5e6; color: #b45309; }
+.req-badge.done { background: #e8f7ee; color: #15803d; }
+.req-badge.rej { background: #fdeaea; color: #b91c1c; }
+.req-badge.cancel { background: #eef1f6; color: var(--muted); }
+
+/* hero ໜ້າລາຍລະອຽດ */
+.req-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 20px 16px; margin-bottom: 12px; }
+.req-hero-ic { width: 56px; height: 56px; border-radius: 15px; display: grid; place-items: center; color: #fff; }
+.req-hero-ic svg { width: 27px; height: 27px; }
+.req-hero-ic.leave { background: #8b5e3c; }
+.req-hero-ic.offsite { background: var(--blue); }
+.req-hero-ic.ot { background: #7c3aed; }
+.req-hero b { font-size: 17px; text-align: center; }
+
+/* ຟອມສ້າງຄຳຂໍ */
+.req-form { padding: 14px 16px 18px; }
+.req-f-label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 12px 0 6px; }
+.req-f-label:first-child { margin-top: 0; }
+.req-f-row { display: flex; gap: 10px; }
+.req-f-row > div { flex: 1; }
+.req-f-hint { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--blue); font-weight: 700; margin: 8px 0 0; }
+.req-f-hint svg { width: 14px; height: 14px; }
+.req-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.req-opt { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; color: var(--text); }
+.req-opt.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
 
 /* ─────────── ປຸ່ມປະຕິເສດ / ຍົກເລີກ — ສີແດງທຶບ ໃຊ້ຮ່ວມທຸກທີ່ ─────────── */
 .btn.danger { background: var(--danger); border: 1px solid var(--danger); color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,.28); }

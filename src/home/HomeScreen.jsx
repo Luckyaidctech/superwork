@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Icon, initials, Header, ResultPopup, ReasonModal } from '../flow/shared.jsx'
+import RequestScreen, { REQ_KINDS } from './RequestScreen.jsx'
 import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf } from './data.js'
 import PointsRequest from './PointsRequest.jsx'
 
@@ -390,34 +391,12 @@ const AC_CATS = [
 // icon ຂອງ card ໃຫ້ຕົງກັບ tab หมวด
 const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.user, offsite: Icon.pin, booking: Icon.book, knowledge: Icon.doc, points: Icon.chart }
 const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', leave: 'ລາພັກ', offsite: 'ວຽກນອກສະຖານທີ', booking: 'ການຈອງ', knowledge: 'ຄວາມຮູ້', points: 'ຄະແນນ' }
-// byId = ຜູ້ຂໍຈິງ (ຈາກ USERS) → ເມື່ອອະນຸມັດ/ປະຕິເສດ ຈະສົ່ງແຈ້ງເຕືອນຫາຄົນນັ້ນໄດ້ຈິງ (end-to-end)
-const AC_MOCK = {
-  ot: [
-    { id: 'ot1', title: 'AIDC work', byId: 'G', note: 'Urgent deadline', date: '14/07/2026', status: 'approved' },
-    { id: 'ot2', title: 'AIDC work', byId: 'G', note: 'Client request', date: '12/07/2026', status: 'progress' },
-  ],
-  leave: [
-    { id: 'lv1', title: 'Sick leave', byId: 'G', note: 'Feeling unwell / fever', date: '9/08/2026', status: 'approved' },
-    { id: 'lv2', title: 'Other leave', byId: 'G', note: 'Personal errand', date: '4/08/2026', status: 'progress' },
-    { id: 'lv3', title: 'Annual leave', byId: 'F', note: 'Vacation', date: '20/08/2026', status: 'rejected' },
-  ],
-  offsite: [
-    { id: 'of1', title: 'ພົບລູກຄ້າ ທະນາຄານ BCEL', byId: 'G', note: 'ນະຄອນຫຼວງວຽງຈັນ', date: '15/07/2026', status: 'progress' },
-    { id: 'of2', title: 'ຕິດຕັ້ງລະບົບ ໜ້າງານ HAIXIN', byId: 'F', note: 'ໂຮງງານ ນອກເມືອງ', date: '13/07/2026', status: 'approved' },
-    { id: 'of3', title: 'ອົບຮົມ ທີມງານ ສາຂາ ປາກເຊ', byId: 'B', note: 'ແຂວງ ຈຳປາສັກ', date: '10/07/2026', status: 'progress' },
-  ],
-  booking: [
-    { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'Conference Room A', date: '2/04/2026', status: 'cancelled' },
-    { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ', date: '3/07/2026', status: 'approved' },
-  ],
-  knowledge: [
-    { id: 'kn1', title: 'Run for our forest', byId: 'G', note: 'Compliance · General', date: '23/06/2026', status: 'approved' },
-  ],
-}
+// ຂໍ້ມູນຄຳຂໍ (leave/offsite/ot/booking/knowledge) ຢູ່ໃນ App.jsx (initialReqs) → ສົ່ງລົງມາທາງ props
+// ເພື່ອໃຫ້ ໂມດູນ "ຄຳຂໍ" ແລະ "ການອະນຸມັດ" ເຫັນຂໍ້ມູນຊຸດດຽວກັນ
 const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: '' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' } }
 const AC_SF = [{ key: 'all', label: 'ທັງໝົດ' }, { key: 'waiting', label: 'ລໍຖ້າອະນຸມັດ' }, { key: 'approved', label: 'ອະນຸມັດແລ້ວ' }, { key: 'rejected', label: 'ປະຕິເສດ' }]
 
-function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, onMockAction, openReqId, onConsumeOpen }) {
+function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, openReqId, onConsumeOpen }) {
   const [cat, setCat] = useState('all')
   const [sf, setSf] = useState('all')
   const [acDetail, setAcDetail] = useState(null) // request detail (mock ຫຼື points req)
@@ -428,7 +407,6 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
   const [cmtEditId, setCmtEditId] = useState(null)
   const [cmtEditText, setCmtEditText] = useState('')
   const [rejMode, setRejMode] = useState(false)
-  const [mocks, setMocks] = useState(() => JSON.parse(JSON.stringify(AC_MOCK))) // mock request → state ໃຫ້ approve/reject ປ່ຽນ status ໄດ້
   const acAct = (m) => { setAcDetail(null); setRejMode(false); setAcFlash(m); setTimeout(() => setAcFlash(''), 2200) }
   // เปิด detail ของ req ที่เพิ่งสร้าง (หลังกด "ເບิ่งรายละเอียด")
   useEffect(() => {
@@ -448,9 +426,9 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     })
   const esignPending = esignItems.filter((i) => i.status === 'esign').length // badge = ທີ່ລໍຖ້າ me ເຊັນ
   const pointsItems = pointsReqs.map((r) => ({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, sub: r.target === 'task' ? 'Task' : 'Activity', proj: r.projectName, req: r }))
-  const mockItems = (k) => (mocks[k] || []).map((m) => ({ kind: k, ...m, by: nameOf(m.byId) }))
+  const mockItems = (k) => (reqs[k] || []).map((m) => ({ kind: k, ...m, by: nameOf(m.byId) }))
   const base = cat === 'all'
-    ? [...esignItems, ...pointsItems, ...Object.keys(mocks).flatMap(mockItems)]
+    ? [...esignItems, ...pointsItems, ...Object.keys(reqs).flatMap(mockItems)]
     : cat === 'esign' ? esignItems
       : cat === 'points' ? pointsItems
         : mockItems(cat)
@@ -605,15 +583,14 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
               {(() => {
                 const isProgress = (detailReq || acDetail).status === 'progress'
                 const canAct = detailReq ? (me === director && isProgress) : isProgress // points: director / mock: ใครก็อนุมัดได้
-                const setMockStatus = (st, rsn) => setMocks((ms) => ({ ...ms, [acDetail.kind]: (ms[acDetail.kind] || []).map((m) => m.id === acDetail.id ? { ...m, status: st, ...(rsn ? { reason: rsn } : {}) } : m) }))
                 const doApprove = () => {
                   if (detailReq) onPointsAction(detailReq.id, 'approved')
-                  else { setMockStatus('approved'); onMockAction?.(acDetail, 'approved') }
+                  else onReqAction(acDetail.kind, acDetail.id, 'approved')
                   setAcPopup({ msg: 'ອະນຸມັດຄຳຂໍສຳເລັດ!' })
                 }
                 const doReject = (rsn) => {
                   if (detailReq) onPointsAction(detailReq.id, 'rejected', rsn)
-                  else { setMockStatus('rejected', rsn); onMockAction?.(acDetail, 'rejected', rsn) }
+                  else onReqAction(acDetail.kind, acDetail.id, 'rejected', rsn)
                   setRejMode(false)
                   setAcPopup({ msg: 'ໄດ້ປະຕິເສດຄຳຂໍແລ້ວ', danger: true })
                 }
@@ -675,6 +652,7 @@ const NOTI_META = {
   sign:      { icon: Icon.pen,         cls: 'blue',   title: 'ຄຳຂໍລົງນາມ' },
   reminder:  { icon: Icon.bell,        cls: 'amber',  title: 'ເຕືອນລົງນາມ' },
   signed:    { icon: Icon.checkCircle, cls: 'green',  title: 'ມີການລົງນາມ' },
+  approved:  { icon: Icon.checkCircle, cls: 'green',  title: 'ອະນຸມັດແລ້ວ' },
   done:      { icon: Icon.checkCircle, cls: 'green',  title: 'ສຳເລັດຄົບຖ້ວນ' },
   rejected:  { icon: Icon.warn,        cls: 'red',    title: 'ຖືກປະຕິເສດ' },
   cancelled: { icon: Icon.x2,          cls: 'red',    title: 'ຍົກເລີກຄຳຂໍ' },
@@ -699,7 +677,7 @@ function NotiCard({ n, onOpen }) {
   )
 }
 
-export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, onMockAction, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
+export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
   const [tab, setTab] = useState('created')
   const [nav, setNav] = useState('sign')
   const [userMenu, setUserMenu] = useState(false)
@@ -718,12 +696,14 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
   const myNotis = notis.filter((n) => n.forId === me)
   const unread = myNotis.filter((n) => !n.read).length
   const badge = { created: created.filter((d) => d.status === 'progress').length, signed: signed.length }
+  // badge ໂມດູນ "ຄຳຂໍ" = ຄຳຂໍ 3 ໝວດ ທີ່ຄົນອື່ນສົ່ງມາ ແລະ ລໍຖ້າຂ້ອຍອະນຸມັດ
+  const reqPending = REQ_KINDS.reduce((n, k) => n + (reqs[k.key] || []).filter((r) => r.byId !== me && r.status === 'progress').length, 0)
 
   return (
     <div className="app home">
       <div className="home-header">
         <div className="home-title-row">
-          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'profile' ? 'ໂປຣໄຟລ໌' : 'My e-Signature'}</h1>
+          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'request' ? 'ຄຳຂໍ' : nav === 'profile' ? 'ໂປຣໄຟລ໌' : 'My e-Signature'}</h1>
           <div className="home-actions">
             {nav === 'sign' && <button className="home-iconbtn" onClick={onOpenSettings} title="ຕັ້ງຄ່າ"><Icon.gear /></button>}
             <div className="user-wrap">
@@ -764,7 +744,9 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
 
       <div className="scroll home-scroll">
         {nav === 'approve' ? (
-          <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} onMockAction={onMockAction} openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
+          <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} reqs={reqs} onReqAction={onReqAction} openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
+        ) : nav === 'request' ? (
+          <RequestScreen me={me} director={director} reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq} />
         ) : nav === 'noti' ? (
           myNotis.length === 0
             ? <p className="empty-list">ຍັງບໍ່ມີການແຈ້ງເຕືອນ</p>
@@ -784,7 +766,8 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
               : <DocList docs={signed} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ທ່ານລົງນາມແລ້ວ" creatorMode />}
       </div>
 
-      <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>
+      {/* ໂມດູນ "ຄຳຂໍ" ມີ FAB ຂອງຕົນເອງ (ສ້າງຄຳຂໍຕາມ tab ທີ່ເປີດຢູ່) → ບໍ່ໂຊ FAB ກາງ */}
+      {nav !== 'request' && <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>}
       {fabMenu && (
         <div className="modal-overlay" onClick={() => setFabMenu(false)}>
           <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
@@ -812,6 +795,7 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         {[
           { key: 'approve', label: 'ອະນຸມັດ', icon: Icon.checkCircle },
           { key: 'sign', label: 'ລົງນາມ', icon: Icon.pen },
+          { key: 'request', label: 'ຄຳຂໍ', icon: Icon.inbox, badge: reqPending },
           { key: 'noti', label: 'ແຈ້ງເຕືອນ', icon: Icon.bell, badge: unread },
           { key: 'profile', label: 'ໂປຣໄຟລ໌', icon: Icon.user },
         ].map((b) => (

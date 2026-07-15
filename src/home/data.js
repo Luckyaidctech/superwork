@@ -22,6 +22,37 @@ export const colorOf = (id) => CMAP[id] || CPAL[((id || 'x').charCodeAt((id || '
 let _id = 100
 export const uid = () => `x${++_id}`
 
+// ── ຄຳຂໍທົ່ວໄປ (ບໍ່ແມ່ນ e-Signature) — ໃຊ້ຮ່ວມກັນ 2 ໂມດູນ: ໂມດູນ "ຄຳຂໍ" (ຝ່າຍຜູ້ຂໍ) ແລະ "ການອະນຸມັດ" (ຝ່າຍຜູ້ອະນຸມັດ)
+// req: { id, title, byId, note, date, from?, to?, hours?, status:'progress'|'approved'|'rejected'|'cancelled', reason? }
+export function initialReqs() {
+  return {
+    leave: [
+      { id: 'lv1', title: 'ລາປ່ວຍ', byId: 'G', note: 'ບໍ່ສະບາຍ ເປັນໄຂ້', date: '09/08/2026', from: '08:30', to: '17:30', status: 'approved' },
+      { id: 'lv2', title: 'ລາກິດ', byId: 'G', note: 'ວຽກສ່ວນຕົວ', date: '04/08/2026', from: '08:30', to: '17:30', status: 'progress' },
+      { id: 'lv3', title: 'ລາພັກປະຈຳປີ', byId: 'F', note: 'ພັກຜ່ອນ', date: '20/08/2026', from: '08:30', to: '17:30', status: 'rejected', reason: 'ຊ່ວງນີ້ວຽກດ່ວນຫຼາຍ' },
+      { id: 'lv4', title: 'ລາກິດ', byId: 'A', note: 'ວຽກສ່ວນຕົວ', date: '15/07/2026', from: '08:30', to: '17:30', status: 'progress' },
+    ],
+    offsite: [
+      { id: 'of1', title: 'ພົບລູກຄ້າ ທະນາຄານ BCEL', byId: 'G', note: 'ນະຄອນຫຼວງວຽງຈັນ', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
+      { id: 'of2', title: 'ຕິດຕັ້ງລະບົບ ໜ້າງານ HAIXIN', byId: 'F', note: 'ໂຮງງານ ນອກເມືອງ', date: '13/07/2026', from: '08:00', to: '17:00', status: 'approved' },
+      { id: 'of3', title: 'ອົບຮົມ ທີມງານ ສາຂາ ປາກເຊ', byId: 'B', note: 'ແຂວງ ຈຳປາສັກ', date: '10/07/2026', from: '08:00', to: '17:00', status: 'progress' },
+      { id: 'of4', title: 'ທົດສອບລະບົບ ໜ້າງານ', byId: 'A', note: 'BOL', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
+    ],
+    ot: [
+      { id: 'ot1', title: 'AIDC work', byId: 'G', note: 'ວຽກດ່ວນ ໃກ້ກຳນົດສົ່ງ', date: '14/07/2026', from: '17:30', to: '20:30', hours: '3h 0m', status: 'approved' },
+      { id: 'ot2', title: 'AIDC work', byId: 'G', note: 'ລູກຄ້າຮ້ອງຂໍ', date: '12/07/2026', from: '17:30', to: '21:30', hours: '4h 0m', status: 'progress' },
+      { id: 'ot3', title: 'Dev super work', byId: 'A', note: 'ພັດທະນາ Super Work', date: '15/07/2026', from: '17:30', to: '20:30', hours: '3h 0m', status: 'progress' },
+    ],
+    booking: [
+      { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'Conference Room A', date: '02/04/2026', from: '09:00', to: '11:00', status: 'cancelled' },
+      { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ', date: '03/07/2026', from: '08:00', to: '17:00', status: 'approved' },
+    ],
+    knowledge: [
+      { id: 'kn1', title: 'Run for our forest', byId: 'G', note: 'Compliance · General', date: '23/06/2026', status: 'approved' },
+    ],
+  }
+}
+
 // doc: { id, title, creatorId, date, ts, files[{name,pages,summary?}], attachments[], cc[ids], signers[], comments[], status }
 // signer: { id, step, status:'pending'|'viewed'|'signed'|'rejected', role:'signer'|'approver', time?, reason? }
 // ── ໂຄງສ້າງ flow: ພະນັກງານສ້າງ → ຫົວໜ້າพะแนก → ຜู้อำนวยการ(C) approve ສุดท้าย → C ເຊັນຫຼາຍສຸດ ──

@@ -4,7 +4,7 @@ import DocDetail from './home/DocDetail.jsx'
 import SignatureFlow from './flow/SignatureFlow.jsx'
 import SignScreen from './flow/SignScreen.jsx'
 import Settings from './flow/Settings.jsx'
-import { initialDocs, uid, nameOf, isMyTurn } from './home/data.js'
+import { initialDocs, initialReqs, uid, nameOf, isMyTurn } from './home/data.js'
 
 // noti เริ่มต้น: แจ้งผู้เซ็นที่ถึงคิว (ให้เข้าถึง request ที่ต้องเซ็นได้ ผ่านกระดิ่ง)
 function buildInitialNotis(ds) {
@@ -38,6 +38,7 @@ export default function App() {
   const [notis, setNotis] = useState(() => buildInitialNotis(initialDocs())) // { id, forId, text, docId, time, read }
   const [openId, setOpenId] = useState(null)
   const [signId, setSignId] = useState(null)
+  const [reqs, setReqs] = useState(initialReqs) // ຄຳຂໍທົ່ວໄປ — ໃຊ້ຮ່ວມ ໂມດູນ "ຄຳຂໍ" ແລະ "ການອະນຸມັດ"
   const [mySigs, setMySigs] = useState({}) // { [userId]: dataURL } ລາຍເຊັນທີ່ບັນທຶກ
   const [bios, setBios] = useState({}) // { [userId]: bool } — biometric (Face ID / ລາຍນິ້ວມື) ຢືนยันตอนลงนาม
   // ຄຳຂໍຄະແນນ Workboard (seed + ທີ່ສ້າງໃໝ່) — ທຸກອັນໃຊ້ detail hero ດຽວກັນ
@@ -103,7 +104,7 @@ export default function App() {
     const r = pointsReqs.find((p) => p.id === id)
     if (r && r.by !== me) pushNoti(r.by, action === 'approved'
       ? `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ໄດ້ຮັບອະນຸມັດ`
-      : `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`, null, action === 'approved' ? 'signed' : 'rejected')
+      : `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`, null, action === 'approved' ? 'approved' : 'rejected')
   }
 
   // ── ผู้เซ็นปฏิเสธ → แจ้งเตือนผู้สร้าง ──
@@ -163,13 +164,27 @@ export default function App() {
     const d = docs.find((x) => x.id === docId)
     d?.signers.forEach((s) => { if (s.id !== me) pushNoti(s.id, `${nameOf(me)} ໄດ້ຍົກເລີກ "${d.title}"${reason ? ` — ${reason}` : ''}`, docId, 'cancelled') })
   }
-  // ── ອະນຸມັດ / ປະຕິເສດ ຄຳຂໍທົ່ວໄປ (ໂອທີ / ລາພັກ / ວຽກນອກ / ຈອງ / ຄວາມຮູ້) → ແຈ້ງເຕືອນຜູ້ຂໍ ──
-  const onMockAction = (item, action, reason) => {
-    if (!item?.byId || item.byId === me) return
-    pushNoti(item.byId, action === 'approved'
-      ? `ຄຳຂໍ "${item.title}" ຂອງທ່ານ ໄດ້ຮັບອະນຸມັດ`
-      : `ຄຳຂໍ "${item.title}" ຂອງທ່ານ ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`,
-      null, action === 'approved' ? 'signed' : 'rejected')
+  // ── ຄຳຂໍທົ່ວໄປ (ໂອທີ / ລາພັກ / ວຽກນອກ / ຈອງ / ຄວາມຮູ້) — ໃຊ້ຮ່ວມ 2 ໂມດູນ ──
+  // ອະນຸມັດ / ປະຕິເສດ → ປ່ຽນ status ຈິງ + ແຈ້ງເຕືອນຜູ້ຂໍ (ໂຊທັງ 2 ໂມດູນ)
+  const onReqAction = (kind, id, action, reason) => {
+    setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id ? { ...r, status: action, reason } : r)) }))
+    const r = (reqs[kind] || []).find((x) => x.id === id)
+    if (!r || r.byId === me) return
+    pushNoti(r.byId, action === 'approved'
+      ? `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ໄດ້ຮັບອະນຸມັດ`
+      : `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`,
+      null, action === 'approved' ? 'approved' : 'rejected')
+  }
+  // ສ້າງຄຳຂໍໃໝ່ → ເຂົ້າຄິວລໍຖ້າອະນຸມັດ + ແຈ້ງຜູ້ອຳນວຍການ
+  const onCreateReq = (kind, data) => {
+    const r = { id: uid(), byId: me, status: 'progress', ...data }
+    setReqs((rs) => ({ ...rs, [kind]: [r, ...(rs[kind] || [])] }))
+    if (me !== DIRECTOR) pushNoti(DIRECTOR, `${nameOf(me)} ສົ່ງຄຳຂໍ "${r.title}" ລໍຖ້າອະນຸມັດ`, null, 'points')
+    return r
+  }
+  // ຜູ້ຂໍຍົກເລີກຄຳຂໍຂອງຕົນເອງ
+  const onCancelReq = (kind, id, reason) => {
+    setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id ? { ...r, status: 'cancelled', reason } : r)) }))
   }
   // ── เตือนผู้ที่ยังไม่ลงนาม ──
   const onRemind = (docId) => {
@@ -204,7 +219,8 @@ export default function App() {
       onReject={onReject} onSign={onStartSign} onComment={onComment} onCancel={onCancel} onRemind={onRemind}
       onEditComment={onEditComment} onDeleteComment={onDeleteComment} />
   return <HomeScreen me={me} setMe={setMe} docs={docs} notis={notis}
-    pointsReqs={pointsReqs} director={DIRECTOR} onCreatePoints={onCreatePoints} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} onMockAction={onMockAction}
+    pointsReqs={pointsReqs} director={DIRECTOR} onCreatePoints={onCreatePoints} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction}
+    reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq}
     onMarkRead={markMyNotisRead} onNew={() => setView('create')} onOpenDoc={openDoc} onOpenFromNoti={openDoc}
     onOpenSettings={() => setView('settings')} />
 }
