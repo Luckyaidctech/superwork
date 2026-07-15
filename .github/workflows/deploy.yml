@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # ເປີດ Pages ໃຫ້ອັດຕະໂນມັດ ຖ້າຍັງບໍ່ໄດ້ເປີດໃນ repo settings
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
