@@ -3,7 +3,7 @@ import { Icon, initials, Header, ResultPopup, ReasonModal } from '../flow/shared
 import RequestScreen, { REQ_KINDS, KIND_META, ReqCard, RequestDetailBody } from './RequestScreen.jsx'
 import KnowledgeScreen, { KnowledgeDetailBody } from './KnowledgeScreen.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
-import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel } from './data.js'
+import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, sortPendingFirst } from './data.js'
 import PointsRequest from './PointsRequest.jsx'
 
 // avatar style: ຮູບໂປຣไฟล์ (ຖ້າມີ) ຫຼື ສີພື້ນ
@@ -397,7 +397,8 @@ const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.umbrella, offsite
 const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', leave: 'ລາພັກ', offsite: 'ວຽກນອກສະຖານທີ', booking: 'ການຈອງ', knowledge: 'ຄວາມຮູ້', points: 'ຄະແນນ' }
 // ຂໍ້ມູນຄຳຂໍ (leave/offsite/ot/booking/knowledge) ຢູ່ໃນ App.jsx (initialReqs) → ສົ່ງລົງມາທາງ props
 // ເພື່ອໃຫ້ ໂມດູນ "ຄຳຂໍ" ແລະ "ການອະນຸມັດ" ເຫັນຂໍ້ມູນຊຸດດຽວກັນ
-const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: '' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' } }
+// ໃຊ້ class badge ດຽວກັບການ໌ດຄຳຂໍ (.req-badge) → ທຸກການ໌ດໃນ tab "ທັງໝົດ" ໜ້າຕາເທົ່າກັນ
+const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: 'wait' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' }, draft: { t: 'ຮ່າງ', c: 'cancel' } }
 const AC_SF = [{ key: 'all', label: 'ທັງໝົດ' }, { key: 'waiting', label: 'ລໍຖ້າອະນຸມັດ' }, { key: 'approved', label: 'ອະນຸມັດແລ້ວ' }, { key: 'rejected', label: 'ປະຕິເສດ' }]
 
 function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment, openReqId, onConsumeOpen }) {
@@ -434,7 +435,7 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
   // ⚠ ຄະແນນ: ຍັງໂຊຂອງຕົນເອງຢູ່ — ເພາະໂມດູນ "ຄຳຂໍ" ຍັງບໍ່ມີ tab ຄະແນນ ໃຫ້ມັນຢູ່
   //   ຖ້າກອງອອກຕອນນີ້ ຄຳຂໍຄະແນນຂອງຕົນເອງຈະຫາຍໄປເລີຍ (ບໍ່ມີບ່ອນເບິ່ງ)
   //   → ຕ້ອງເພີ່ມ tab ຄະແນນ ໃນໂມດູນ "ຄຳຂໍ" ກ່ອນ ຈຶ່ງກອງໄດ້
-  const pointsItems = pointsReqs.map((r) => ({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, sub: r.target === 'task' ? 'Task' : 'Activity', proj: r.projectName, req: r }))
+  const pointsItems = pointsReqs.map((r) => ({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, byId: r.by, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, sub: r.target === 'task' ? 'Task' : 'Activity', proj: r.projectName, req: r }))
   // ໂມດູນ "ການອະນຸມັດ" = ຄຳຂໍຂອງ "ຄົນອື່ນ" ເທົ່ານັ້ນ (ຂອງຕົນເອງ ຢູ່ໂມດູນ "ຄຳຂໍ" — ບໍ່ຊ້ຳກັນ
   // ແລະ ຕົນເອງ ອະນຸມັດຄຳຂໍຕົນເອງບໍ່ໄດ້ຢູ່ແລ້ວ)
   //   + ໂພສຄວາມຮູ້ທີ່ຍັງເປັນ "ຮ່າງ" (draft) → ຍັງບໍ່ໄດ້ສົ່ງ ຜູ້ອະນຸມັດບໍ່ຄວນເຫັນ
@@ -448,7 +449,8 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     || (sf === 'waiting' && (m.status === 'esign' || m.status === 'progress'))
     || (sf === 'approved' && m.status === 'approved')
     || (sf === 'rejected' && (m.status === 'rejected' || m.status === 'cancelled'))
-  const list = base.filter(matchSf)
+  // ທີ່ລໍຖ້າອະນຸມັດ ຂຶ້ນກ່ອນ ແລ້ວຮຽງຕາມວັນທີ (ໃກ້ຮອດກ່ອນ) — ທຸກ tab
+  const list = sortPendingFirst(base.filter(matchSf))
 
   // ── badge ແຕ່ລະ tab = ຈຳນວນທີ່ "ລໍຖ້າຂ້ອຍດຳເນີນການ" ຈິງ ──
   //    ຂໍລາຍເຊັນ: ຮອບຂ້ອຍເຊັນ · ຄະແນນ: ຂ້ອຍເປັນ director · ຄຳຂໍທົ່ວໄປ: ຂອງຄົນອື່ນ ທີ່ຍັງລໍຖ້າ
@@ -465,31 +467,42 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     if (KIND_META[m.kind]) return <ReqCard key={m.id} r={m} kind={m.kind} showBy onOpen={() => setAcDetail(m)} />
     const isEsign = m.kind === 'esign'
     const st = isEsign
-      ? (m.status === 'esign' ? { t: 'ລໍຖ້າລົງນາມ', c: '' } : m.status === 'approved' ? { t: 'ເຊັນແລ້ວ', c: 'done' } : { t: 'ປະຕິເສດ', c: 'rej' })
-      : AC_STATUS[m.status]
+      ? (m.status === 'esign' ? { t: 'ລໍຖ້າລົງນາມ', c: 'wait' } : m.status === 'approved' ? { t: 'ເຊັນແລ້ວ', c: 'done' } : { t: 'ປະຕິເສດ', c: 'rej' })
+      : AC_STATUS[m.status] || AC_STATUS.progress
     const CardIcon = AC_ICON[m.kind] || Icon.checkCircle
-    const inner = (<>
-      <span className={`ac-ic ${isEsign ? 'esign' : ''} ${m.kind}`}><CardIcon /></span>
-      <div className="ac-body">
-        <b>{m.title}</b>
-        <span className="ac-by">{m.by}</span>
-        <span className="ac-date">
-          <span className="ac-type">{AC_LABEL[m.kind]}</span>
-          {m.sub && <span className={`ac-sub ${m.sub.toLowerCase()}`}>{m.sub}</span>}
-          {m.proj ? ` ${m.proj} · ` : ' · '}{m.date}
-        </span>
-        {/* ຜູ້ລົງນາມ: ໂຊ avatar + ຕິກຖືກ ຄົນທີ່ເຊັນແລ້ວ (ຄືກັບໂມດູນ ລົງນາມ) */}
-        {isEsign && m.signers?.length > 0 && (
-          <span className="ac-avs">
-            {m.signers.map((s) => <Av key={s.id} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
-            <em>{m.signers.filter((s) => s.status === 'signed').length}/{m.signers.length} ດຳເນີນການແລ້ວ</em>
-          </span>
-        )}
-      </div>
-      <span className={`ac-status ${st.c}`}>{st.t}</span>
-    </>)
+    // ໂຄງດຽວກັບ ReqCard → badge ຢູ່ແຖວດຽວກັບຫົວຂໍ້ ທຸກການ໌ດ (ບໍ່ແມ່ນລອຍກາງ)
     return (
-      <button className="ac-card" key={m.id} onClick={() => (isEsign ? onOpen(m.docId) : setAcDetail(m))}>{inner}</button>
+      <button className="req-card" key={m.id} onClick={() => (isEsign ? onOpen(m.docId) : setAcDetail(m))}>
+        <span className={`req-card-ic ${m.kind}`}><CardIcon /></span>
+        <div className="req-card-body">
+          <div className="req-card-top">
+            <b>{m.title}</b>
+            <span className={`req-badge ${st.c}`}>{st.t}</span>
+          </div>
+          <span className="req-card-when">
+            <Icon.calendar /> {m.date}
+            {m.proj && <><Icon.layers /> {m.proj}</>}
+          </span>
+          <div className="req-chips">
+            <span className="req-chip">{AC_LABEL[m.kind]}</span>
+            {m.sub && <span className="req-chip hl">{m.sub}</span>}
+          </div>
+          {/* ຜູ້ລົງນາມ: avatar + ຕິກຖືກ ຄົນທີ່ເຊັນແລ້ວ (ຄືກັບໂມດູນ ລົງນາມ) */}
+          {isEsign && m.signers?.length > 0 && (
+            <span className="ac-avs">
+              {m.signers.map((s) => <Av key={s.id} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
+              <em>{m.signers.filter((s) => s.status === 'signed').length}/{m.signers.length} ດຳເນີນການແລ້ວ</em>
+            </span>
+          )}
+          {!isEsign && m.byId && (
+            <span className="req-card-by">
+              <span className="req-card-av" style={avBg(m.byId)}>{!avatarOf(m.byId) && initials(m.by)}</span>
+              <b>{m.by}</b>
+            </span>
+          )}
+        </div>
+        <Icon.chevron />
+      </button>
     )
   }
   return (
@@ -823,8 +836,11 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
               : <DocList docs={signed} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ທ່ານລົງນາມແລ້ວ" creatorMode />}
       </div>
 
-      {/* ໂມດູນ "ຄຳຂໍ" ມີ FAB ຂອງຕົນເອງ (ສ້າງຄຳຂໍຕາມ tab ທີ່ເປີດຢູ່) → ບໍ່ໂຊ FAB ກາງ */}
-      {nav !== 'request' && <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>}
+      {/* ໂມດູນທີ່ມີ FAB ຂອງຕົນເອງ (ສ້າງຕາມ tab ທີ່ເປີດຢູ່) → ບໍ່ໂຊ FAB ກາງ ບໍ່ດັ່ງນັ້ນຈະຊ້ອນກັນ 2 ປຸ່ມ
+          ເພີ່ມໂມດູນໃໝ່ທີ່ມີ FAB ເອງ → ຕ້ອງເພີ່ມຊື່ໃສ່ນີ້ນຳ */}
+      {!['request', 'knowledge'].includes(nav) && (
+        <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>
+      )}
       {fabMenu && (
         <div className="modal-overlay" onClick={() => setFabMenu(false)}>
           <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>

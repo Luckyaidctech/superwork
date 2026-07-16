@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Icon, Header, ResultPopup, ReasonModal, initials } from '../flow/shared.jsx'
-import { nameOf, colorOf, avatarOf, approvalChain, KN_CATS, KN_TYPES, KN_STATUS } from './data.js'
+import { nameOf, colorOf, avatarOf, approvalChain, sortPendingFirst, KN_CATS, KN_TYPES, KN_STATUS } from './data.js'
 import KnowledgeForm from './KnowledgeForm.jsx'
 import CommentBox from './CommentBox.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
@@ -46,9 +46,16 @@ export function KnowledgeDetailBody({ post, me, onPreview }) {
   const t = typeOf(post.type)
   const chain = approvalChain(post.byId, 'knowledge')
   return (<>
-    <div className={`kn-hero ${post.type}`}>
-      {post.img ? <img src={post.img} alt="" /> : <span className="kn-cover-ic">{Icon[t.ic]()}</span>}
-    </div>
+    {/* ຫຼາຍຮູບ → ສະແດງຕາມ layout ທີ່ຜູ້ຂຽນເລືອກ (grid/carousel/stack) · ຮູບດຽວ/ບໍ່ມີ → hero */}
+    {post.imgs?.length > 1 ? (
+      <div className={`kf-imgs ${post.layout || 'grid'}`} style={{ marginBottom: 12 }}>
+        {post.imgs.map((src, i) => <div className="kf-img" key={i}><img src={src} alt="" /></div>)}
+      </div>
+    ) : (
+      <div className={`kn-hero ${post.type}`}>
+        {post.img ? <img src={post.img} alt="" /> : <span className="kn-cover-ic">{Icon[t.ic]()}</span>}
+      </div>
+    )}
 
     <div className="ptd-tl-card">
       <div className="kn-cats" style={{ marginBottom: 8 }}>
@@ -171,8 +178,9 @@ export default function KnowledgeScreen({ me, posts = [], onCreateKn, onSubmitKn
     viewed.add(live.id); onKnView?.(live.id)
   }, [live?.id])
 
-  const feed = posts.filter((p) => p.status === 'approved' && (cat === 'all' || (p.cats || []).includes(cat)))
-  const mine = posts.filter((p) => p.byId === me).filter((p) => sf === 'all' || p.status === sf)
+  // Feed: ໂພສໃໝ່ສຸດກ່ອນ · ຂອງຂ້ອຍ: ທີ່ຍັງລໍຖ້າ/ຮ່າງ ຂຶ້ນກ່ອນ (helper ດຽວກັບໂມດູນອື່ນ)
+  const feed = sortPendingFirst(posts.filter((p) => p.status === 'approved' && (cat === 'all' || (p.cats || []).includes(cat))))
+  const mine = sortPendingFirst(posts.filter((p) => p.byId === me).filter((p) => sf === 'all' || p.status === sf))
   // ອັນດັບ: ນັບໂພສທີ່ເຜີຍແຜ່ + ຍອດເບິ່ງ + ຖືກໃຈ
   const rank = Object.values(posts.filter((p) => p.status === 'approved').reduce((acc, p) => {
     const r = acc[p.byId] || { id: p.byId, posts: 0, views: 0, likes: 0 }

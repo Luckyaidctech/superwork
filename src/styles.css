@@ -1255,6 +1255,8 @@ button.ac-card:active { transform: scale(.99); }
 .req-card-ic.ot { background: #7c3aed; }
 .req-card-ic.booking { background: #0d9488; }
 .req-card-ic.knowledge { background: #d97706; }
+.req-card-ic.esign { background: #1f3fb5; }
+.req-card-ic.points { background: #16a34a; }
 .req-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .req-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .req-card-top b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1369,17 +1371,96 @@ button.ac-card:active { transform: scale(.99); }
 .kn-rank-info span { font-size: 11px; color: var(--muted); }
 .kn-rank-score { font-size: 16px; font-weight: 800; color: var(--blue); font-variant-numeric: tabular-nums; }
 
-/* ຮູບໜ້າປົກ ໃນຟອມ */
-.kn-img-wrap { position: relative; border-radius: 12px; overflow: hidden; }
-.kn-img-wrap img { width: 100%; display: block; }
+/* ═══ ຟອມສ້າງໂພສ (kf-*) — panel ຂາວ ເທິງພື້ນເທົາ + ເສັ້ນຄັ່ນບາງ (iOS grouped list) ═══ */
+/* display:block ທັບ .scroll (ເປັນ flex column ຖືກຈຳກັດຄວາມສູງ → panel ຖືກບີບເຫຼືອ 0px) */
+.kf-scroll { display: block; flex: 1; overflow-y: auto; padding: 8px 16px 24px; background: var(--bg); }
+/* ຫົວຂໍ້ໝວດ — ຢູ່ນອກ panel ຕົວນ້ອຍ ສີເທົາ (ບໍ່ແຍ່ງຄວາມສົນໃຈກັບເນື້ອຫາ) */
+.kf-sec { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--muted);
+  letter-spacing: .3px; margin: 22px 4px 8px; }
+.kf-scroll > .kf-sec:first-child { margin-top: 8px; }
+.kf-sec em { font-style: normal; font-weight: 600; opacity: .8; }
+.kf-star, .kf-label i { font-style: normal; color: #e23b4e; font-weight: 800; }
+.kf-sub { font-size: 11.5px; font-weight: 600; color: var(--muted); margin: 0 4px 7px; }
+.kf-hint { font-size: 11.5px; color: var(--muted); margin: 7px 4px 0; }
 
-/* toggle (Quiz / Assignment / Reward) */
-.kn-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: #f8fafc;
-  border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; cursor: pointer; font-family: inherit; text-align: left; margin-bottom: 7px; }
-.kn-toggle:last-child { margin-bottom: 0; }
-.kn-toggle > div { display: flex; flex-direction: column; min-width: 0; }
-.kn-toggle b { font-size: 13.5px; }
-.kn-toggle span { font-size: 11px; color: var(--muted); }
+/* panel ຂາວ — ຮວມແຖວ ຄັ່ນດ້ວຍເສັ້ນບາງ */
+.kf-panel { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+.kf-panel + .kf-panel { margin-top: 10px; }
+
+/* segmented ປະເພດ */
+.kf-seg { display: flex; background: #eef1f6; border-radius: 13px; padding: 4px; }
+.kf-seg button { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: none; border: none; border-radius: 10px; padding: 12px 4px; cursor: pointer; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; color: var(--muted); transition: all .18s; }
+.kf-seg button svg { width: 16px; height: 16px; flex-shrink: 0; }
+.kf-seg button.on { background: #fff; color: var(--blue); font-weight: 800; box-shadow: 0 2px 8px rgba(16,24,40,.12); }
+
+/* ແຖວກອກ ໃນ panel — ບໍ່ມີກອບ, ຄັ່ນດ້ວຍເສັ້ນບາງ */
+.kf-field { display: block; padding: 13px 16px; cursor: text; transition: background .16s; }
+.kf-field + .kf-field, .kf-panel > .kf-field + * { border-top: 1px solid var(--line); }
+.kf-field:focus-within { background: #f8faff; }
+.kf-field.err { background: #fff5f5; box-shadow: inset 3px 0 0 #e23b4e; }
+.kf-label { display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.kf-label em { font-style: normal; margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .85; }
+/* 16px = ບໍ່ໃຫ້ iOS zoom ຕອນແຕະ · resize:none = ບໍ່ໃຫ້ມີຂີດແຈມຸມ (ໜ້າຕາເກົ່າ) */
+.kf-input { width: 100%; background: none; border: none; padding: 0; font-family: inherit; font-size: 16px;
+  color: var(--text); line-height: 1.55; resize: none; }
+.kf-input:focus { outline: none; }
+.kf-input::placeholder { color: #aab4c5; }
+
+/* ແຖວກົດ (ເລືອກຮູບ / PDF / ທີມ) — ຢູ່ໃນ panel */
+.kf-add { width: 100%; display: flex; align-items: center; gap: 12px; background: #fff; border: none;
+  border-radius: 16px; padding: 12px 14px; cursor: pointer; font-family: inherit; text-align: left; margin-top: 8px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.05); transition: background .16s; }
+.kf-sec + .kf-add, .kf-sec + .kf-panel { margin-top: 0; }
+.kf-add:hover:not(:disabled) { background: #f8faff; }
+.kf-add:disabled { opacity: .5; cursor: not-allowed; }
+.kf-add.err { box-shadow: inset 3px 0 0 #e23b4e, 0 1px 2px rgba(16,24,40,.05); }
+.kf-add b { flex: 1; min-width: 0; font-size: 15px; color: var(--blue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kf-add > svg { width: 18px; height: 18px; color: #c3cbd9; transform: rotate(-90deg); flex-shrink: 0; }
+.kf-add-ic { width: 40px; height: 40px; border-radius: 11px; background: #eef2ff; color: var(--blue); display: grid; place-items: center; flex-shrink: 0; }
+.kf-add-ic svg { width: 20px; height: 20px; }
+
+/* ຮູບແບບການສະແດງ */
+.kf-lay { display: flex; gap: 6px; margin-bottom: 9px; }
+.kf-lay button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; background: #fff;
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 4px; cursor: pointer; font-family: inherit;
+  font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.kf-lay button svg { width: 13px; height: 13px; }
+.kf-lay button.on { background: #eff4ff; border-color: var(--blue); color: var(--blue); font-weight: 700; }
+
+/* ຮູບທີ່ເລືອກ — ຕາມ layout */
+.kf-imgs { display: grid; gap: 6px; }
+.kf-imgs.grid { grid-template-columns: repeat(3, 1fr); }
+.kf-imgs.carousel { grid-auto-flow: column; grid-auto-columns: 72%; overflow-x: auto; }
+.kf-imgs.stack { grid-template-columns: 1fr; }
+.kf-img { position: relative; border-radius: 10px; overflow: hidden; background: #eef1f6; aspect-ratio: 4/3; }
+.kf-imgs.stack .kf-img { aspect-ratio: 16/9; }
+.kf-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.kf-img-x { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: rgba(16,24,40,.62); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.kf-img-x svg { width: 12px; height: 12px; }
+
+/* chips ໝວດ */
+.kf-chips { display: flex; gap: 8px; flex-wrap: wrap; border-radius: 14px; }
+.kf-chips.err { outline: 1.5px solid #fca5a5; outline-offset: 6px; }
+.kf-chips button { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: none;
+  border-radius: 999px; padding: 10px 16px; cursor: pointer; font-family: inherit; font-size: 13.5px; color: var(--text);
+  box-shadow: 0 1px 2px rgba(16,24,40,.06); transition: all .16s; }
+.kf-chips button svg { width: 13px; height: 13px; }
+.kf-chips button.on { background: var(--blue); color: #fff; font-weight: 700; box-shadow: 0 3px 10px rgba(31,63,181,.3); }
+
+.kf-chain { background: #fff; border-radius: 16px; padding: 6px 14px; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+
+/* toggle (Quiz / Assignment / Reward) — ຢູ່ໃນ panel ຂາວ ຄັ່ນດ້ວຍເສັ້ນບາງ */
+.kn-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: #fff;
+  border: none; padding: 13px 16px; cursor: pointer; font-family: inherit; text-align: left; }
+.kn-toggle:first-of-type { border-radius: 16px 16px 0 0; }
+.kn-toggle:last-of-type { border-radius: 0 0 16px 16px; }
+.kn-toggle + .kn-toggle { border-top: 1px solid var(--line); }
+.kn-toggle > div { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.kn-toggle b { font-size: 14.5px; }
+.kn-toggle span { font-size: 11.5px; color: var(--muted); }
 .kn-sw { width: 42px; height: 24px; border-radius: 999px; background: var(--line); flex-shrink: 0; position: relative; transition: background .18s; }
 .kn-sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .18s; }

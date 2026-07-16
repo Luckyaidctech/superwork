@@ -59,9 +59,20 @@ export function initialReqs() {
       { id: 'ot5', title: 'FDI / BOL System', byId: 'A', activity: 'UAT', tasks: ['ຮັນ UAT ຮອບ 1'], dayType: 'ວັນເສົາ-ອາທິດ', note: 'ທົດສອບ UAT ວັນເສົາ', date: '11/07/2026', from: '09:00', to: '17:00', status: 'rejected', reason: 'ໃຫ້ເຮັດໃນເວລາລາຊະການ ແທນ' },
       { id: 'ot6', title: 'AIDC work', byId: 'A', activity: 'ບຳລຸງຮັກສາລະບົບ', tasks: ['ອັບເດດ server', 'ສຳຮອງຂໍ້ມູນ'], dayType: 'ວັນພັກລັດຖະການ', note: 'ອັບເດດ server', date: '07/07/2026', from: '18:00', to: '20:00', status: 'cancelled', reason: 'ເລື່ອນໄປອາທິດໜ້າ' },
     ],
+    // ── ການຈອງ (ຫ້ອງ / ລົດ / ອຸປະກອນ) — ຄົບທຸກສະຖານະ ──
     booking: [
-      { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'Conference Room A', date: '02/04/2026', from: '09:00', to: '11:00', status: 'cancelled' },
-      { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ', date: '03/07/2026', from: '08:00', to: '17:00', status: 'approved' },
+      { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'ນຳສະເໜີ ລູກຄ້າ BCEL', date: '17/07/2026', from: '09:00', to: '11:00', status: 'progress' },
+      { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ ສະໜາມບິນ', date: '18/07/2026', from: '08:00', to: '17:00', status: 'progress' },
+      { id: 'bk3', title: 'ຫ້ອງປະຊຸມໃຫຍ່', byId: 'B', note: 'ປະຊຸມທີມ ໄຕມາດ 3', date: '20/07/2026', from: '13:00', to: '16:00', status: 'progress' },
+      { id: 'bk4', title: 'ໂປຣເຈັກເຕີ', byId: 'G', note: 'ອົບຮົມ ພະນັກງານໃໝ່', date: '16/07/2026', from: '09:00', to: '12:00', status: 'progress' },
+      { id: 'bk5', title: 'ຫ້ອງປະຊຸມ B', byId: 'F', note: 'ສຳພາດ ຜູ້ສະໝັກ', date: '14/07/2026', from: '10:00', to: '11:30', status: 'approved' },
+      { id: 'bk6', title: 'ລົດ Vigo', byId: 'B', note: 'ຕິດຕັ້ງ ໜ້າງານ HAIXIN', date: '13/07/2026', from: '08:00', to: '18:00', status: 'approved' },
+      { id: 'bk7', title: 'ກ້ອງຖ່າຍຮູບ', byId: 'G', note: 'ຖ່າຍງານ ບໍລິສັດ', date: '12/07/2026', from: '13:00', to: '17:00', status: 'approved' },
+      { id: 'bk8', title: 'ຫ້ອງ Studio', byId: 'F', note: 'ຖ່າຍວິດີໂອ ແນະນຳລະບົບ', date: '10/07/2026', from: '09:00', to: '17:00', status: 'rejected', reason: 'Studio ຖືກຈອງແລ້ວ ໂດຍທີມ Marketing' },
+      { id: 'bk9', title: 'ລົດ Toyota HiAce', byId: 'B', note: 'ໄປແຂວງ ຫຼວງພະບາງ', date: '08/07/2026', from: '06:00', to: '20:00', status: 'rejected', reason: 'ລົດເຂົ້າສ້ອມແປງ ຊ່ວງນັ້ນ' },
+      { id: 'bk10', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'ປະຊຸມ ຍົກເລີກແລ້ວ', date: '02/07/2026', from: '09:00', to: '11:00', status: 'cancelled', reason: 'ລູກຄ້າ ຂໍເລື່ອນນັດ' },
+      { id: 'bk11', title: 'ໂປຣເຈັກເຕີ', byId: 'A', note: 'ນຳສະເໜີ ພາຍໃນທີມ', date: '19/07/2026', from: '14:00', to: '16:00', status: 'progress' },
+      { id: 'bk12', title: 'ຫ້ອງປະຊຸມ B', byId: 'A', note: 'ທົບທວນ Test Cases', date: '09/07/2026', from: '10:00', to: '12:00', status: 'approved' },
     ],
     // ── ຄວາມຮູ້ (Knowledge Sharing) — store ດຽວກັບ Approval ໝວດ "ຄວາມຮູ້" ──
     // type: text | youtube | pdf · status: draft | progress | rejected | approved(=ເຜີຍແຜ່ແລ້ວ)
@@ -86,6 +97,20 @@ export function initialReqs() {
       { id: 'kn7', byId: 'A', type: 'text', title: 'ສະຫຼຸບ ການປະຊຸມທີມ Tech ໄຕມາດ 2', note: 'ຜົນງານ ແລະ ແຜນໄຕມາດ 3',
         content: 'ໄຕມາດ 2 ສົ່ງມອບ 3 ໂຄງການ. ໄຕມາດ 3 ຈະເນັ້ນ Super Work ແລະ e-Signature.',
         cats: ['General'], teams: ['Tech'], date: '05/07/2026', status: 'approved', views: 89, likes: ['B', 'C', 'F'], comments: [] },
+      // ── ຂອງຄົນອື່ນ ທີ່ລໍຖ້າກວດສອບ / ຖືກປະຕິເສດ → ໃຫ້ໂມດູນອະນຸມັດ ມີຂໍ້ມູນຄົບ ──
+      { id: 'kn8', byId: 'G', type: 'text', title: 'ວິທີຮັບມື ລູກຄ້າໂມໂຫ', note: 'ເຕັກນິກ 5 ຂັ້ນຕອນ ຫຼຸດຄວາມຕຶງຄຽດ',
+        content: '1. ຟັງໃຫ້ຈົບ ບໍ່ຂັດ\n2. ຂໍໂທດ ຢ່າງຈິງໃຈ\n3. ສະຫຼຸບບັນຫາ ໃຫ້ລູກຄ້າຢືນຢັນ\n4. ສະເໜີທາງອອກ 2 ທາງ\n5. ຕິດຕາມຜົນ ພາຍໃນ 24 ຊົ່ວໂມງ',
+        cats: ['Soft Skills'], teams: ['BD'], date: '16/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn9', byId: 'F', type: 'pdf', title: 'ຄູ່ມືການໃຊ້ ລະບົບ BOL', note: 'ເອກະສານ ສຳລັບພະນັກງານໃໝ່',
+        needFile: 'bol-manual.pdf', cats: ['Technical Skills', 'Compliance'], teams: ['ທັງໝົດ'], date: '15/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn10', byId: 'B', type: 'youtube', title: 'ແນະນຳ Git ສຳລັບທີມ', note: 'ພື້ນຖານ branch · merge · PR',
+        url: 'https://youtu.be/HkdAHXoRtos', cats: ['Technical Skills'], teams: ['Tech'], date: '13/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn11', byId: 'G', type: 'text', title: 'ເມນູອາຫານ ໃກ້ຫ້ອງການ', note: 'ລວມຮ້ານແຊບ ໃກ້ AIDC',
+        content: 'ຮ້ານເຝີ ຫລັກ 3 · ຂ້າວປຽກ ຂ້າງທະນາຄານ · ຮ້ານກາເຟ ຊັ້ນລຸ່ມ',
+        cats: ['General'], teams: ['ທັງໝົດ'], date: '02/07/2026', status: 'rejected', reason: 'ບໍ່ກ່ຽວຂ້ອງກັບວຽກ ຂໍໃຫ້ໂພສໃນກຸ່ມ chat ແທນ', views: 0, likes: [], comments: [] },
+      { id: 'kn12', byId: 'F', type: 'text', title: 'ສະຫຼຸບ ກອງປະຊຸມລູກຄ້າ HAIXIN', note: 'ຂໍ້ຕົກລົງ ແລະ ຂັ້ນຕອນຕໍ່ໄປ',
+        content: 'ລູກຄ້າ ຕົກລົງ scope ໄລຍະ 1 ແລ້ວ. ຈະເລີ່ມຕິດຕັ້ງ ຕົ້ນເດືອນໜ້າ. ຕ້ອງກຽມ ເອກະສານສັນຍາ ພາຍໃນອາທິດນີ້.',
+        cats: ['General', 'Compliance'], teams: ['BD'], date: '10/07/2026', status: 'approved', views: 34, likes: ['A', 'G'], comments: [] },
     ],
   }
 }
@@ -334,6 +359,15 @@ export function reqTime(r) {
   const perDay = Math.max(0, mins - cut)
   return { days, cut, perDay, total: perDay * days, totalText: fmtH(perDay * days) }
 }
+
+// ── ຈັດລຳດັບລາຍການ (ໃຊ້ຮ່ວມ: ອະນຸມັດ · ຄຳຂໍ · ຄວາມຮູ້) ──
+// ທີ່ຍັງລໍຖ້າ ຂຶ້ນກ່ອນສະເໝີ ແລ້ວຮຽງຕາມວັນທີ (ໃກ້ຮອດກ່ອນ) · ທີ່ຈົບແລ້ວ = ໃໝ່ສຸດກ່ອນ
+const dnum = (d) => { const [dd, mm, yy] = String(d || '').split('/').map(Number); return (yy || 0) * 10000 + (mm || 0) * 100 + (dd || 0) }
+const isPending = (m) => m.status === 'progress' || m.status === 'esign'
+export const sortPendingFirst = (list) => [...list].sort((a, b) => {
+  if (isPending(a) !== isPending(b)) return isPending(a) ? -1 : 1
+  return isPending(a) ? dnum(a.date) - dnum(b.date) : dnum(b.date) - dnum(a.date)
+})
 
 // ── ສາຍອະນຸມັດຄຳຂໍ — ຕ່າງກັນຕາມປະເພດ ──
 //   ລາພັກ / ວຽກນອກສະຖານທີ → ຫົວໜ້າພະແນກ → HR (2 ຂັ້ນ)

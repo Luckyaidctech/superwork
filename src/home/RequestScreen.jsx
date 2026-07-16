@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Icon, Header, ResultPopup, ReasonModal, initials } from '../flow/shared.jsx'
-import { nameOf, colorOf, avatarOf, approvalChain, reqTime, fmtRange } from './data.js'
+import { nameOf, colorOf, avatarOf, approvalChain, reqTime, fmtRange, sortPendingFirst } from './data.js'
 
 // avatar: ຮູບໂປຣໄຟລ໌ (ຖ້າມີ) ຫຼື ສີພື້ນ + ຕົວຫຍໍ້
 const avBg = (id) => { const u = avatarOf(id); return u ? { backgroundImage: `url("${u}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: colorOf(id) } }
@@ -233,7 +233,8 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
   const list = (reqs[kind] || []).filter((r) => r.byId === me)
   // ກອງສະຖານະ ແຖວດຽວ (pattern ດຽວກັບໂມດູນ ອະນຸມັດ)
   // ຍົກເລີກເອງ ≠ ຖືກປະຕິເສດ → ແຍກປຸ່ມກອງ (ບໍ່ເໝົາລວມກັນ)
-  const shown = list.filter((r) => sf === 'all' || r.status === sf)
+  // ທີ່ຍັງລໍຖ້າຜົນ ຂຶ້ນກ່ອນ ແລ້ວຮຽງຕາມວັນທີ (helper ດຽວກັບໂມດູນອະນຸມັດ)
+  const shown = sortPendingFirst(list.filter((r) => sf === 'all' || r.status === sf))
   const SF = [
     { k: 'all', t: 'ທັງໝົດ' }, { k: 'progress', t: 'ລໍຖ້າ' }, { k: 'approved', t: 'ອະນຸມັດແລ້ວ' },
     { k: 'rejected', t: 'ປະຕິເສດ' }, { k: 'cancelled', t: 'ຍົກເລີກ' },

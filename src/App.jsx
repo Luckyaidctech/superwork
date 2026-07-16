@@ -43,8 +43,18 @@ export default function App() {
   const [bios, setBios] = useState({}) // { [userId]: bool } — biometric (Face ID / ລາຍນິ້ວມື) ຢືนยันตอนลงนาม
   // ຄຳຂໍຄະແນນ Workboard (seed + ທີ່ສ້າງໃໝ່) — ທຸກອັນໃຊ້ detail hero ດຽວກັນ
   const [pointsReqs, setPointsReqs] = useState(() => [
+    // ── ຄົບທຸກສະຖານະ × ຫຼາຍຜູ້ຂໍ × Activity/Task ──
     { id: 'pt1', by: 'B', date: '14/07/2026', status: 'approved', points: 10, current: 200, targetName: 'Master Test Cases', projectName: 'FDI / BOL System', target: 'activity', justify: 'ທົດສອບເພີ່ມ 2 ຮອບ ຕາມທີ່ລູກຄ້າຂໍ', comments: [] },
     { id: 'pt2', by: 'F', date: '07/07/2026', status: 'progress', points: 500, current: 150, targetName: 'UI Prototype', projectName: 'e-Signature App', target: 'activity', justify: 'ອອກແບບ UI ເພີ່ມ 5 ໜ້າ ພ້ອມ prototype', comments: [] },
+    { id: 'pt3', by: 'G', date: '16/07/2026', status: 'progress', points: 120, current: 80, targetName: 'ຟອມໂອທີ', projectName: 'Super Work', target: 'task', justify: 'ເຮັດຟອມ + ເຊື່ອມ API ພາຍໃນ 2 ມື້', comments: [] },
+    { id: 'pt4', by: 'B', date: '15/07/2026', status: 'progress', points: 80, current: 210, targetName: 'ແກ້ໄຂ Bug ໜ້າ login', projectName: 'Super Work', target: 'task', justify: 'Bug ດ່ວນ ກະທົບຜູ້ໃຊ້ທັງໝົດ', comments: [] },
+    { id: 'pt5', by: 'F', date: '13/07/2026', status: 'progress', points: 200, current: 650, targetName: 'ນຳສະເໜີ ລູກຄ້າ BCEL', projectName: 'e-Signature App', target: 'activity', justify: 'ກຽມ demo + ນຳສະເໜີ ໄດ້ສັນຍາ', comments: [] },
+    { id: 'pt6', by: 'G', date: '11/07/2026', status: 'approved', points: 150, current: 60, targetName: 'QR ທ້າຍໜ້າ', projectName: 'e-Signature App', target: 'task', justify: 'ເຮັດ QR ສະແກນເປີດເອກະສານໄດ້ຈິງ', comments: [] },
+    { id: 'pt7', by: 'B', date: '09/07/2026', status: 'approved', points: 300, current: 190, targetName: 'UAT', projectName: 'FDI / BOL System', target: 'activity', justify: 'ຮັນ UAT ຄົບ 3 ຮອບ ພົບ 12 bug', comments: [] },
+    { id: 'pt8', by: 'F', date: '06/07/2026', status: 'rejected', points: 1000, current: 140, targetName: 'ອອກແບບ Logo', projectName: 'e-Signature App', target: 'task', justify: 'ອອກແບບ logo ໃໝ່ 3 ແບບ', comments: [], reason: 'ຄະແນນສູງເກີນ ສຳລັບ scope ນີ້ ຂໍໃຫ້ປັບເປັນ 200' },
+    { id: 'pt9', by: 'G', date: '04/07/2026', status: 'rejected', points: 250, current: 55, targetName: 'ປະຊຸມທີມ', projectName: 'AIDC work', target: 'task', justify: 'ເຂົ້າຮ່ວມປະຊຸມ 5 ຄັ້ງ', comments: [], reason: 'ປະຊຸມປົກກະຕິ ບໍ່ນັບເປັນຄະແນນເພີ່ມ' },
+    { id: 'pt10', by: 'A', date: '15/07/2026', status: 'progress', points: 180, current: 120, targetName: 'ລະບົບຄຳຂໍ', projectName: 'Super Work', target: 'activity', justify: 'ພັດທະນາ ລາພັກ/ໂອທີ/ວຽກນອກ ຄົບ 3 ໝວດ', comments: [] },
+    { id: 'pt11', by: 'A', date: '08/07/2026', status: 'approved', points: 90, current: 30, targetName: 'PDF Viewer', projectName: 'e-Signature App', target: 'task', justify: 'render PDF ຈິງ + ວາງລາຍເຊັນໄດ້', comments: [] },
   ])
   const bio = !!bios[me]
   const DIRECTOR = 'C' // Pheutsapha Phoummasak (id C) = ຜູ້ອຳນວຍການ = ຜู้อนุมัดคะแนน
