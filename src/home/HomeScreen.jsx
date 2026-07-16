@@ -709,11 +709,12 @@ function NotiPanel({ notis, onClose, onOpen }) {
 }
 
 // ─────────── main ───────────
+// 4 tab ຫຼັກ (Lucky ສັ່ງ 16/07) — ພາບລວມ ຍ້າຍໄປປຸ່ມ icon ເທິງ header
 const TABS = [
-  { key: 'created', label: 'ລໍຖ້າຜູ້ອື່ນ', icon: Icon.clock },
+  { key: 'tosign', label: 'ຕ້ອງການລາຍເຊັນຂ້ອຍ', icon: Icon.pen },
+  { key: 'created', label: 'ລໍຖ້າຜູ້ອື່ນເຊັນ', icon: Icon.clock },
   { key: 'signed', label: 'ລົງນາມແລ້ວ', icon: Icon.checkCircle },
-  { key: 'cc', label: 'ໄດ້ຮັບ CC', icon: Icon.users },
-  { key: 'overview', label: 'ພາບລວມ', icon: Icon.chart },
+  { key: 'cc', label: 'ໄດ້ຮັບສຳເນົາ', icon: Icon.users },
 ]
 
 // ─────────── noti: ໄອຄອນ · ສີ · ຫົວຂໍ້ ຕາມປະເພດ (ຄືແອັບຈິງ) ───────────
@@ -750,7 +751,8 @@ function NotiCard({ n, onOpen, onOpenReq }) {
 
 export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment,
   onCreateKn, onSubmitKn, onKnLike, onKnView, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
-  const [tab, setTab] = useState('created')
+  const [tab, setTab] = useState('tosign')
+  const [ovOpen, setOvOpen] = useState(false) // ໜ້າ ພາບລວມ (report) — ຍ້າຍຈາກ tab ໄປປຸ່ມ header
   const [nav, setNav] = useState('sign')
   const [userMenu, setUserMenu] = useState(false)
   const [fabMenu, setFabMenu] = useState(false)
@@ -758,8 +760,13 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
   const [openReqId, setOpenReqId] = useState(null) // เปิด detail ของ points req หลังสร้าง
   const [openReq, setOpenReq] = useState(null) // { kind, id } — ເປີດຄຳຂໍ ຈາກແຈ້ງເຕືອນ
 
-  // tab 1 ລໍຖ້າຜູ້ອື່ນ = request ທີ່ຂ້ອຍສ້າງ ແລະ ຍັງບໍ່ສຳເລັດ
-  // tab 2 ລົງນາມແລ້ວ = ຄົນອື່ນສ້າງ+ຂ້ອຍເຊັນແລ້ວ  ຫຼື  ຂ້ອຍສ້າງ+ເຊັນຄົບແລ້ວ (ບໍ່ແຍກຕາມຜູ້ສ້າງ)
+  // tab 1 ຕ້ອງການລາຍເຊັນຂ້ອຍ = ທຸກເອກະສານທີ່ຍັງລໍຂ້ອຍ ເຊັນ/ອະນຸມັດ (ຈາກຄົນອື່ນ ຫຼື ຂ້ອຍສ້າງເອງກໍນັບ)
+  //   ຮອດຮອບຂ້ອຍ ຂຶ້ນກ່ອນ — ເຊັນໄດ້ຈາກນີ້ ຫຼື ຈາກໂມດູນ Approval ກໍໄດ້ (2 ທາງເຂົ້າ ເອກະສານດຽວກັນ)
+  // tab 2 ລໍຖ້າຜູ້ອື່ນເຊັນ = request ທີ່ຂ້ອຍສ້າງ ແລະ ຍັງບໍ່ສຳເລັດ
+  // tab 3 ລົງນາມແລ້ວ = ຄົນອື່ນສ້າງ+ຂ້ອຍເຊັນແລ້ວ  ຫຼື  ຂ້ອຍສ້າງ+ເຊັນຄົບແລ້ວ (ບໍ່ແຍກຕາມຜູ້ສ້າງ)
+  const toSign = docs
+    .filter((d) => d.status === 'progress' && d.signers.some((s) => s.id === me && s.status !== 'signed' && s.status !== 'rejected'))
+    .sort((a, b) => (isMyTurn(b, me) ? 1 : 0) - (isMyTurn(a, me) ? 1 : 0))
   const created = docs.filter((d) => d.creatorId === me && d.status !== 'done')
   const signed = docs.filter((d) =>
     (d.creatorId !== me && d.signers.some((s) => s.id === me && s.status === 'signed')) ||
@@ -768,7 +775,8 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
   const ccDocs = docs.filter((d) => d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me))
   const myNotis = notis.filter((n) => n.forId === me)
   const unread = myNotis.filter((n) => !n.read).length
-  const badge = { created: created.filter((d) => d.status === 'progress').length, signed: signed.length }
+  // badge tosign = ຈຳນວນທີ່ໂຊໃນ tab ຈິງ (ກົງກັບການ໌ດ — ບໍ່ນັບສະເພາະຮອບຂ້ອຍ)
+  const badge = { tosign: toSign.length, created: created.filter((d) => d.status === 'progress').length, signed: signed.length }
   // badge ໂມດູນ "ຄຳຂໍ" = ຄຳຂໍ "ຂອງຂ້ອຍ" ທີ່ຍັງລໍຖ້າຜົນອະນຸມັດ
   // (ທີ່ຄົນອື່ນສົ່ງມາໃຫ້ຂ້ອຍອະນຸມັດ ຢູ່ໂມດູນ "ການອະນຸມັດ" — ບໍ່ນັບຢູ່ນີ້)
   const reqPending = REQ_KINDS.reduce((n, k) => n + (reqs[k.key] || []).filter((r) => r.byId === me && r.status === 'progress').length, 0)
@@ -781,7 +789,9 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         <div className="home-title-row">
           <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'request' ? 'ຄຳຂໍ' : nav === 'knowledge' ? 'ຄວາມຮູ້' : 'My e-Signature'}</h1>
           <div className="home-actions">
-            {nav === 'sign' && <button className="home-iconbtn" onClick={onOpenSettings} title="ຕັ້ງຄ່າ"><Icon.gear /></button>}
+            {/* ພາບລວມ (report) — ຍ້າຍຈາກ tab ມາເປັນປຸ່ມ icon ແທນ ຕັ້ງຄ່າ (ຕັ້ງຄ່າ ຍັງຢູ່ໃນເມນູໂປຣໄຟລ໌
+                — ໃສ່ 3 ປຸ່ມແລ້ວທັບຊື່ໂມດູນ ຈໍ 375px ບໍ່ພໍ) */}
+            {nav === 'sign' && <button className="home-iconbtn" onClick={() => setOvOpen(true)} title="ພາບລວມ"><Icon.chart /></button>}
             <div className="user-wrap">
               <button className="user-pill" onClick={() => setUserMenu((o) => !o)}>
                 <span className="user-pill-av" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
@@ -801,7 +811,7 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
                   </div>
                   <p className="user-menu-title"><Icon.swap /> ສະຫຼັບຜູ້ໃຊ້ (demo)</p>
                   {USERS.map((u) => (
-                    <button key={u.id} className={`user-opt ${me === u.id ? 'on' : ''}`} onClick={() => { setMe(u.id); setUserMenu(false); setTab('created') }}>
+                    <button key={u.id} className={`user-opt ${me === u.id ? 'on' : ''}`} onClick={() => { setMe(u.id); setUserMenu(false); setTab('tosign') }}>
                       <span className="user-opt-av" style={avBg(u.id)}>{!avatarOf(u.id) && initials(u.name)}</span>
                       <span className="user-opt-info"><b>{u.name}</b><em>{u.role}</em></span>
                       {me === u.id && <Icon.check />}
@@ -852,8 +862,8 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
             onCreateKn={onCreateKn} onSubmitKn={onSubmitKn} onKnLike={onKnLike} onKnView={onKnView}
             onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
             openReq={openReq} onConsumeOpenReq={() => setOpenReq(null)} />
-        ) : tab === 'overview'
-          ? <Overview docs={docs} me={me} onOpen={onOpenDoc} />
+        ) : tab === 'tosign'
+          ? <DocList docs={toSign} me={me} onOpen={onOpenDoc} empty="ບໍ່ມີເອກະສານທີ່ລໍຖ້າລາຍເຊັນທ່ານ" creatorMode />
           : tab === 'cc'
             ? (<><p className="cc-note"><Icon.users /> ເອກະສານທີ່ທ່ານໄດ້ຮັບສຳເນົາ (CC) — ເບິ່ງໄດ້ ບໍ່ຕ້ອງເຊັນ</p><DocList docs={ccDocs} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ໄດ້ຮັບ CC" creatorMode /></>)
             : tab === 'created'
@@ -888,6 +898,18 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         </div>
       )}
       {pointsForm && <PointsRequest me={me} onSubmit={onCreatePoints} onViewDetail={(r) => { setPointsForm(false); setNav('approve'); setOpenReqId(r.id) }} onClose={() => setPointsForm(false)} />}
+
+      {/* ພາບລວມ (report) — ໜ້າເຕັມ ເປີດຈາກປຸ່ມ icon ເທິງ header ຂອງ e-Sign */}
+      {ovOpen && (
+        <ScreenPortal>
+          <div className="app ac-detail-screen">
+            <Header title="ພາບລວມ" onBack={() => setOvOpen(false)} />
+            <div className="scroll home-scroll">
+              <Overview docs={docs} me={me} onOpen={(id) => { setOvOpen(false); onOpenDoc(id) }} />
+            </div>
+          </div>
+        </ScreenPortal>
+      )}
 
       <div className="home-bottomnav">
         {[
