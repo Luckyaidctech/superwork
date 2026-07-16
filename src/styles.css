@@ -538,7 +538,14 @@ body {
 .aud.now .aud-t { font-weight: 700; color: var(--blue); }
 
 /* comments (G) */
-.dd-cmts { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+/* ແຈ້ງເຕືອນທີ່ກົດເປີດໄດ້ (ມີເອກະສານ ຫຼື ຄຳຂໍ ຕິດມາ) */
+.noti-card.tap { cursor: pointer; }
+.noti-card:not(.tap) { cursor: default; }
+.noti-card.tap:hover { border-color: #c7d2fe; box-shadow: 0 4px 14px rgba(31,63,181,.1); }
+
+/* ຫ່າງລະຫວ່າງແຕ່ລະຄຳເຫັນ (ໃຊ້ທຸກທີ່ທີ່ມີ comment: ຂໍລາຍເຊັນ · ຄຳຂໍ · ຄະແນນ) */
+.dd-cmts { display: flex; flex-direction: column; gap: 18px; margin-bottom: 14px; }
+.dd-cmts > div { display: flex; flex-direction: column; gap: 10px; } /* thread: root + ຄຳຕອບ ຢູ່ໃກ້ກັນກວ່າ */
 .dd-cmt { display: flex; gap: 10px; }
 .dd-cmt-av { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), #4c6ef5); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .dd-cmt-body { flex: 1; background: #f4f6fb; border-radius: 12px; padding: 9px 12px; }
@@ -963,8 +970,11 @@ body {
 .dd-tl-row:last-child { min-height: 0; }
 .dd-tl-av { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; flex-shrink: 0; background-size: cover; background-position: center; }
 .dd-tl-av svg { width: 17px; height: 17px; }
-.dd-tl-row.ok .dd-tl-av { background: #16a34a; }
-.dd-tl-row.rej .dd-tl-av { background: var(--danger); }
+/* ເຊັນແລ້ວ/ປະຕິເສດ → ຄົງ avatar ໄວ້ (ບໍ່ທັບເປັນສີຂຽວ/ແດງ) ແລ້ວໃສ່ຕິກຖືກ ຊ້ອນມຸມແທນ */
+.dd-tl-av-check { position: absolute; bottom: -2px; right: -2px; width: 15px; height: 15px; border-radius: 50%; background: #16a34a;
+  color: #fff; display: grid; place-items: center; border: 1.5px solid #fff; z-index: 2; }
+.dd-tl-av-check.rej { background: var(--danger); }
+.dd-tl-av .dd-tl-av-check svg { width: 9px; height: 9px; }
 .dd-tl-row.now .dd-tl-av { box-shadow: 0 0 0 4px rgba(224,123,31,.2); }
 /* connector ຄວາມยาวคงที่ (row สูงคงที่ 54px) → ระยะเท่ากัน */
 .dd-tl-row:not(:last-child) .dd-tl-av::after { content: ''; position: absolute; top: 36px; left: 50%; transform: translateX(-50%); width: 2px; height: 22px; background: var(--line); z-index: 0; }
@@ -1010,6 +1020,12 @@ button.ac-card:active { transform: scale(.99); }
 .ac-body b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ac-by { font-size: 12px; color: var(--ink); }
 .ac-date { font-size: 11.5px; color: var(--muted); }
+/* ແຖວ avatar ຜູ້ລົງນາມ ໃນການ໌ດ ອະນຸມັດ — ຕິກຖືກ = ເຊັນແລ້ວ */
+.ac-avs { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
+.ac-avs .doc-av { width: 22px; height: 22px; font-size: 9px; }
+.ac-avs .doc-av-check { width: 11px; height: 11px; bottom: -2px; right: -2px; border-width: 1.2px; }
+.ac-avs .doc-av-check svg { width: 7px; height: 7px; }
+.ac-avs em { font-style: normal; font-size: 10.5px; color: var(--muted); margin-left: 3px; }
 .ac-type { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 6px; padding: 1px 6px; margin-right: 2px; }
 .ac-status { flex-shrink: 0; align-self: flex-start; font-size: 11px; font-weight: 700; color: #d97706; background: #fdf0dd; border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
 .ac-status.done { color: #16a34a; background: #e7f6ec; }
@@ -1211,8 +1227,23 @@ button.ac-card:active { transform: scale(.99); }
   font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .req-sub.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 
+/* ກອງສະຖານະ (ແຖວທີ 2) — pattern ດຽວກັບໂມດູນ ອະນຸມັດ */
+/* padding ແນວຕັ້ງ = 0 → ໃຫ້ gap ຂອງ .scroll ຄຸມໄລຍະຫ່າງອັນດຽວ (ບໍ່ດັ່ງນັ້ນ ເທິງ/ລຸ່ມ ບໍ່ເທົ່າກັນ) */
+.req-sf { display: flex; gap: 6px; padding: 0 16px; overflow-x: auto; }
+.req-sf::-webkit-scrollbar { display: none; }
+.req-sf-chip { flex-shrink: 0; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: var(--muted); }
+.req-sf-chip.on { background: #eff4ff; border-color: #c7d2fe; color: var(--blue); font-weight: 700; }
+
+/* ຜູ້ຂໍ + ເຫດຜົນ ແຖວດຽວກັນ (ໂມດູນ ອະນຸມັດ) */
+.req-card-by { display: flex; align-items: center; gap: 5px; font-size: 11.5px; margin-top: 3px; min-width: 0; }
+.req-card-by b { color: var(--text); font-weight: 700; flex-shrink: 0; }
+.req-card-by em { font-style: normal; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-card-av { width: 18px; height: 18px; border-radius: 50%; background-size: cover; background-position: center; color: #fff;
+  font-size: 8px; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
+
 /* ການ໌ດຄຳຂໍ */
-.req-list { padding: 10px 16px 90px; display: flex; flex-direction: column; gap: 10px; }
+.req-list { padding: 0 16px 90px; display: flex; flex-direction: column; gap: 10px; }
 .req-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 1px solid var(--line);
   border-radius: 14px; padding: 12px; cursor: pointer; font-family: inherit; box-shadow: 0 1px 3px rgba(16,24,40,.04); }
 .req-card:hover { border-color: #c7d2fe; box-shadow: 0 4px 14px rgba(31,63,181,.08); }
@@ -1222,11 +1253,14 @@ button.ac-card:active { transform: scale(.99); }
 .req-card-ic.leave { background: #8b5e3c; }
 .req-card-ic.offsite { background: var(--blue); }
 .req-card-ic.ot { background: #7c3aed; }
+.req-card-ic.booking { background: #0d9488; }
+.req-card-ic.knowledge { background: #d97706; }
 .req-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .req-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .req-card-top b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.req-card-when { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text); }
-.req-card-when svg { width: 13px; height: 13px; color: var(--muted); }
+/* ວັນທີ+ເວລາ ແຖວດຽວ ບໍ່ຕົກແຖວ (ຊ່ວງຫຼາຍມື້ ໃຊ້ຮູບແບບສັ້ນ fmtRange) */
+.req-card-when { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req-card-when svg { width: 13px; height: 13px; color: var(--muted); flex-shrink: 0; }
 .req-card-when svg:nth-of-type(2) { margin-left: 6px; }
 .req-card-note { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -1244,15 +1278,17 @@ button.ac-card:active { transform: scale(.99); }
 .req-badge.rej { background: #fdeaea; color: #b91c1c; }
 .req-badge.cancel { background: #eef1f6; color: var(--muted); }
 
-/* hero ໜ້າລາຍລະອຽດ */
-.req-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line);
-  border-radius: 16px; padding: 20px 16px; margin-bottom: 12px; }
-.req-hero-ic { width: 56px; height: 56px; border-radius: 15px; display: grid; place-items: center; color: #fff; }
-.req-hero-ic svg { width: 27px; height: 27px; }
+/* hero ໜ້າລາຍລະອຽດ — ແນວນອນ (ໄອຄອນຊ້າຍ · ຊື່ກາງ · ສະຖານະຂວາ) ບໍ່ແມ່ນຊ້ອນເທິງ-ລຸ່ມ */
+.req-hero { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+.req-hero-ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.req-hero-ic svg { width: 23px; height: 23px; }
 .req-hero-ic.leave { background: #8b5e3c; }
 .req-hero-ic.offsite { background: var(--blue); }
 .req-hero-ic.ot { background: #7c3aed; }
-.req-hero b { font-size: 17px; text-align: center; }
+.req-hero-ic.booking { background: #0d9488; }
+.req-hero-ic.knowledge { background: #d97706; }
+.req-hero b { flex: 1; min-width: 0; font-size: 16px; text-align: left; word-break: break-word; }
 
 /* ຟອມສ້າງຄຳຂໍ */
 .req-form { padding: 14px 16px 18px; }
@@ -1266,6 +1302,326 @@ button.ac-card:active { transform: scale(.99); }
 .req-opt { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; cursor: pointer; font-family: inherit;
   font-size: 12.5px; color: var(--text); }
 .req-opt.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+
+/* ═══════════ ໂມດູນ ຄວາມຮູ້ (Knowledge Sharing) ═══════════ */
+.kn-list { padding: 0 16px 90px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ການ໌ດໂພສ */
+.kn-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; cursor: pointer;
+  font-family: inherit; text-align: left; padding: 0; box-shadow: 0 1px 3px rgba(16,24,40,.04); }
+.kn-card:hover { border-color: #c7d2fe; box-shadow: 0 6px 20px rgba(31,63,181,.1); }
+.kn-cover { position: relative; height: 128px; display: grid; place-items: center; background: linear-gradient(135deg, #2a4fd0, var(--blue-dark)); }
+.kn-cover.youtube { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
+.kn-cover.pdf { background: linear-gradient(135deg, #0d9488, #134e4a); }
+.kn-cover img { width: 100%; height: 100%; object-fit: cover; }
+.kn-cover-ic { color: rgba(255,255,255,.9); }
+.kn-cover-ic svg { width: 40px; height: 40px; }
+.kn-cover-badge { position: absolute; top: 10px; right: 10px; }
+.kn-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 7px; }
+.kn-cats { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.kn-cat { background: #eff4ff; color: var(--blue); border-radius: 7px; padding: 3px 9px; font-size: 11px; font-weight: 700; }
+.kn-title { font-size: 15.5px; line-height: 1.4; color: var(--ink); }
+.kn-meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.kn-meta em { font-style: normal; display: inline-flex; align-items: center; gap: 3px; }
+.kn-meta svg { width: 12px; height: 12px; }
+.kn-av { width: 18px; height: 18px; border-radius: 50%; background-size: cover; background-position: center;
+  color: #fff; font-size: 8px; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
+.kn-stats { display: flex; gap: 14px; border-top: 1px solid var(--line); padding-top: 9px; margin-top: 2px; }
+.kn-stats span { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.kn-stats span.on { color: var(--blue); }
+.kn-stats svg { width: 13px; height: 13px; }
+
+/* ໜ້າລາຍລະອຽດໂພສ */
+.kn-hero { height: 168px; border-radius: 16px; overflow: hidden; display: grid; place-items: center; margin-bottom: 12px;
+  background: linear-gradient(135deg, #2a4fd0, var(--blue-dark)); }
+.kn-hero.youtube { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
+.kn-hero.pdf { background: linear-gradient(135deg, #0d9488, #134e4a); }
+.kn-hero img { width: 100%; height: 100%; object-fit: cover; }
+.kn-hero .kn-cover-ic svg { width: 52px; height: 52px; }
+.kn-d-title { display: block; font-size: 18px; line-height: 1.4; color: var(--ink); margin-bottom: 5px; }
+.kn-d-overview { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 12px; }
+.kn-d-meta { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--line); padding-top: 11px; }
+.kn-d-meta .kn-av { width: 34px; height: 34px; font-size: 12px; }
+.kn-d-meta > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.kn-d-meta b { font-size: 13px; }
+.kn-d-meta span { font-size: 11px; color: var(--muted); }
+.kn-content { font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; margin: 0; }
+.kn-yt { display: flex; align-items: center; gap: 11px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;
+  padding: 12px; text-decoration: none; }
+.kn-yt-ic { width: 40px; height: 40px; border-radius: 10px; background: #dc2626; color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.kn-yt > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.kn-yt b { font-size: 13px; color: #b91c1c; }
+.kn-yt span { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kn-yt > svg { width: 17px; height: 17px; color: #b91c1c; transform: rotate(-90deg); flex-shrink: 0; }
+
+/* ອັນດັບ */
+.kn-rank { display: flex; align-items: center; gap: 11px; background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 11px 13px; }
+.kn-rank.me { border-color: var(--blue); background: #eff4ff; }
+.kn-rank-n { width: 26px; height: 26px; border-radius: 8px; background: #eef1f6; color: var(--muted); display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.kn-rank-n.top1 { background: #fbbf24; color: #fff; }
+.kn-rank-n.top2 { background: #cbd5e1; color: #fff; }
+.kn-rank-n.top3 { background: #d97706; color: #fff; }
+.kn-rank-av { width: 36px; height: 36px; border-radius: 50%; background-size: cover; background-position: center;
+  color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
+.kn-rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.kn-rank-info b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kn-rank-info span { font-size: 11px; color: var(--muted); }
+.kn-rank-score { font-size: 16px; font-weight: 800; color: var(--blue); font-variant-numeric: tabular-nums; }
+
+/* ຮູບໜ້າປົກ ໃນຟອມ */
+.kn-img-wrap { position: relative; border-radius: 12px; overflow: hidden; }
+.kn-img-wrap img { width: 100%; display: block; }
+
+/* toggle (Quiz / Assignment / Reward) */
+.kn-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: #f8fafc;
+  border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; cursor: pointer; font-family: inherit; text-align: left; margin-bottom: 7px; }
+.kn-toggle:last-child { margin-bottom: 0; }
+.kn-toggle > div { display: flex; flex-direction: column; min-width: 0; }
+.kn-toggle b { font-size: 13.5px; }
+.kn-toggle span { font-size: 11px; color: var(--muted); }
+.kn-sw { width: 42px; height: 24px; border-radius: 999px; background: var(--line); flex-shrink: 0; position: relative; transition: background .18s; }
+.kn-sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .18s; }
+.kn-sw.on { background: var(--blue); }
+.kn-sw.on i { left: 21px; }
+
+/* ໂປຣໄຟລ໌ ໃນ user menu (ຍ້າຍມາຈາກ tab ລຸ່ມ) */
+.user-me { display: flex; align-items: center; gap: 10px; padding: 4px 4px 12px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.user-me-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.user-me-info b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-me-info span { font-size: 11px; color: var(--muted); }
+
+/* ═══════════ ຟອມສ້າງຄຳຂໍ (rf-*) — ໂຄງດຽວກັນທັງ ລາພັກ / ໂອທີ / ວຽກນອກ ═══════════ */
+/* ຟອມເປັນໜ້າເຕັມ ທັບຢູ່ເທິງ (ຄືກັບ .ac-detail-screen) — ບໍ່ແມ່ນ render ຕໍ່ທ້າຍລາຍການ */
+.rf-screen { position: absolute; inset: 0; z-index: 210; background: var(--bg); display: flex; flex-direction: column; }
+.rf-scroll { flex: 1; overflow-y: auto; padding: 14px 16px 20px; }
+
+/* ການ໌ດແຕ່ລະສ່ວນ — ຫົວຂໍ້ມີໄອຄອນ ຄືກັນໝົດທຸກສ່ວນ */
+.rf-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(16,24,40,.04); transition: border-color .18s, box-shadow .18s; }
+.rf-card.err { border-color: #fca5a5; box-shadow: 0 0 0 3px rgba(220,38,38,.08); }
+.rf-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.rf-head b { font-size: 15px; }
+.rf-head-ic { width: 32px; height: 32px; border-radius: 9px; background: #eff4ff; color: var(--blue); display: grid; place-items: center; flex-shrink: 0; }
+.rf-head-ic svg { width: 17px; height: 17px; }
+.rf-req { font-style: normal; font-size: 10.5px; font-weight: 700; color: #b91c1c; background: #fdeaea; border-radius: 999px; padding: 2px 7px; }
+.rf-opt { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--muted); background: #eef1f6; border-radius: 999px; padding: 2px 7px; }
+.rf-count { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* input ພື້ນຖານ */
+.rf-label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+.rf-input { width: 100%; background: #f8fafc; border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px;
+  font-family: inherit; font-size: 14px; color: var(--text); }
+.rf-input:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(31,63,181,.14); }
+.rf-ta { resize: vertical; line-height: 1.5; }
+.rf-f-row { display: flex; gap: 10px; align-items: flex-end; }
+.rf-f-row > div { flex: 1; min-width: 0; }
+.rf-arrow { color: var(--muted); padding-bottom: 11px; }
+.rf-arrow svg { width: 16px; height: 16px; transform: rotate(-90deg); }
+
+/* chips ເລືອກ */
+.rf-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.rf-chip { background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13px; color: var(--text); transition: all .15s; }
+.rf-chip.sm { padding: 6px 11px; font-size: 12px; }
+.rf-chip:hover { border-color: #c7d2fe; }
+.rf-chip.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+
+/* segmented ມື້ດຽວ / ຫຼາຍມື້ — pattern ດຽວໃຊ້ທຸກຟອມ */
+.rf-seg { display: flex; background: #eef1f6; border-radius: 11px; padding: 3px; margin-bottom: 12px; }
+.rf-seg button { flex: 1; background: none; border: none; border-radius: 9px; padding: 9px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 600; color: var(--muted); transition: all .16s; }
+.rf-seg button.on { background: #fff; color: var(--blue); font-weight: 700; box-shadow: 0 1px 4px rgba(16,24,40,.1); }
+
+/* ═══ ປະຕິທິນເລືອກຊ່ວງວັນທີ (bottom sheet) ═══ */
+.drs { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 22px 22px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; box-shadow: 0 -8px 30px rgba(16,24,40,.18); animation: drs-up .22s ease-out; }
+@keyframes drs-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.drs-grip { width: 38px; height: 4px; border-radius: 999px; background: var(--line); margin: 0 auto 10px; }
+.drs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.drs-head b { font-size: 16px; }
+
+.drs-fields { display: flex; align-items: center; gap: 8px; }
+.drs-field { flex: 1; min-width: 0; background: #f8fafc; border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 12px; cursor: pointer;
+  font-family: inherit; text-align: left; display: flex; flex-direction: column; gap: 2px; transition: all .16s; }
+.drs-field em { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.drs-field b { font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drs-field.on { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(31,63,181,.14); }
+.drs-field.on b { color: var(--blue); }
+.drs-arrow { color: var(--muted); flex-shrink: 0; }
+.drs-arrow svg { width: 15px; height: 15px; transform: rotate(-90deg); }
+.drs-days { text-align: center; font-size: 12.5px; font-weight: 700; color: #15803d; margin: 9px 0 4px; }
+
+.drs-nav { display: flex; align-items: center; justify-content: space-between; padding: 6px 4px 10px; }
+.drs-nav b { font-size: 14.5px; }
+.icon-mini.flip svg { transform: rotate(180deg); }
+
+.drs-dow { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.drs-dow span { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--muted); padding: 5px 0; }
+.drs-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+.drs-cell { position: relative; height: 40px; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 13.5px;
+  color: var(--text); display: grid; place-items: center; }
+.drs-cell.empty { cursor: default; }
+.drs-cell span { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; }
+/* ແຖບຊ່ວງ — ຫົວ/ທ້າຍ ມົນ, ກາງເປັນແຖບຕໍ່ເນື່ອງ */
+.drs-cell.in::before, .drs-cell.s::before, .drs-cell.e::before { content: ''; position: absolute; inset: 3px 0; background: #eef2ff; }
+.drs-cell.s::before { left: 50%; border-radius: 999px 0 0 999px; }
+.drs-cell.e::before { right: 50%; border-radius: 0 999px 999px 0; }
+.drs-cell.s.e::before { display: none; }
+.drs-cell.s span, .drs-cell.e span { background: var(--blue); color: #fff; font-weight: 800; }
+.drs-cell:hover:not(.empty) span { background: #eef2ff; }
+.drs-cell.s:hover span, .drs-cell.e:hover span { background: var(--blue); }
+.drs-ok { margin-top: 14px; width: 100%; }
+
+/* ປຸ່ມເລືອກ → ເປີດແຜ່ນ (ແທນ <select> ທີ່ browser ແຕ້ມໃຫຍ່ເກີນ ຄຸມບໍ່ໄດ້) */
+.rf-pick { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: #f8fafc; border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; cursor: pointer;
+  font-family: inherit; font-size: 14px; color: var(--text); text-align: left; }
+.rf-pick.ph { color: var(--muted); }
+.rf-pick:hover:not(:disabled) { border-color: var(--blue); background: #fff; }
+.rf-pick:disabled { opacity: .55; cursor: not-allowed; }
+.rf-pick svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+
+/* ຈຸດສີ (ປະເພດວັນ) */
+.pk-dot { width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--d) 14%, #fff); display: grid; place-items: center; flex-shrink: 0; }
+.pk-dot::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--d); }
+.pk-lb { flex: 1; min-width: 0; }
+.pk-opt.on .pk-dot { background: rgba(255,255,255,.22); }
+.rf-pick-dot { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.rf-pick-dot .pk-dot { width: 22px; height: 22px; border-radius: 7px; }
+.rf-pick-dot .pk-dot::before { width: 8px; height: 8px; }
+
+/* ໜ້າວຽກ — ຕິກໄດ້ຫຼາຍອັນ */
+.rf-hint-sm { font-style: normal; font-weight: 600; color: var(--blue); }
+.rf-tasks { display: flex; flex-direction: column; gap: 6px; }
+.rf-task { display: flex; align-items: center; gap: 9px; background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--text); text-align: left; }
+.rf-task:hover { border-color: #c7d2fe; }
+.rf-task.on { background: #eff4ff; border-color: var(--blue); color: var(--blue); font-weight: 600; }
+.rf-task-box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line); background: #fff;
+  display: grid; place-items: center; flex-shrink: 0; }
+.rf-task.on .rf-task-box { background: var(--blue); border-color: var(--blue); }
+.rf-task-box svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 3; }
+
+/* ລາຍການໃນແຜ່ນເລືອກ */
+.pk-list { display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; padding-bottom: 4px; }
+.pk-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc;
+  border: 1px solid var(--line); border-radius: 11px; padding: 13px 14px; cursor: pointer; font-family: inherit;
+  font-size: 14px; color: var(--text); text-align: left; }
+.pk-opt:hover { border-color: #c7d2fe; background: #eff4ff; }
+.pk-opt.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+.pk-opt svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+/* dropdown */
+.rf-select { position: relative; }
+.rf-select select { width: 100%; appearance: none; cursor: pointer; padding-right: 38px; }
+.rf-select select:invalid, .rf-select select[value=""] { color: var(--muted); }
+.rf-select > svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+
+/* ກ່ອງດຽວ ລວມ ວັນທີ + ເວລາ */
+.rf-box { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+.rf-box-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.rf-box-row + .rf-box-row { border-top: 1px solid var(--line); }
+.rf-box-lb { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); width: 72px; flex-shrink: 0; }
+.rf-box-lb svg { width: 15px; height: 15px; }
+.rf-box-in { flex: 1; min-width: 0; background: none; border: none; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text); padding: 4px 0; }
+/* ປຸ່ມເວລາ → ເປີດແຜ່ນເລືອກ (ຊົ່ວໂມງ → ນາທີ) */
+.rf-time { flex: 1; min-width: 0; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+  cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.rf-time:hover { border-color: var(--blue); background: #eff4ff; color: var(--blue); }
+
+/* ═══ ແຜ່ນເລືອກເວລາ (ຊົ່ວໂມງ 00–23 → ນາທີ 00/30) ═══ */
+.ts { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 22px 22px 0 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column;
+  box-shadow: 0 -8px 30px rgba(16,24,40,.18); animation: drs-up .22s ease-out; }
+.ts-val { text-align: center; font-size: 30px; font-weight: 800; color: var(--blue); font-variant-numeric: tabular-nums; margin: 2px 0 12px; }
+.ts-cols { display: flex; gap: 10px; }
+.ts-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ts-col.mins { flex: 0 0 96px; }
+.ts-col-lb { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.ts-list { height: 216px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 4px;
+  display: flex; flex-direction: column; gap: 2px; scroll-behavior: smooth; }
+.ts-list::-webkit-scrollbar { width: 4px; }
+.ts-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+.ts-opt { flex-shrink: 0; background: none; border: none; border-radius: 9px; padding: 11px 0; cursor: pointer;
+  font-family: inherit; font-size: 16px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.ts-opt:hover { background: #eff4ff; }
+.ts-opt.on { background: var(--blue); color: #fff; font-weight: 800; }
+.rf-box-in:focus { outline: none; color: var(--blue); }
+/* border: none ກ່ອນ — ບໍ່ດັ່ງນັ້ນ <button> ຈະເຫຼືອຂອບດຳ default 3 ດ້ານ */
+.rf-box-row.tap { width: 100%; background: none; border: none; border-bottom: 1px solid var(--line); cursor: pointer; font-family: inherit; text-align: left; }
+.rf-box-row.tap:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; border-radius: 11px; }
+.rf-box-row.tap:hover { background: #f8fafc; }
+.rf-box-row.tap > svg:last-child { width: 16px; height: 16px; color: var(--muted); transform: rotate(-90deg); flex-shrink: 0; }
+.rf-box-val { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rf-box-sep { color: var(--muted); font-weight: 700; }
+.rf-box-tag { background: #eff4ff; color: var(--blue); border-radius: 7px; padding: 3px 8px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+.rf-quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; margin-bottom: 4px; }
+.rf-qchip { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: var(--muted); }
+.rf-qchip.on { background: #eff4ff; border-color: #c7d2fe; color: var(--blue); font-weight: 700; }
+
+/* ແຖບເວລາ 06:00–22:00 */
+.rf-bar { position: relative; height: 10px; background: #eef1f6; border-radius: 999px; margin: 14px 0 5px; overflow: hidden; }
+.rf-bar-fill { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, #2563eb, #1f3fb5); border-radius: 999px; }
+.rf-bar-lunch { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, #fbbf24, #fbbf24 3px, #fff 3px, #fff 6px); opacity: .95; }
+.rf-bar-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 10px; }
+
+.rf-lunch { display: flex; align-items: center; gap: 6px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+  padding: 9px 11px; font-size: 12px; color: #92400e; margin: 0 0 10px; }
+.rf-lunch svg { width: 14px; height: 14px; flex-shrink: 0; }
+.rf-lunch b { margin-left: auto; background: #fde68a; border-radius: 6px; padding: 2px 6px; }
+
+.rf-total { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border-radius: 11px; padding: 12px 14px; }
+.rf-total span { font-size: 12.5px; color: var(--muted); }
+.rf-total b { font-size: 18px; color: var(--blue); }
+
+/* ໄຟລ໌ແນບ */
+.rf-drop { width: 100%; background: #f8fafc; border: 1.5px dashed var(--line); border-radius: 12px; padding: 20px; cursor: pointer;
+  font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); }
+.rf-drop:hover { border-color: var(--blue); background: #eff4ff; color: var(--blue); }
+.rf-drop b { font-size: 13px; }
+.rf-drop span { font-size: 11px; }
+.rf-files { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.rf-file { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+/* ໃນຟອມ: ພື້ນທີ່ກົດເປີດເບິ່ງ (ຊ້າຍ) ແຍກຈາກ ປຸ່ມລຶບ ✕ (ຂວາ) */
+.rf-file-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: none;
+  cursor: pointer; font-family: inherit; text-align: left; padding: 0; }
+.rf-file-open > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rf-file-open > svg:last-child { width: 16px; height: 16px; color: var(--blue); flex-shrink: 0; }
+.rf-file:has(.rf-file-open:hover) { border-color: #c7d2fe; background: #eff4ff; }
+
+/* ແຖວໄຟລ໌ແບບກົດໄດ້ (ໜ້າລາຍລະອຽດ) — ແຕະເພື່ອເປີດເບິ່ງ */
+.rf-file.tap { width: 100%; cursor: pointer; font-family: inherit; text-align: left; }
+.rf-file.tap:hover { border-color: #c7d2fe; background: #eff4ff; }
+.rf-file.tap > svg:last-child { width: 17px; height: 17px; color: var(--blue); flex-shrink: 0; }
+.rf-file img, .rf-file-ic { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.rf-file-ic { background: #eff4ff; color: var(--blue); display: grid; place-items: center; }
+.rf-file > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rf-file b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-file span { font-size: 11px; color: var(--muted); }
+
+/* ສາຍອະນຸມັດ — stepper */
+.rf-chain { display: flex; flex-direction: column; gap: 0; }
+.rf-step { display: flex; align-items: center; gap: 10px; padding: 9px 0; position: relative; }
+.rf-step:not(:last-child)::after { content: ''; position: absolute; left: 11px; top: 38px; bottom: -4px; width: 2px; background: var(--line); }
+.rf-step-n { width: 24px; height: 24px; border-radius: 999px; background: var(--line); color: var(--muted); display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0; z-index: 1; }
+.rf-step-n.first { background: #f59e0b; color: #fff; }
+.rf-step-av { width: 34px; height: 34px; border-radius: 999px; background: #eff4ff; color: var(--blue); display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.rf-step > div { display: flex; flex-direction: column; min-width: 0; }
+.rf-step b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-step span { font-size: 11px; color: var(--muted); }
+
+/* ປຸ່ມສົ່ງ ຕິດລຸ່ມ */
+.rf-foot { background: #fff; border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+.rf-submit { width: 100%; }
+.rf-submit.soft { opacity: .55; }
+.rf-missing { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b91c1c; margin: 0 0 9px; }
+.rf-missing svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 /* ─────────── ປຸ່ມປະຕິເສດ / ຍົກເລີກ — ສີແດງທຶບ ໃຊ້ຮ່ວມທຸກທີ່ ─────────── */
 .btn.danger { background: var(--danger); border: 1px solid var(--danger); color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,.28); }
@@ -1579,9 +1935,27 @@ button.ac-card:active { transform: scale(.99); }
 .ptd-info-ic.blue { background: var(--blue-soft); color: var(--blue); }
 .ptd-info-ic svg { width: 18px; height: 18px; }
 .ptd-info-av { width: 36px; height: 36px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
-.ptd-info-txt { flex: 1; min-width: 0; }
-.ptd-info-txt span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 1px; }
-.ptd-info-txt b { display: block; font-size: 13.5px; color: var(--ink); line-height: 1.35; word-break: break-word; }
+/* ແຖວຂໍ້ມູນ: ປ້າຍຊ້າຍ · ຄ່າຂວາ (ອ່ານໄວກວ່າ ຊ້ອນເທິງ-ລຸ່ມ) */
+.ptd-info-txt { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ptd-info-txt span { flex-shrink: 0; font-size: 12px; color: var(--muted); }
+.ptd-info-txt b { flex: 1; min-width: 0; text-align: right; font-size: 13.5px; color: var(--ink); line-height: 1.4; word-break: break-word; }
+/* ແຖວທີ່ຄ່າຍາວ/ຫຼາຍອັນ → ປ້າຍເທິງ · ຄ່າລຸ່ມ (ບໍ່ບີບໃສ່ແຖວດຽວ) */
+.ptd-info-txt.col { flex-direction: column; align-items: stretch; gap: 7px; }
+.ptd-info-txt.col > span { text-align: left; }
+/* ລາຍການໜ້າວຽກ — ເຕັມຄວາມກວ້າງ 1 ແຖວ/ອັນ (ຊື່ຍາວ ຫຼື 5+ ອັນ ກໍອ່ານຄົບ) */
+.ptd-tasklist { display: flex; flex-direction: column; gap: 6px; }
+.ptd-task-row { display: flex; align-items: flex-start; gap: 9px; background: #f8fafc; border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 11px; }
+.ptd-task-row b { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; word-break: break-word; }
+.ptd-task-row > svg { width: 14px; height: 14px; color: #16a34a; flex-shrink: 0; margin-top: 2px; }
+.ptd-task-n { width: 19px; height: 19px; border-radius: 6px; background: #eff4ff; color: var(--blue); display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.ptd-card-label svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; }
+
+.ptd-tasks { display: flex; flex-wrap: wrap; gap: 5px; }
+.ptd-task { display: inline-flex; align-items: center; gap: 4px; background: #eff4ff; border: 1px solid #c7d2fe; border-radius: 8px;
+  padding: 4px 9px; font-size: 12px; font-weight: 600; color: var(--blue); line-height: 1.35; }
+.ptd-task svg { width: 11px; height: 11px; flex-shrink: 0; }
 .ptd-tl-card, .ptd-cmt-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
 .ptd-tl-card .ptd-timeline { margin-bottom: 0; }
 .ptd-tl-card .ptd-tl-item:last-child { padding-bottom: 0; }
@@ -1613,13 +1987,21 @@ button.ac-card:active { transform: scale(.99); }
 .ac-sub.task { background: #f3e8ff; color: #9333ea; }
 
 /* ─────────── LANIT stamp ໃນຊ່ອງ Sign Field (ໃຊ້ format ມາດຕະຖານ) ─────────── */
-.sig-box.filled.lanit, .sig-box.saved.lanit { width: 236px; height: 66px; }
-.lanit-stamp.compact { display: flex; align-items: center; gap: 6px; width: 100%; height: 100%; padding: 4px 6px; }
-.lanit-stamp.compact .lanit-left { flex-shrink: 0; display: grid; place-items: center; width: 38px; }
-.lanit-stamp.compact .lanit-left img { max-width: 38px; max-height: 30px; object-fit: contain; }
-.lanit-stamp.compact .lanit-right { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.lanit-stamp.compact .lanit-badge { display: inline-flex; align-items: center; gap: 2px; font-size: 6.5px; font-weight: 800; color: #16a34a; }
-.lanit-stamp.compact .lanit-badge svg { width: 7px; height: 7px; }
-.lanit-stamp.compact b { font-size: 6.5px; font-weight: 700; color: #64748b; }
-.lanit-stamp.compact .lanit-name { font-size: 9px; font-weight: 800; color: #1a2a5e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lanit-stamp.compact span:not(.lanit-badge) { font-size: 5.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ສູງພໍໃສ່ 6 ແຖວ (badge · Digitally signed by · ຊື່ · DN · Date · Issuer) — ບໍ່ໃຫ້ລົ້ນອອກນອກກອບ */
+/* LANIT stamp ມີກອບ+ພື້ນຫຼັງຂອງຕົນເອງແລ້ວ → ປິດກອບ/ພື້ນຫຼັງ/ເສັ້ນປະ ຂອງ .sig-box ບໍ່ດັ່ງນັ້ນຈະເປັນກ່ອງຊ້ອນກ່ອງ */
+.sig-box.lanit { width: 208px; height: 70px; }
+.sig-box.filled.lanit { border: none; background: none; box-shadow: none; backdrop-filter: none; padding-bottom: 0; }
+.sig-box.filled.lanit::after { display: none; }
+.lanit-stamp.compact { display: flex; align-items: center; gap: 6px; width: 100%; height: 100%; padding: 4px 6px; overflow: hidden; }
+.lanit-stamp.compact .lanit-left { flex-shrink: 0; display: grid; place-items: center; width: 32px; padding: 0; border-right: none; background: none; }
+.lanit-stamp.compact .lanit-left svg { width: 32px; height: 32px; }
+.lanit-stamp.compact .lanit-left img { max-width: 32px; max-height: 28px; object-fit: contain; }
+/* ລ້າງ padding/gap ຂອງ rule ພື້ນຖານ (.lanit-right) — ບໍ່ດັ່ງນັ້ນ 6 ແຖວຈະສູງເກີນກອບ ແລ້ວລົ້ນ */
+.lanit-stamp.compact .lanit-right { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; line-height: 1.15; padding: 0; gap: 0; }
+.lanit-stamp.compact .lanit-badge { margin-bottom: 0; }
+/* ໜ້າ A4 ຖືກຫຍໍ້ລົງເຫຼືອກວ້າງ ~313px ໃນມືຖື → ຕົວອັກສອນຕ້ອງໃຫຍ່ພໍ ຈຶ່ງອ່ານອອກ */
+.lanit-stamp.compact .lanit-badge { display: inline-flex; align-items: center; gap: 2px; font-size: 7.5px; font-weight: 800; color: #16a34a; }
+.lanit-stamp.compact .lanit-badge svg { width: 8px; height: 8px; }
+.lanit-stamp.compact b { font-size: 7px; font-weight: 700; color: #64748b; }
+.lanit-stamp.compact .lanit-name { font-size: 11px; font-weight: 800; color: #1a2a5e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lanit-stamp.compact span:not(.lanit-badge) { font-size: 6.8px; color: #7c8aa5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

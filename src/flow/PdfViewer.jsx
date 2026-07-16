@@ -69,7 +69,7 @@ function SignatureBox({ p, signer, colorIdx, mode, isMe, fill, onSigSetScale, on
   return (
     <div
       ref={boxRef}
-      className={`sig-box ${mode} ${isMe && !signer?.hasSig && !fill && !saved ? 'me' : ''} ${fill ? 'filled' : ''} ${saved ? 'saved' : ''} ${(fill?.sigType === 'lanit' || p.sig?.type === 'lanit') ? 'lanit' : ''}`}
+      className={`sig-box ${mode} ${isMe && !signer?.hasSig && !fill && !saved ? 'me' : ''} ${fill ? 'filled' : ''} ${saved ? 'saved' : ''} ${(fill?.sigType === 'lanit' || p.sig?.type === 'lanit' || (!fill && !saved && signer?.hasSig && signer?.sigType === 'lanit')) ? 'lanit' : ''}`}
       style={{ left: `${p.xPct}%`, top: `${p.yPct}%`, '--c': c.main, '--c-soft': c.soft, ...((fill || saved) ? { transform: `translate(-50%,-50%) scale(${scale})` } : {}) }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -106,11 +106,17 @@ function SignatureBox({ p, signer, colorIdx, mode, isMe, fill, onSigSetScale, on
             : <img src={p.sig.img} alt="signature" draggable={false} />}
         </div>
       ) : signer?.hasSig ? (
-        // ເຊັນແລ້ວ (ບໍ່ມີ img) → cursive name
-        <div className="sig-signed">
-          <span className="sig-signed-name">{signer?.name || 'ຜູ້ລົງນາມ'}</span>
-          <span className="sig-signed-meta"><Icon.check /> ເຊັນແລ້ວ</span>
-        </div>
+        // ເຊັນແລ້ວ (ບໍ່ມີ img) → LANIT stamp ຖ້າເຊັນຜ່ານ LANIT / ບໍ່ດັ່ງນັ້ນ cursive name
+        signer.sigType === 'lanit' ? (
+          <div className="sig-fill-media">
+            <LanitStamp name={signer.name} date={signer.time || ''} compact />
+          </div>
+        ) : (
+          <div className="sig-signed">
+            <span className="sig-signed-name">{signer?.name || 'ຜູ້ລົງນາມ'}</span>
+            <span className="sig-signed-meta"><Icon.check /> ເຊັນແລ້ວ</span>
+          </div>
+        )
       ) : isMe ? (
         // ບ່ອນຂອງຜູ້ທີ່ກຳລັງເຊັນ → Sign Field ໄຮໄລທ໌
         <div className="sig-me">

@@ -4,7 +4,7 @@ import DocDetail from './home/DocDetail.jsx'
 import SignatureFlow from './flow/SignatureFlow.jsx'
 import SignScreen from './flow/SignScreen.jsx'
 import Settings from './flow/Settings.jsx'
-import { initialDocs, initialReqs, uid, nameOf, isMyTurn } from './home/data.js'
+import { initialDocs, initialReqs, SAMPLE_IMG, uid, nameOf, isMyTurn, approvalChain } from './home/data.js'
 
 // noti เริ่มต้น: แจ้งผู้เซ็นที่ถึงคิว (ให้เข้าถึง request ที่ต้องเซ็นได้ ผ่านกระดิ่ง)
 function buildInitialNotis(ds) {
@@ -49,7 +49,8 @@ export default function App() {
   const bio = !!bios[me]
   const DIRECTOR = 'C' // Pheutsapha Phoummasak (id C) = ຜູ້ອຳນວຍການ = ຜู้อนุมัดคะแนน
 
-  // ── enrich seed docs (progress) ໃຫ້ມີໄຟລ໌ PDF ຈິງ + placements (Sign Field) ຄືກັບ request ໃໝ່ ──
+  // ── enrich seed docs ທຸກສະຖານະ (ດຳເນີນການ/ສຳເລັດ/ປະຕິເສດ/ຍົກເລີກ) ໃຫ້ມີໄຟລ໌ PDF ຈິງ + placements
+  //    → ເປີດເບິ່ງແລ້ວເຫັນ QR + ວັນທີ ທ້າຍໜ້າ ຄືກັນໝົດ (ບໍ່ຕົກໄປ mockup ທີ່ບໍ່ມີ) ──
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -62,23 +63,41 @@ export default function App() {
       } catch { return }
       if (cancelled || !samples) return
       setDocs((ds) => ds.map((d) => {
-        if (d.status !== 'progress' || d.files.some((f) => f.file)) return d // ຂ້າມ request ໃໝ່ (ມີໄຟລ໌ຈິງແລ້ວ)
+        if (d.files.some((f) => f.file)) return d // ຂ້າມ request ໃໝ່ (ມີໄຟລ໌ຈິງແລ້ວ)
         const signers = d.signers.filter((s) => s.role === 'signer')
         const files = d.files.map((f, fi) => ({ ...f, id: f.id || `${d.id}-f${fi}`, pages: 2, srcUrl: SRC[fi % SRC.length], file: new File([samples[fi % samples.length]], f.name, { type: 'application/pdf' }) }))
         const placements = []
         files.forEach((f, fi) => {
           const those = fi === 0 ? signers : signers.slice(0, 1) // ໄຟລ໌ທຳອິດ: ຜู้เซ็นทุกคน / ໄຟລ໌ອื่น: ຜู้เซ็นคนแรก
-          those.forEach((s, si) => placements.push({ id: `${d.id}-p${fi}-${si}`, pageKey: `${f.id}-1`, signerId: s.id, xPct: si % 2 === 0 ? 34 : 66, yPct: 72 + Math.floor(si / 2) * 9 }))
+          // ວາງລຽນລົງມາ (ບໍ່ແມ່ນ 2 ຖັນ) — stamp LANIT ກວ້າງ ~54% ຂອງໜ້າ ຖ້າວາງຄູ່ກັນຈະຊ້ອນທັບກັນ
+          those.forEach((s, si) => placements.push({ id: `${d.id}-p${fi}-${si}`, pageKey: `${f.id}-1`, signerId: s.id, xPct: 50, yPct: Math.min(92, 60 + si * 15) }))
         })
         return { ...d, files, placements }
       }))
+      // ຄຳຂໍ seed ທີ່ມີ needFile/needImg → ຕິດໄຟລ໌ຈິງ ໃຫ້ເປີດເບິ່ງໄດ້ ຄືກັບໄຟລ໌ທີ່ຜູ້ໃຊ້ອັບໂຫລດເອງ
+      let imgBlob = null
+      try { imgBlob = await (await fetch(SAMPLE_IMG)).blob() } catch {}
+      setReqs((rs) => Object.fromEntries(Object.entries(rs).map(([k, arr]) => [k, arr.map((r) => {
+        if ((!r.needFile && !r.needImg) || r.files) return r
+        const files = []
+        if (r.needFile) {
+          const f = new File([samples[0]], r.needFile, { type: 'application/pdf' })
+          files.push({ name: r.needFile, size: f.size, type: f.type, file: f, url: null })
+        }
+        if (r.needImg && imgBlob) {
+          const f = new File([imgBlob], r.needImg, { type: 'image/svg+xml' })
+          files.push({ name: r.needImg, size: f.size, type: f.type, file: f, url: URL.createObjectURL(f) })
+        }
+        return { ...r, files }
+      })])))
     })()
     return () => { cancelled = true }
   }, [])
 
   const doc = docs.find((d) => d.id === openId) || null
-  const pushNoti = (forId, text, docId, kind = 'info') =>
-    setNotis((n) => [{ id: uid(), forId, kind, text, docId, time: 'ຕອນນີ້', read: false }, ...n])
+  // req = { kind, id } → ແຈ້ງເຕືອນຈາກຄຳຂໍ (ລາພັກ/ວຽກນອກ/ໂອທີ) ກົດເປີດເບິ່ງໄດ້
+  const pushNoti = (forId, text, docId, kind = 'info', req = null) =>
+    setNotis((n) => [{ id: uid(), forId, kind, text, docId, req, time: 'ຕອນນີ້', read: false }, ...n])
 
   // ── ຄຳຂໍຄະແນນ Workboard: ສ້າງ → ແຈ້ງ director / comment / approve-reject (director ອະນຸມັດ) ──
   const onCreatePoints = (req) => {
@@ -131,7 +150,28 @@ export default function App() {
       return { ...d, signers, placements, status: signers.every((s) => s.status === 'signed') ? 'done' : 'progress' }
     }))
     const d = docs.find((x) => x.id === docId)
-    if (d && d.creatorId !== me) pushNoti(d.creatorId, `${nameOf(me)} ໄດ້ເຊັນ "${d.title}" ແລ້ວ`, docId, 'signed')
+    if (!d) { setView('home'); return }
+    // ສະຖານະຫຼັງຈາກຂ້ອຍເຊັນ (docs ຍັງເປັນຄ່າເກົ່າໃນ closure ນີ້)
+    const after = d.signers.map((s) => (s.id === me ? { ...s, status: 'signed' } : s))
+    const allDone = after.every((s) => s.status === 'signed')
+    const notified = new Set([me])
+    // 1) ຜູ້ສ້າງ → ຮູ້ວ່າມີຄົນເຊັນແລ້ວ
+    if (d.creatorId !== me) { pushNoti(d.creatorId, `${nameOf(me)} ໄດ້ເຊັນ "${d.title}" ແລ້ວ`, docId, 'signed'); notified.add(d.creatorId) }
+    if (allDone) {
+      // 2) ຄົບທຸກຄົນ → ແຈ້ງທຸກຝ່າຍວ່າສຳເລັດ
+      after.forEach((s) => { if (!notified.has(s.id)) { pushNoti(s.id, `"${d.title}" ໄດ້ຮັບການລົງນາມຄົບຖ້ວນແລ້ວ`, docId, 'done'); notified.add(s.id) } })
+    } else {
+      // 3) ຮອດຄິວໃຜຕໍ່ → ແຈ້ງຄົນນັ້ນ (ບໍ່ດັ່ງນັ້ນລາວບໍ່ຮູ້ວ່າຮອດຮອບຕົນ)
+      const pending = after.filter((s) => s.status !== 'signed' && s.status !== 'rejected')
+      const nextStep = Math.min(...pending.map((s) => s.step))
+      pending.filter((s) => s.step === nextStep).forEach((s) => {
+        if (notified.has(s.id)) return
+        // ຜູ້ອະນຸມັດ ບໍ່ໄດ້ເຊັນ → ໃຊ້ຄຳວ່າ "ອະນຸມັດ" ບໍ່ແມ່ນ "ລົງນາມ"
+        const act = s.role === 'approver' ? 'ອະນຸມັດ' : 'ລົງນາມ'
+        pushNoti(s.id, `ຮອດຮອບຂອງທ່ານແລ້ວ — ກະລຸນາ${act} "${d.title}"`, docId, 'sign')
+        notified.add(s.id)
+      })
+    }
     setView('home')
   }
   const onSaveSig = (dataURL) => setMySigs((m) => ({ ...m, [me]: dataURL }))
@@ -173,15 +213,63 @@ export default function App() {
     pushNoti(r.byId, action === 'approved'
       ? `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ໄດ້ຮັບອະນຸມັດ`
       : `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`,
-      null, action === 'approved' ? 'approved' : 'rejected')
+      null, action === 'approved' ? 'approved' : 'rejected', { kind, id })
   }
   // ສ້າງຄຳຂໍໃໝ່ → ເຂົ້າຄິວລໍຖ້າອະນຸມັດ + ແຈ້ງຜູ້ອຳນວຍການ
   const onCreateReq = (kind, data) => {
     const r = { id: uid(), byId: me, status: 'progress', ...data }
     setReqs((rs) => ({ ...rs, [kind]: [r, ...(rs[kind] || [])] }))
-    if (me !== DIRECTOR) pushNoti(DIRECTOR, `${nameOf(me)} ສົ່ງຄຳຂໍ "${r.title}" ລໍຖ້າອະນຸມັດ`, null, 'points')
+    // ແຈ້ງຫົວໜ້າພະແນກ (ຜູ້ອະນຸມັດຂັ້ນທຳອິດ) — ກົດເປີດຄຳຂໍໄດ້
+    const first = approvalChain(me, kind)[0]
+    if (first && first.id !== me) pushNoti(first.id, `${nameOf(me)} ສົ່ງຄຳຂໍ "${r.title}" ລໍຖ້າອະນຸມັດ`, null, 'sign', { kind, id: r.id })
     return r
   }
+  // ── ຄວາມຄິດເຫັນ ໃນຄຳຂໍ (ລາພັກ/ວຽກນອກ/ໂອທີ) — ຄືກັບຂໍລາຍເຊັນ: ຕອບກັບ · ແກ້ໄຂ · ລຶບ · @mention ──
+  const onReqComment = (kind, id, text, parentId, mentions = []) => {
+    setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id
+      ? { ...r, comments: [...(r.comments || []), { id: uid(), byId: me, time: 'ຕອນນີ້', text, parentId, mentions }] } : r)) }))
+    const r = (reqs[kind] || []).find((x) => x.id === id)
+    if (!r) return
+    const notified = new Set([me])
+    // ຄົນທີ່ຖືກ @ → ແຈ້ງທັນທີ
+    mentions.forEach((mid) => {
+      if (!notified.has(mid)) { pushNoti(mid, `${nameOf(me)} ໄດ້ກ່າວເຖິງທ່ານ (@) ໃນຄຳຂໍ "${r.title}"`, null, 'mention', { kind, id }); notified.add(mid) }
+    })
+    // ເຈົ້າຂອງ comment ທີ່ຖືກຕອບກັບ
+    if (parentId) {
+      const p = (r.comments || []).find((c) => c.id === parentId)
+      if (p && !notified.has(p.byId)) { pushNoti(p.byId, `${nameOf(me)} ໄດ້ຕອບກັບຄຳເຫັນຂອງທ່ານ`, null, 'reply', { kind, id }); notified.add(p.byId) }
+    }
+    // ຜູ້ຂໍ → ແຈ້ງ (ຖ້າຍັງບໍ່ຖືກແຈ້ງ)
+    if (!notified.has(r.byId)) pushNoti(r.byId, `${nameOf(me)} ໄດ້ໃຫ້ຄວາມຄິດເຫັນໃນຄຳຂໍ "${r.title}"`, null, 'comment', { kind, id })
+  }
+  const onReqEditComment = (kind, id, cmtId, text) => setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id
+    ? { ...r, comments: (r.comments || []).map((c) => (c.id === cmtId ? { ...c, text, edited: true } : c)) } : r)) }))
+  const onReqDeleteComment = (kind, id, cmtId) => setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id
+    ? { ...r, comments: (r.comments || []).filter((c) => c.id !== cmtId && c.parentId !== cmtId) } : r)) }))
+
+  // ── ຄວາມຮູ້ (Knowledge Sharing) — ເກັບໃນ reqs.knowledge → ໃຊ້ onReqAction/onReqComment ຮ່ວມກັນໄດ້ ──
+  // ບັນທຶກຮ່າງ (draft) = ບໍ່ແຈ້ງໃຜ · ສົ່ງກວດສອບ (progress) = ແຈ້ງຜູ້ອະນຸມັດຂັ້ນທຳອິດ
+  const onCreateKn = (data, publish) => {
+    const r = { id: uid(), byId: me, status: publish ? 'progress' : 'draft', views: 0, likes: [], comments: [], ...data }
+    setReqs((rs) => ({ ...rs, knowledge: [r, ...(rs.knowledge || [])] }))
+    if (publish) {
+      const first = approvalChain(me, 'knowledge')[0]
+      if (first && first.id !== me) pushNoti(first.id, `${nameOf(me)} ສົ່ງໂພສ "${r.title}" ລໍຖ້າກວດສອບ`, null, 'sign', { kind: 'knowledge', id: r.id })
+    }
+    return r
+  }
+  // ສົ່ງຮ່າງທີ່ບັນທຶກໄວ້ ໄປກວດສອບ
+  const onSubmitKn = (id) => {
+    setReqs((rs) => ({ ...rs, knowledge: (rs.knowledge || []).map((r) => (r.id === id ? { ...r, status: 'progress' } : r)) }))
+    const r = (reqs.knowledge || []).find((x) => x.id === id)
+    const first = approvalChain(me, 'knowledge')[0]
+    if (r && first && first.id !== me) pushNoti(first.id, `${nameOf(me)} ສົ່ງໂພສ "${r.title}" ລໍຖ້າກວດສອບ`, null, 'sign', { kind: 'knowledge', id })
+  }
+  const onKnLike = (id) => setReqs((rs) => ({ ...rs, knowledge: (rs.knowledge || []).map((r) => (r.id === id
+    ? { ...r, likes: (r.likes || []).includes(me) ? r.likes.filter((x) => x !== me) : [...(r.likes || []), me] } : r)) }))
+  const onKnView = (id) => setReqs((rs) => ({ ...rs, knowledge: (rs.knowledge || []).map((r) => (r.id === id ? { ...r, views: (r.views || 0) + 1 } : r)) }))
+
   // ຜູ້ຂໍຍົກເລີກຄຳຂໍຂອງຕົນເອງ
   const onCancelReq = (kind, id, reason) => {
     setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id ? { ...r, status: 'cancelled', reason } : r)) }))
@@ -221,6 +309,8 @@ export default function App() {
   return <HomeScreen me={me} setMe={setMe} docs={docs} notis={notis}
     pointsReqs={pointsReqs} director={DIRECTOR} onCreatePoints={onCreatePoints} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction}
     reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq}
+    onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
+    onCreateKn={onCreateKn} onSubmitKn={onSubmitKn} onKnLike={onKnLike} onKnView={onKnView}
     onMarkRead={markMyNotisRead} onNew={() => setView('create')} onOpenDoc={openDoc} onOpenFromNoti={openDoc}
     onOpenSettings={() => setView('settings')} />
 }

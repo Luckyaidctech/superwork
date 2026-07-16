@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
-import { Icon, Header, SectionHead, initials, ResultPopup, ReasonModal } from '../flow/shared.jsx'
+import { Icon, Header, SectionHead, initials, ResultPopup, ReasonModal, DIRECTORY } from '../flow/shared.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
-import { nameOf, colorOf, progress, isMyTurn, avatarOf } from './data.js'
+import { nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel } from './data.js'
 
 // ໄຟລ໌ຕົວຢ່າງ (mock) — ຄລິກໄຟລ໌ → ເປີດເບິ່ງ PDF ຈິງ (BASE_URL → ໃຊ້ໄດ້ທັງ dev ແລະ GitHub Pages)
 const SAMPLE_PDFS = ['sample.pdf', 'super-work-agreement.pdf', 'super-work-invitation.pdf'].map((f) => `${import.meta.env.BASE_URL}${f}`)
@@ -55,7 +55,11 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onComm
     if (isDoc) {
       if (fileObj.file) {
         // ໄຟລ໌ຈິງ → PDF ຈິງ + watermark + Sign Field ຂອງ ຜู้เซ็นทุกคน (creator เห็นหมด: ເຊັนแล้ว→ลายเซ็น / pending→box)
-        const signers = d.signers.map((s) => ({ id: s.id, name: nameOf(s.id), hasSig: s.status === 'signed' }))
+        // sigType: ຄົນທີ່ມີໃບຮັບຮອງ LANIT (DIRECTORY.hasSig) → ເຊັນ digital ໂຊ stamp / ຄົນອື່ນ → ລາຍເຊັນຂຽນ
+        const signers = d.signers.map((s) => ({
+          id: s.id, name: nameOf(s.id), hasSig: s.status === 'signed', time: s.time,
+          sigType: s.sigType || (DIRECTORY.find((p) => p.id === s.id)?.hasSig ? 'lanit' : 'img'),
+        }))
         const signed = d.signers.filter((s) => s.status === 'signed' && s.time)
         const footerDate = signed.length ? signed[signed.length - 1].time : d.date
         setPreview({ name, file: fileObj.file, fileId: fileObj.id, srcUrl: fileObj.srcUrl, watermark: d.status !== 'done', placements: d.placements || [], signers, footerDate })
@@ -297,15 +301,18 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onComm
 
         {/* signers timeline — group by step (ພ້ອມກັນ = ຂັ້ນດຽວກັນ, ຕາມລຳดับ = ແຍກຂັ້ນ) */}
         <div className="card">
-          <p className="dd-section">ຜູ້ລົງນາມ ({d.signers.length}) · {orderType}</p>
+          <p className="dd-section">{rolesLabel(d)} · {orderType}</p>
           <div className="dd-tl">
             {[...d.signers].sort((a, b) => a.step - b.step).map((s) => {
               const active = d.status === 'progress' && s.step === minPending && s.status !== 'signed' && s.status !== 'rejected'
               const isApprover = s.role === 'approver'
               return (
                 <div className={`dd-tl-row ${s.status === 'signed' ? 'ok' : ''} ${s.status === 'rejected' ? 'rej' : ''} ${active ? 'now' : ''} ${s.id === me ? 'me' : ''}`} key={s.id}>
-                  <span className="dd-tl-av" style={s.status === 'signed' ? undefined : avBg(s.id)}>
-                    {s.status === 'signed' ? <Icon.check /> : (avatarOf(s.id) ? null : initials(nameOf(s.id)))}
+                  {/* ໂຊ avatar ຂອງຄົນນັ້ນສະເໝີ + ຕິກຖືກ ຊ້ອນມຸມ ເມື່ອເຊັນແລ້ວ (ບໍ່ແທນທີ່ avatar) */}
+                  <span className="dd-tl-av" style={avBg(s.id)}>
+                    {!avatarOf(s.id) && initials(nameOf(s.id))}
+                    {s.status === 'signed' && <span className="dd-tl-av-check"><Icon.check /></span>}
+                    {s.status === 'rejected' && <span className="dd-tl-av-check rej"><Icon.x /></span>}
                   </span>
                   <div className="dd-tl-body">
                     <div className="dd-tl-name">

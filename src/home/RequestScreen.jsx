@@ -1,14 +1,23 @@
-import { useState } from 'react'
-import { Icon, ResultPopup, ReasonModal } from '../flow/shared.jsx'
-import { nameOf } from './data.js'
-import RequestForm from './RequestForm.jsx'
+import { useState, useEffect } from 'react'
+import { Icon, Header, ResultPopup, ReasonModal, initials } from '../flow/shared.jsx'
+import { nameOf, colorOf, avatarOf, approvalChain, reqTime, fmtRange } from './data.js'
 
-// ── 3 ໝວດຫຼັກ (ຕາມແອັບ Super Work) ──
-export const REQ_KINDS = [
-  { key: 'leave', label: 'ລາພັກ', icon: Icon.umbrella, ic: 'leave' },
-  { key: 'offsite', label: 'ວຽກນອກສະຖານທີ', icon: Icon.briefcase, ic: 'offsite' },
-  { key: 'ot', label: 'ໂອທີ', icon: Icon.clock, ic: 'ot' },
-]
+// avatar: ຮູບໂປຣໄຟລ໌ (ຖ້າມີ) ຫຼື ສີພື້ນ + ຕົວຫຍໍ້
+const avBg = (id) => { const u = avatarOf(id); return u ? { backgroundImage: `url("${u}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: colorOf(id) } }
+import ReqForm from './ReqForm.jsx'
+import CommentBox from './CommentBox.jsx'
+import FilePreviewModal from '../flow/FilePreviewModal.jsx'
+
+// ── ຂໍ້ມູນທຸກໝວດຄຳຂໍ (ໃຊ້ຮ່ວມ 2 ໂມດູນ: ຄຳຂໍ ແລະ ການອະນຸມັດ) ──
+export const KIND_META = {
+  leave: { label: 'ລາພັກ', icon: Icon.umbrella, ic: 'leave' },
+  offsite: { label: 'ວຽກນອກສະຖານທີ', icon: Icon.briefcase, ic: 'offsite' },
+  ot: { label: 'ໂອທີ', icon: Icon.clock, ic: 'ot' },
+  booking: { label: 'ການຈອງ', icon: Icon.calCheck, ic: 'booking' },
+  knowledge: { label: 'ຄວາມຮູ້', icon: Icon.bulb, ic: 'knowledge' },
+}
+// 3 ໝວດຫຼັກ ໃນ tab ຂອງໂມດູນ "ຄຳຂໍ" (ຕາມແອັບ Super Work)
+export const REQ_KINDS = ['leave', 'offsite', 'ot'].map((k) => ({ key: k, ...KIND_META[k] }))
 const REQ_STATUS = {
   progress: { t: 'ລໍຖ້າອະນຸມັດ', c: 'wait' },
   approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' },
@@ -16,10 +25,13 @@ const REQ_STATUS = {
   cancelled: { t: 'ຍົກເລີກ', c: 'cancel' },
 }
 
-// ການ໌ດຄຳຂໍ — ໄອຄອນ + ຫົວຂໍ້ + ວັນທີ/ເວລາ + ໝາຍເຫດ + ສະຖານະ
-function ReqCard({ r, kind, showBy, onOpen }) {
-  const k = REQ_KINDS.find((x) => x.key === kind)
+// ── ການ໌ດຄຳຂໍ — ໂຄງດຽວກັນທັງ 3 ໝວດ, ຕ່າງກັນແຕ່ chip ສະເພາະໝວດ ──
+// ລາພັກ: ຈຳນວນມື້ + ຊົ່ວໂມງ · ວຽກນອກ: ສະຖານທີ + ຊົ່ວໂມງ · ໂອທີ: ຊົ່ວໂມງ
+export function ReqCard({ r, kind, showBy, onOpen }) {
+  // ໃຊ້ KIND_META (5 ໝວດ) ບໍ່ແມ່ນ REQ_KINDS (3 ໝວດ) — ໂມດູນ ອະນຸມັດ ມີ ຈອງ/ຄວາມຮູ້ ນຳ
+  const k = KIND_META[kind] || KIND_META.leave
   const st = REQ_STATUS[r.status] || REQ_STATUS.progress
+  const t = reqTime(r)
   return (
     <button className="req-card" onClick={() => onOpen(r)}>
       <span className={`req-card-ic ${k.ic}`}>{k.icon()}</span>
@@ -29,17 +41,22 @@ function ReqCard({ r, kind, showBy, onOpen }) {
           <span className={`req-badge ${st.c}`}>{st.t}</span>
         </div>
         <span className="req-card-when">
-          <Icon.calendar /> {r.date}
+          <Icon.calendar /> {fmtRange(r.date, t.days > 1 ? r.dateTo : null)}
           {r.from && <><Icon.clock /> {r.from} – {r.to}</>}
         </span>
-        {kind === 'ot' ? (
-          <div className="req-chips">
-            {r.hours && <span className="req-chip hl"><Icon.clock /> {r.hours}</span>}
-            <span className="req-chip"><Icon.checkCircle /> 1</span>
-            <span className="req-chip"><Icon.user /> {nameOf(r.byId)}</span>
-          </div>
-        ) : (
-          <span className="req-card-note">{showBy ? `${nameOf(r.byId)} · ${r.note}` : r.note}</span>
+        <div className="req-chips">
+          {kind === 'leave' && t.days > 1 && <span className="req-chip hl"><Icon.calendar /> {t.days} ມື້</span>}
+          {kind === 'offsite' && r.note && <span className="req-chip"><Icon.pin /> {r.note}</span>}
+          {t.totalText && <span className="req-chip hl"><Icon.clock /> {t.totalText}</span>}
+          {/* ບອກໃຫ້ຮູ້ວ່າ ໃບນີ້ມີໄຟລ໌ແນບ — ບໍ່ຕ້ອງເປີດເຂົ້າໄປເບິ່ງກ່ອນ */}
+          {r.files?.length > 0 && <span className="req-chip"><Icon.clip /> {r.files.length}</span>}
+        </div>
+        {/* ເຫດຜົນ ບໍ່ໂຊໃນການ໌ດ (ເບິ່ງໃນລາຍລະອຽດ) · ວຽກນອກ ໂຊສະຖານທີ່ເປັນ chip ຢູ່ແລ້ວ */}
+        {showBy && (
+          <span className="req-card-by">
+            <span className="req-card-av" style={avBg(r.byId)}>{!avatarOf(r.byId) && initials(nameOf(r.byId))}</span>
+            <b>{nameOf(r.byId)}</b>
+          </span>
         )}
       </div>
       <Icon.chevron />
@@ -47,85 +64,224 @@ function ReqCard({ r, kind, showBy, onOpen }) {
   )
 }
 
-export default function RequestScreen({ me, director, reqs, onReqAction, onCreateReq, onCancelReq }) {
+// ── ເນື້ອໃນໜ້າລາຍລະອຽດຄຳຂໍ — ໃຊ້ຮ່ວມ 2 ໂມດູນ (ຄຳຂໍ · ການອະນຸມັດ) ໃຫ້ໜ້າຕາຄືກັນ 100% ──
+export function RequestDetailBody({ req, kind, me, onPreview, onComment, onEditComment, onDeleteComment }) {
+  const k = KIND_META[kind] || KIND_META.leave
+  const st = REQ_STATUS[req.status] || REQ_STATUS.progress
+  const chain = approvalChain(req.byId, kind) // ລາພັກ/ວຽກນອກ: ຫົວໜ້າ → HR · ໂອທີ: ຫົວໜ້າຢ່າງດຽວ
+  const dt = reqTime(req)
+  const dateText = dt.days > 1 ? `${req.date} – ${req.dateTo} · ${dt.days} ມື້` : req.date
+  return (<>
+    <div className="req-hero">
+      <span className={`req-hero-ic ${k.ic}`}>{k.icon()}</span>
+      <b>{req.title}</b>
+      <span className={`req-badge ${st.c}`}>{st.t}</span>
+    </div>
+
+    {/* ການ໌ດ 2: ຜູ້ຂໍ · ວັນທີ · ເວລາ · ປະເພດວັນ · ເຫດຜົນ */}
+    <div className="ptd-info">
+      <div className="ptd-info-row">
+        <span className="ptd-info-av" style={avBg(req.byId)}>{!avatarOf(req.byId) && initials(nameOf(req.byId))}</span>
+        <div className="ptd-info-txt"><span>ຜູ້ຂໍ</span><b>{nameOf(req.byId)}</b></div>
+      </div>
+      {kind !== 'ot' && (
+        <div className="ptd-info-row">
+          <span className="ptd-info-ic"><Icon.book /></span>
+          <div className="ptd-info-txt"><span>ປະເພດ</span><b>{k.label}</b></div>
+        </div>
+      )}
+      <div className="ptd-info-row">
+        <span className="ptd-info-ic"><Icon.calendar /></span>
+        <div className="ptd-info-txt"><span>ວັນທີ</span><b>{dateText}</b></div>
+      </div>
+      {req.from && (
+        <div className="ptd-info-row">
+          <span className="ptd-info-ic"><Icon.clock /></span>
+          <div className="ptd-info-txt"><span>ເວລາ</span><b>{req.from} – {req.to}</b></div>
+          {dt.totalText && <span className="req-chip hl"><Icon.clock /> {dt.totalText}</span>}
+        </div>
+      )}
+      {req.dayType && (
+        <div className="ptd-info-row">
+          <span className="ptd-info-ic"><Icon.calCheck /></span>
+          <div className="ptd-info-txt"><span>ປະເພດວັນ</span><b>{req.dayType}</b></div>
+        </div>
+      )}
+      {req.note && (
+        <div className="ptd-info-row">
+          <span className="ptd-info-ic">{kind === 'offsite' ? <Icon.pin /> : <Icon.info />}</span>
+          <div className="ptd-info-txt"><span>{kind === 'offsite' ? 'ສະຖານທີ' : 'ເຫດຜົນ'}</span><b>{req.note}</b></div>
+        </div>
+      )}
+      {req.detail && (
+        <div className="ptd-info-row">
+          <span className="ptd-info-ic"><Icon.info /></span>
+          <div className="ptd-info-txt"><span>ລາຍລະອຽດ</span><b>{req.detail}</b></div>
+        </div>
+      )}
+    </div>
+
+    {/* ການ໌ດ 3 (ໂອທີ): ໂຄງການ · ກິດຈະກຳ · ລາຍການໜ້າວຽກ — ແຍກການ໌ດ ໃຫ້ໜ້າວຽກມີບ່ອນພໍ */}
+    {(req.activity || req.tasks?.length > 0) && (
+      <div className="ptd-tl-card">
+        <p className="ptd-card-label"><Icon.layers /> ວຽກ</p>
+        <div className="ptd-info" style={{ margin: '0 0 10px', border: 'none' }}>
+          <div className="ptd-info-row">
+            <span className="ptd-info-ic"><Icon.layers /></span>
+            <div className="ptd-info-txt"><span>ໂຄງການ</span><b>{req.title}</b></div>
+          </div>
+          {req.activity && (
+            <div className="ptd-info-row">
+              <span className="ptd-info-ic"><Icon.chart /></span>
+              <div className="ptd-info-txt"><span>ກິດຈະກຳ</span><b>{req.activity}</b></div>
+            </div>
+          )}
+        </div>
+        {req.tasks?.length > 0 && (<>
+          <p className="ptd-card-label" style={{ marginBottom: 7 }}>ໜ້າວຽກ ({req.tasks.length})</p>
+          <div className="ptd-tasklist">
+            {req.tasks.map((t, i) => (
+              <div className="ptd-task-row" key={t}>
+                <span className="ptd-task-n">{i + 1}</span>
+                <b>{t}</b>
+                <Icon.check />
+              </div>
+            ))}
+          </div>
+        </>)}
+      </div>
+    )}
+
+    {req.reason && (
+      <p className={`dd-note ${req.status === 'approved' ? '' : 'rej'}`}>
+        <Icon.warn /> {req.status === 'cancelled' ? 'ຍົກເລີກ' : 'ປະຕິເສດ'} — {req.reason}
+      </p>
+    )}
+
+    {/* ໄຟລ໌ແນບ — ແຕະເພື່ອເປີດເບິ່ງຈິງ (ຮູບ / PDF) */}
+    {req.files?.length > 0 && (
+      <div className="ptd-tl-card">
+        <p className="ptd-card-label">ໄຟລ໌ແນບ ({req.files.length})</p>
+        <div className="rf-files">
+          {req.files.map((f, i) => (
+            <button className="rf-file tap" key={i} onClick={() => onPreview?.({ name: f.name, file: f.file })}>
+              {f.url ? <img src={f.url} alt="" /> : <span className="rf-file-ic"><Icon.doc /></span>}
+              <div><b>{f.name}</b><span>{(f.size / 1024).toFixed(0)} KB</span></div>
+              <Icon.eye />
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* ສະຖານະ: ຜູ້ສ້າງ → ຫົວໜ້າພະແນກ → HR (ສາຍດຽວກັບຕອນສ້າງຄຳຂໍ) */}
+    <div className="ptd-tl-card">
+      <p className="ptd-card-label">ສະຖານະຄຳຂໍ</p>
+      <div className="dd-audit">
+        <div className="aud ok">
+          <span className="aud-ic"><Icon.checkCircle /></span>
+          <div className="aud-body"><span className="aud-t">ສ້າງຄຳຂໍ</span><span className="aud-tm">{nameOf(req.byId)} · {req.date}</span></div>
+        </div>
+        {chain.map((p, i) => {
+          const cls = req.status === 'approved' ? 'ok'
+            : req.status === 'rejected' || req.status === 'cancelled' ? (i === 0 ? 'rej' : '')
+              : i === 0 ? 'now' : ''
+          const label = req.status === 'approved' ? 'ອະນຸມັດແລ້ວ'
+            : req.status === 'rejected' ? (i === 0 ? 'ປະຕິເສດ' : 'ບໍ່ໄດ້ດຳເນີນການ')
+              : req.status === 'cancelled' ? 'ຍົກເລີກແລ້ວ'
+                : i === 0 ? 'ລໍຖ້າອະນຸມັດ' : 'ລໍຖ້າຄິວກ່ອນໜ້າ'
+          return (
+            <div className={`aud ${cls}`} key={p.id}>
+              <span className="aud-ic">{cls === 'ok' ? <Icon.checkCircle /> : cls === 'rej' ? <Icon.warn /> : <Icon.clock />}</span>
+              <div className="aud-body">
+                <span className="aud-t">{i + 1}. {p.role} — {label}</span>
+                <span className="aud-tm">{p.name}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+
+    {/* ຄວາມຄິດເຫັນ — ກ່ອງດຽວກັບຂໍລາຍເຊັນ (ຕອບກັບ · ແກ້ໄຂ · ລຶບ · @mention · ແນບໄຟລ໌) */}
+    {onComment && (
+      <CommentBox
+        comments={req.comments || []} me={me}
+        people={[{ id: req.byId, name: nameOf(req.byId) }, ...chain.map((p) => ({ id: p.id, name: p.name }))]
+          .filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i)}
+        locked={req.status !== 'progress'}
+        lockedMsg={req.status === 'approved' ? 'ຄຳຂໍນີ້ອະນຸມັດແລ້ວ' : req.status === 'rejected' ? 'ຄຳຂໍນີ້ຖືກປະຕິເສດ' : 'ຄຳຂໍນີ້ຖືກຍົກເລີກ'}
+        onAdd={(t, parentId, mentions) => onComment(kind, req.id, t, parentId, mentions)}
+        onEdit={(cid, t) => onEditComment(kind, req.id, cid, t)}
+        onDelete={(cid) => onDeleteComment(kind, req.id, cid)}
+      />
+    )}
+  </>)
+}
+
+export default function RequestScreen({ me, director, reqs, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment, openReq, onConsumeOpenReq }) {
   const [kind, setKind] = useState('leave')
-  const [sub, setSub] = useState('mine') // mine | pending  (ot: recent | history)
+  const [sf, setSf] = useState('all') // all | waiting | approved | rejected — ສະຖານະ
   const [detail, setDetail] = useState(null)
+  const [preview, setPreview] = useState(null) // ໄຟລ໌ແນບ ທີ່ກຳລັງເປີດເບິ່ງ
   const [form, setForm] = useState(false)
   const [rejMode, setRejMode] = useState(false)
   const [cancelMode, setCancelMode] = useState(false)
   const [popup, setPopup] = useState(null)
 
-  const list = reqs[kind] || []
-  const isOt = kind === 'ot'
-  // ໂອທີ: ລ່າສຸດ (ຍັງບໍ່ຈົບ) / ປະຫວັດ · ອື່ນໆ: ຂອງຂ້ອຍ / ລໍຖ້າຂ້ອຍອະນຸມັດ
-  const shown = isOt
-    ? list.filter((r) => (sub === 'mine' ? r.status === 'progress' : r.status !== 'progress'))
-    : list.filter((r) => (sub === 'mine' ? r.byId === me : r.byId !== me && r.status === 'progress'))
-  const pendingCount = list.filter((r) => r.byId !== me && r.status === 'progress').length
-  const SUBS = isOt
-    ? [{ k: 'mine', t: 'ລ່າສຸດ' }, { k: 'pending', t: 'ປະຫວັດ' }]
-    : [{ k: 'mine', t: 'ຄຳຂໍຂອງຂ້ອຍ' }, { k: 'pending', t: `ລໍຖ້າອະນຸມັດ${pendingCount ? ` (${pendingCount})` : ''}` }]
+  // ໂມດູນ "ຄຳຂໍ" = ຄຳຂໍຂອງຂ້ອຍ ຢ່າງດຽວ (ທີ່ຕ້ອງອະນຸມັດ ຢູ່ໂມດູນ "ການອະນຸມັດ" ແລ້ວ — ບໍ່ຊ້ຳກັນ)
+  const list = (reqs[kind] || []).filter((r) => r.byId === me)
+  // ກອງສະຖານະ ແຖວດຽວ (pattern ດຽວກັບໂມດູນ ອະນຸມັດ)
+  // ຍົກເລີກເອງ ≠ ຖືກປະຕິເສດ → ແຍກປຸ່ມກອງ (ບໍ່ເໝົາລວມກັນ)
+  const shown = list.filter((r) => sf === 'all' || r.status === sf)
+  const SF = [
+    { k: 'all', t: 'ທັງໝົດ' }, { k: 'progress', t: 'ລໍຖ້າ' }, { k: 'approved', t: 'ອະນຸມັດແລ້ວ' },
+    { k: 'rejected', t: 'ປະຕິເສດ' }, { k: 'cancelled', t: 'ຍົກເລີກ' },
+  ]
+
+  // ມາຈາກແຈ້ງເຕືອນ → ສະຫຼັບໄປ tab ນັ້ນ ແລ້ວເປີດລາຍລະອຽດຄຳຂໍໃຫ້ເລີຍ
+  useEffect(() => {
+    if (!openReq) return
+    const r = (reqs[openReq.kind] || []).find((x) => x.id === openReq.id)
+    if (r) { setKind(openReq.kind); setSf('all'); setDetail(r) }
+    onConsumeOpenReq?.()
+  }, [openReq])
 
   const closeDetail = () => { setDetail(null); setRejMode(false); setCancelMode(false) }
   const doApprove = () => { onReqAction(kind, detail.id, 'approved'); setPopup({ msg: 'ອະນຸມັດຄຳຂໍສຳເລັດ!' }) }
   const doReject = (rsn) => { onReqAction(kind, detail.id, 'rejected', rsn); setRejMode(false); setPopup({ msg: 'ໄດ້ປະຕິເສດຄຳຂໍແລ້ວ', danger: true }) }
   const doCancel = (rsn) => { onCancelReq(kind, detail.id, rsn); setCancelMode(false); setPopup({ msg: 'ໄດ້ຍົກເລີກຄຳຂໍແລ້ວ', danger: true }) }
+  const submitForm = (data) => { onCreateReq(kind, data); setForm(false); setSf('all'); setPopup({ msg: 'ສົ່ງຄຳຂໍສຳເລັດ!' }) }
 
   // ── ໜ້າລາຍລະອຽດ ──
   if (detail) {
-    const k = REQ_KINDS.find((x) => x.key === kind)
-    const st = REQ_STATUS[detail.status] || REQ_STATUS.progress
-    const mine = detail.byId === me
-    const canAct = !mine && detail.status === 'progress'
-    const canCancel = mine && detail.status === 'progress'
+    // ດຶງຕົວຫຼ້າສຸດຈາກ state (detail ເປັນ snapshot ຕອນກົດ) → comment ໃໝ່ຂຶ້ນທັນທີ
+    const live = (reqs[kind] || []).find((r) => r.id === detail.id) || detail
+    const mine = live.byId === me
+    const canAct = !mine && live.status === 'progress'
+    const canCancel = mine && live.status === 'progress'
     return (
       <div className="ac-detail-screen">
-        <div className="header"><button className="header-back" onClick={closeDetail}><Icon.back /></button><b>ລາຍລະອຽດຄຳຂໍ</b><span /></div>
+        <Header title="ລາຍລະອຽດຄຳຂໍ" onBack={closeDetail} />
         <div className="scroll">
           <div className="ac-detail">
-            <div className="req-hero">
-              <span className={`req-hero-ic ${k.ic}`}>{k.icon()}</span>
-              <b>{detail.title}</b>
-              <span className={`req-badge ${st.c}`}>{st.t}</span>
-            </div>
-
-            <div className="ptd-info">
-              <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.user /></span><div><em>ຜູ້ຂໍ</em><b>{nameOf(detail.byId)}</b></div></div>
-              <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.book /></span><div><em>ປະເພດ</em><b>{k.label}</b></div></div>
-              <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.calendar /></span><div><em>ວັນທີ</em><b>{detail.date}</b></div></div>
-              {detail.from && <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.clock /></span><div><em>ເວລາ</em><b>{detail.from} – {detail.to}{detail.hours ? ` · ${detail.hours}` : ''}</b></div></div>}
-              <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.info /></span><div><em>ໝາຍເຫດ</em><b>{detail.note}</b></div></div>
-            </div>
-
-            {detail.reason && (
-              <p className={`dd-note ${detail.status === 'approved' ? '' : 'rej'}`}>
-                <Icon.warn /> {detail.status === 'cancelled' ? 'ຍົກເລີກ' : 'ປະຕິເສດ'} — {detail.reason}
-              </p>
-            )}
-
-            <div className="ptd-tl-card">
-              <p className="ptd-card-label">ສະຖານະຄຳຂໍ</p>
-              <div className="dd-audit">
-                <div className="aud ok"><span className="aud-ic"><Icon.checkCircle /></span><div className="aud-body"><span className="aud-t">ສ້າງຄຳຂໍ</span><span className="aud-tm">{nameOf(detail.byId)} · {detail.date}</span></div></div>
-                <div className={`aud ${detail.status === 'progress' ? 'now' : detail.status === 'approved' ? 'ok' : 'rej'}`}>
-                  <span className="aud-ic">{detail.status === 'progress' ? <Icon.clock /> : detail.status === 'approved' ? <Icon.checkCircle /> : <Icon.warn />}</span>
-                  <div className="aud-body"><span className="aud-t">{st.t}</span><span className="aud-tm">{nameOf(director)}</span></div>
-                </div>
-              </div>
-            </div>
-
-            {canAct ? (
-              <div className="success-btns" style={{ marginTop: 16, maxWidth: 'none' }}>
-                <button className="btn danger" onClick={() => setRejMode(true)}><Icon.x /> ປະຕິເສດ</button>
-                <button className="btn primary" onClick={doApprove}><Icon.check /> ອະນຸມັດ</button>
-              </div>
-            ) : canCancel ? (
-              <button className="btn danger" style={{ marginTop: 16, width: '100%' }} onClick={() => setCancelMode(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
-            ) : (
-              <button className="btn ghost" style={{ marginTop: 14, width: '100%' }} onClick={closeDetail}>ປິດ</button>
-            )}
+            <RequestDetailBody req={live} kind={kind} me={me} onPreview={setPreview}
+              onComment={onReqComment} onEditComment={onReqEditComment} onDeleteComment={onReqDeleteComment} />
           </div>
+        </div>
+
+        {/* ປຸ່ມລອຍຕິດລຸ່ມ — ບໍ່ຕ້ອງເລື່ອນຫາ (ຄືກັບໂມດູນ ລົງນາມ) */}
+        <div className="rf-foot">
+          {canAct ? (
+            <div className="success-btns" style={{ maxWidth: 'none' }}>
+              <button className="btn danger" onClick={() => setRejMode(true)}><Icon.x /> ປະຕິເສດ</button>
+              <button className="btn primary" onClick={doApprove}><Icon.check /> ອະນຸມັດ</button>
+            </div>
+          ) : canCancel ? (
+            <button className="btn danger" style={{ width: '100%' }} onClick={() => setCancelMode(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
+          ) : (
+            <button className="btn ghost" style={{ width: '100%' }} onClick={closeDetail}>ປິດ</button>
+          )}
         </div>
 
         {rejMode && (
@@ -136,6 +292,7 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
           <ReasonModal title="ຍົກເລີກຄຳຂໍ" hint="ກະລຸນາລະບຸເຫດຜົນທີ່ຍົກເລີກ" placeholder="ເຫດຜົນ..."
             confirmLabel="ຢືນຢັນຍົກເລີກ" cancelLabel="ບໍ່ຍົກເລີກ" onConfirm={doCancel} onClose={() => setCancelMode(false)} />
         )}
+        {preview && <FilePreviewModal file={preview} onClose={() => setPreview(null)} />}
         {popup && (
           <ResultPopup danger={!!popup.danger} title={popup.msg} desc="ລະບົບໄດ້ບັນທຶກ ແລະ ແຈ້ງເຕືອນຜູ້ກ່ຽວຂ້ອງແລ້ວ"
             onOk={() => { setPopup(null); closeDetail() }} />
@@ -148,26 +305,25 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
   return (<>
     <div className="req-tabs">
       {REQ_KINDS.map((k) => (
-        <button key={k.key} className={`req-tab ${kind === k.key ? 'on' : ''}`} onClick={() => { setKind(k.key); setSub('mine') }}>
+        <button key={k.key} className={`req-tab ${kind === k.key ? 'on' : ''}`} onClick={() => { setKind(k.key); setSf('all') }}>
           {k.icon()} <span>{k.label}</span>
         </button>
       ))}
     </div>
-    <div className="req-subs">
-      {SUBS.map((s) => (
-        <button key={s.k} className={`req-sub ${sub === s.k ? 'on' : ''}`} onClick={() => setSub(s.k)}>{s.t}</button>
+    <div className="req-sf">
+      {SF.map((s) => (
+        <button key={s.k} className={`req-sf-chip ${sf === s.k ? 'on' : ''}`} onClick={() => setSf(s.k)}>{s.t}</button>
       ))}
     </div>
     <div className="req-list">
       {shown.length === 0
         ? <p className="empty-list">ຍັງບໍ່ມີຄຳຂໍ</p>
-        : shown.map((r) => <ReqCard key={r.id} r={r} kind={kind} showBy={sub === 'pending' && !isOt} onOpen={setDetail} />)}
+        : shown.map((r) => <ReqCard key={r.id} r={r} kind={kind} onOpen={setDetail} />)}
     </div>
 
     <button className="fab fab-float" onClick={() => setForm(true)}><Icon.plus /></button>
-    {form && (
-      <RequestForm kind={kind} onSubmit={(data) => { onCreateReq(kind, data); setForm(false); setSub('mine'); setPopup({ msg: 'ສົ່ງຄຳຂໍສຳເລັດ!' }) }} onClose={() => setForm(false)} />
-    )}
+    {/* ຟອມອັນດຽວ ໃຊ້ທັງ 3 ໝວດ → ໜ້າຕາຄືກັນ, ຕ່າງແຕ່ field ສະເພາະໝວດ */}
+    {form && <ReqForm kind={kind} me={me} onSubmit={submitForm} onClose={() => setForm(false)} />}
     {popup && !detail && (
       <ResultPopup danger={!!popup.danger} title={popup.msg} desc="ລະບົບໄດ້ສົ່ງຄຳຂໍໄປລໍຖ້າອະນຸມັດແລ້ວ" onOk={() => setPopup(null)} />
     )}

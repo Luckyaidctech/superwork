@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Icon, Header } from '../flow/shared.jsx'
+import { Icon, Header, ResultPopup } from '../flow/shared.jsx'
 
 // mock ໂຄງສ້າງ Workboard: Project → Activity → Task (ພ້ອມคะแนนปัจจุบัน)
 const PROJECTS = [
@@ -76,17 +76,15 @@ export default function PointsRequest({ me, onSubmit, onViewDetail, onClose }) {
   const projUsed = project ? project.activities.reduce((s, a) => s + a.points, 0) : 0
   const projBudget = project?.budget || 0
 
+  // popup ຜົນລັບ — ໃຊ້ຕົວດຽວກັບທຸກທີ່ (ເຊັນ / ອະນຸມັດ / ປະຕິເສດ / ຍົກເລີກ)
   if (done) {
     return (
-      <div className="app pr-screen">
-        <Header title="ຂໍຄະແນນ Workboard" onBack={onClose} />
-        <div className="scroll" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 8 }}>
-          <span className="sign-ok-ic"><Icon.check /></span>
-          <b style={{ fontSize: 18 }}>ສົ່ງຄຳຂໍຄະແນນສຳເລັດ!</b>
-          <p className="muted" style={{ fontSize: 13 }}>ຂໍ +{add} ຄະແນນ ໃຫ້ {target === 'task' ? task?.name : activity?.name} · ລໍຖ້າຫົວໜ້າອະນຸມັດ</p>
-        </div>
-        <div className="footer"><button className="btn primary" onClick={() => (created && onViewDetail ? onViewDetail(created) : onClose())}><Icon.check /> ເບິ່ງລາຍລະອຽດຄຳຂໍ</button></div>
-      </div>
+      <ResultPopup
+        title="ສົ່ງຄຳຂໍຄະແນນສຳເລັດ!"
+        desc={`ຂໍ +${add} ຄະແນນ ໃຫ້ ${target === 'task' ? task?.name : activity?.name} · ລໍຖ້າຫົວໜ້າອະນຸມັດ`}
+        okLabel="ເບິ່ງລາຍລະອຽດຄຳຂໍ"
+        onOk={() => (created && onViewDetail ? onViewDetail(created) : onClose())}
+      />
     )
   }
 

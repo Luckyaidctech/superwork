@@ -3,6 +3,9 @@ import { DIRECTORY } from '../flow/shared.jsx'
 // ຮູບໂປຣໄຟລ໌ demo (data URI SVG) — ຄົນທີ່ບໍ່ມີ avatarUrl ຈະໃຊ້ initials
 const PHOTO_A = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%232563eb'/%3E%3Ccircle cx='20' cy='15.5' r='7' fill='%23dbeafe'/%3E%3Cpath d='M7 37c0-7.5 5.5-11.5 13-11.5S33 29.5 33 37z' fill='%23dbeafe'/%3E%3C/svg%3E"
 
+// ຮູບຕົວຢ່າງ (ໃບຮັບເງິນ) — ໃຫ້ເຫັນວ່າ ໄຟລ໌ຮູບທີ່ຜູ້ໃຊ້ອັບໂຫລດ ຈະໂຊແບບໃດ
+export const SAMPLE_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23ffffff'/%3E%3Crect x='16' y='16' width='268' height='368' rx='6' fill='none' stroke='%23cbd5e1' stroke-width='2'/%3E%3Crect x='40' y='44' width='140' height='13' rx='3' fill='%231f3fb5'/%3E%3Crect x='40' y='68' width='90' height='8' rx='3' fill='%2394a3b8'/%3E%3Cline x1='40' y1='96' x2='260' y2='96' stroke='%23e2e8f0' stroke-width='2'/%3E%3Crect x='40' y='116' width='110' height='8' rx='3' fill='%2364748b'/%3E%3Crect x='196' y='116' width='64' height='8' rx='3' fill='%2364748b'/%3E%3Crect x='40' y='142' width='130' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='210' y='142' width='50' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='40' y='168' width='96' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='214' y='168' width='46' height='8' rx='3' fill='%2394a3b8'/%3E%3Cline x1='40' y1='196' x2='260' y2='196' stroke='%23e2e8f0' stroke-width='2'/%3E%3Crect x='40' y='214' width='60' height='11' rx='3' fill='%231f3fb5'/%3E%3Crect x='196' y='214' width='64' height='11' rx='3' fill='%231f3fb5'/%3E%3Ccircle cx='214' cy='300' r='34' fill='none' stroke='%23dc2626' stroke-width='2'/%3E%3Ctext x='214' y='296' font-family='sans-serif' font-size='9' fill='%23dc2626' text-anchor='middle'%3EPAID%3C/text%3E%3Ctext x='214' y='309' font-family='sans-serif' font-size='6' fill='%23dc2626' text-anchor='middle'%3E10/07/2026%3C/text%3E%3Crect x='40' y='340' width='120' height='7' rx='3' fill='%23cbd5e1'/%3E%3C/svg%3E"
+
 // ── ຜູ້ใช้ demo (ສະຫຼັບໄດ້) — Tech + BD + ຜู้บริหาร ──
 export const USERS = [
   { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · ພະແນກ Tech', avatarUrl: PHOTO_A },
@@ -30,27 +33,75 @@ export function initialReqs() {
       { id: 'lv1', title: 'ລາປ່ວຍ', byId: 'G', note: 'ບໍ່ສະບາຍ ເປັນໄຂ້', date: '09/08/2026', from: '08:30', to: '17:30', status: 'approved' },
       { id: 'lv2', title: 'ລາກິດ', byId: 'G', note: 'ວຽກສ່ວນຕົວ', date: '04/08/2026', from: '08:30', to: '17:30', status: 'progress' },
       { id: 'lv3', title: 'ລາພັກປະຈຳປີ', byId: 'F', note: 'ພັກຜ່ອນ', date: '20/08/2026', from: '08:30', to: '17:30', status: 'rejected', reason: 'ຊ່ວງນີ້ວຽກດ່ວນຫຼາຍ' },
+      // ── ຂອງ A (ຜູ້ໃຊ້ demo) — ຄົບ 4 ສະຖານະ ໃຫ້ປຸ່ມກອງທຸກປຸ່ມມີຂໍ້ມູນ ──
       { id: 'lv4', title: 'ລາກິດ', byId: 'A', note: 'ວຽກສ່ວນຕົວ', date: '15/07/2026', from: '08:30', to: '17:30', status: 'progress' },
+      { id: 'lv6', title: 'ລາພັກປະຈຳປີ', byId: 'A', note: 'ພັກຜ່ອນ ກັບຄອບຄົວ', date: '03/08/2026', dateTo: '07/08/2026', from: '08:30', to: '17:30', status: 'rejected', reason: 'ຊ່ວງນັ້ນມີ demo ໃຫ້ລູກຄ້າ ຂໍເລື່ອນເປັນອາທິດຖັດໄປ' },
+      { id: 'lv7', title: 'ລາເບິ່ງແຍງຄອບຄົວ', byId: 'A', note: 'ພາແມ່ໄປໂຮງໝໍ', date: '20/07/2026', from: '08:30', to: '12:00', status: 'cancelled', reason: 'ປ່ຽນເປັນວັນເສົາ ບໍ່ຕ້ອງລາແລ້ວ' },
+      // ມີໄຟລ໌ແນບ (ໃບຢັ້ງຢືນແພດ) — ໄຟລ໌ຈິງຖືກຕິດໃສ່ຕອນເປີດແອັບ (App.jsx enrich)
+      { id: 'lv5', title: 'ລາປ່ວຍ', byId: 'A', note: 'ໄປພົບແພດ ໂຮງໝໍມິດຕະພາບ', date: '10/07/2026', from: '08:30', to: '17:30', status: 'approved', needFile: 'ໃບຢັ້ງຢືນແພດ.pdf', needImg: 'ຮູບໃບຮັບເງິນ.svg' },
     ],
     offsite: [
       { id: 'of1', title: 'ພົບລູກຄ້າ ທະນາຄານ BCEL', byId: 'G', note: 'ນະຄອນຫຼວງວຽງຈັນ', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
       { id: 'of2', title: 'ຕິດຕັ້ງລະບົບ ໜ້າງານ HAIXIN', byId: 'F', note: 'ໂຮງງານ ນອກເມືອງ', date: '13/07/2026', from: '08:00', to: '17:00', status: 'approved' },
       { id: 'of3', title: 'ອົບຮົມ ທີມງານ ສາຂາ ປາກເຊ', byId: 'B', note: 'ແຂວງ ຈຳປາສັກ', date: '10/07/2026', from: '08:00', to: '17:00', status: 'progress' },
+      // ── ຂອງ A — ຄົບ 4 ສະຖານະ ──
       { id: 'of4', title: 'ທົດສອບລະບົບ ໜ້າງານ', byId: 'A', note: 'BOL', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
+      { id: 'of5', title: 'ພົບລູກຄ້າ', byId: 'A', note: 'ທະນາຄານ BCEL', detail: 'ນຳສະເໜີ ລະບົບ e-Signature', date: '08/07/2026', from: '09:00', to: '12:00', status: 'approved' },
+      { id: 'of6', title: 'ອົບຮົມ ນອກສະຖານທີ', byId: 'A', note: 'ແຂວງ ຈຳປາສັກ', detail: 'ອົບຮົມ ທີມງານ ສາຂາ', date: '25/07/2026', dateTo: '26/07/2026', from: '08:00', to: '17:00', status: 'rejected', reason: 'ງົບເດີນທາງ ໄຕມາດນີ້ໝົດແລ້ວ' },
+      { id: 'of7', title: 'ສຳຫຼວດ ໜ້າງານ', byId: 'A', note: 'ໂຮງງານ HAIXIN', detail: 'ສຳຫຼວດ ບ່ອນຕິດຕັ້ງ', date: '12/07/2026', from: '08:00', to: '17:00', status: 'cancelled', reason: 'ລູກຄ້າ ຂໍເລື່ອນນັດ' },
     ],
     ot: [
       { id: 'ot1', title: 'AIDC work', byId: 'G', note: 'ວຽກດ່ວນ ໃກ້ກຳນົດສົ່ງ', date: '14/07/2026', from: '17:30', to: '20:30', hours: '3h 0m', status: 'approved' },
       { id: 'ot2', title: 'AIDC work', byId: 'G', note: 'ລູກຄ້າຮ້ອງຂໍ', date: '12/07/2026', from: '17:30', to: '21:30', hours: '4h 0m', status: 'progress' },
-      { id: 'ot3', title: 'Dev super work', byId: 'A', note: 'ພັດທະນາ Super Work', date: '15/07/2026', from: '17:30', to: '20:30', hours: '3h 0m', status: 'progress' },
+      // ── ຂອງ A — ຄົບ 4 ສະຖານະ (ມີ ກິດຈະກຳ + ປະເພດວັນ ຄືກັບຟອມສ້າງ) ──
+      { id: 'ot3', title: 'Super Work', byId: 'A', activity: 'ລະບົບຄຳຂໍ', tasks: ['ຟອມໂອທີ', 'ສາຍອະນຸມັດ'], dayType: 'ວັນທຳມະດາ', note: 'ພັດທະນາ ລະບົບຄຳຂໍ', date: '15/07/2026', from: '18:00', to: '20:00', status: 'progress' },
+      { id: 'ot4', title: 'e-Signature App', byId: 'A', activity: 'PDF Viewer', tasks: ['Render PDF', 'QR ທ້າຍໜ້າ'], dayType: 'ວັນທຳມະດາ', note: 'ວຽກດ່ວນ ໃກ້ກຳນົດສົ່ງ', date: '09/07/2026', from: '18:00', to: '21:00', status: 'approved' },
+      { id: 'ot5', title: 'FDI / BOL System', byId: 'A', activity: 'UAT', tasks: ['ຮັນ UAT ຮອບ 1'], dayType: 'ວັນເສົາ-ອາທິດ', note: 'ທົດສອບ UAT ວັນເສົາ', date: '11/07/2026', from: '09:00', to: '17:00', status: 'rejected', reason: 'ໃຫ້ເຮັດໃນເວລາລາຊະການ ແທນ' },
+      { id: 'ot6', title: 'AIDC work', byId: 'A', activity: 'ບຳລຸງຮັກສາລະບົບ', tasks: ['ອັບເດດ server', 'ສຳຮອງຂໍ້ມູນ'], dayType: 'ວັນພັກລັດຖະການ', note: 'ອັບເດດ server', date: '07/07/2026', from: '18:00', to: '20:00', status: 'cancelled', reason: 'ເລື່ອນໄປອາທິດໜ້າ' },
     ],
     booking: [
       { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'Conference Room A', date: '02/04/2026', from: '09:00', to: '11:00', status: 'cancelled' },
       { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ', date: '03/07/2026', from: '08:00', to: '17:00', status: 'approved' },
     ],
+    // ── ຄວາມຮູ້ (Knowledge Sharing) — store ດຽວກັບ Approval ໝວດ "ຄວາມຮູ້" ──
+    // type: text | youtube | pdf · status: draft | progress | rejected | approved(=ເຜີຍແຜ່ແລ້ວ)
     knowledge: [
-      { id: 'kn1', title: 'Run for our forest', byId: 'G', note: 'Compliance · General', date: '23/06/2026', status: 'approved' },
+      { id: 'kn1', byId: 'G', type: 'text', title: 'Run for our forest', note: 'ສະຫຼຸບກິດຈະກຳ ແລ່ນເພື່ອປ່າໄມ້ ຂອງ AIDC',
+        content: 'ກິດຈະກຳ Run for our forest ຈັດຂຶ້ນເພື່ອລະດົມທຶນປູກປ່າ. ພະນັກງານເຂົ້າຮ່ວມ 120 ຄົນ ໄດ້ທຶນທັງໝົດ 45 ລ້ານກີບ ນຳໄປປູກຕົ້ນໄມ້ 3,000 ຕົ້ນ ທີ່ແຂວງ ວຽງຈັນ.',
+        cats: ['Compliance', 'General'], teams: ['ທັງໝົດ'], date: '23/06/2026', status: 'approved', views: 128, likes: ['A', 'B'], comments: [] },
+      { id: 'kn2', byId: 'B', type: 'text', title: 'ເລືອກ Claude Model ໃຫ້ເໝາະກັບງານຂຽນໂຄດ', note: 'ສະຫຼຸບຄວາມຕ່າງຂອງແຕ່ລະໂມເດວ ແລະ ວິທີເລືອກໃຫ້ຄຸ້ມ',
+        content: 'Opus 4.8 — ວຽກໃຫຍ່ ຊັບຊ້ອນ, refactor ຫຼາຍໄຟລ໌, migration.\nSonnet 5 — ວຽກປະຈຳວັນ ສະເໝີພາບ ຄວາມໄວ/ຄຸນນະພາບ.\nHaiku 4.5 — ວຽກໄວ ປະລິມານຫຼາຍ.\nເຄັດລັບ: ໃຊ້ Sonnet ເປັນຫຼັກ ແລ້ວຍົກເປັນ Opus ສະເພາະຕອນຕິດບັນຫາຍາກ.',
+        cats: ['Technical Skills'], teams: ['Tech'], date: '14/07/2026', status: 'approved', views: 13, likes: ['A'], comments: [] },
+      { id: 'kn3', byId: 'F', type: 'youtube', title: 'ວິທີນຳສະເໜີ ໃຫ້ລູກຄ້າປະທັບໃຈ', note: 'ເຕັກນິກ present ໃນ 10 ນາທີ',
+        url: 'https://youtu.be/dQw4w9WgXcQ', cats: ['Soft Skills'], teams: ['BD'], date: '12/07/2026', status: 'approved', views: 46, likes: [], comments: [] },
+      // ຂອງ A (ຜູ້ໃຊ້ demo) — ຄົບ 4 ສະຖານະ ໃຫ້ປຸ່ມກອງທຸກປຸ່ມມີຂໍ້ມູນ
+      { id: 'kn4', byId: 'A', type: 'text', title: 'ວິທີໃຊ້ ລະບົບ e-Signature', note: 'ຄູ່ມືເລີ່ມຕົ້ນ ສຳລັບພະນັກງານໃໝ່',
+        content: 'ຂັ້ນຕອນ: ສ້າງຄຳຂໍ → ເລືອກຜູ້ລົງນາມ → ວາງຊ່ອງລາຍເຊັນ → ສົ່ງ. ຜູ້ລົງນາມຈະໄດ້ຮັບແຈ້ງເຕືອນ ແລະ ເຊັນຜ່ານມືຖືໄດ້ເລີຍ.',
+        cats: ['Technical Skills'], teams: ['ທັງໝົດ'], date: '15/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn5', byId: 'A', type: 'pdf', title: 'ສະຫຼຸບ Master Test Cases FDI', note: 'ເອກະສານ TC ທັງໝົດ 214 ລາຍການ',
+        needFile: 'master-test-cases.pdf', cats: ['Technical Skills'], teams: ['Tech'], date: '11/07/2026', status: 'draft', views: 0, likes: [], comments: [] },
+      { id: 'kn6', byId: 'A', type: 'text', title: 'ເຄັດລັບ ຈັດການເວລາ', note: 'ວິທີແບ່ງເວລາໃນມື້ວຽກຫຍຸ້ງ',
+        content: 'ຈັດວຽກສຳຄັນໄວ້ຕອນເຊົ້າ · ປິດແຈ້ງເຕືອນ 2 ຊົ່ວໂມງ · ພັກສາຍຕາທຸກ 45 ນາທີ',
+        cats: ['Soft Skills'], teams: ['ທັງໝົດ'], date: '08/07/2026', status: 'rejected', reason: 'ເນື້ອໃນສັ້ນເກີນໄປ ຂໍໃຫ້ເພີ່ມຕົວຢ່າງຈິງ', views: 0, likes: [], comments: [] },
+      { id: 'kn7', byId: 'A', type: 'text', title: 'ສະຫຼຸບ ການປະຊຸມທີມ Tech ໄຕມາດ 2', note: 'ຜົນງານ ແລະ ແຜນໄຕມາດ 3',
+        content: 'ໄຕມາດ 2 ສົ່ງມອບ 3 ໂຄງການ. ໄຕມາດ 3 ຈະເນັ້ນ Super Work ແລະ e-Signature.',
+        cats: ['General'], teams: ['Tech'], date: '05/07/2026', status: 'approved', views: 89, likes: ['B', 'C', 'F'], comments: [] },
     ],
   }
+}
+// ໝວດ ແລະ ທີມ ຂອງໂພສຄວາມຮູ້
+export const KN_CATS = ['Compliance', 'General', 'Soft Skills', 'Technical Skills']
+export const KN_TEAMS = ['ທັງໝົດ', 'Tech', 'BD', 'HR']
+export const KN_TYPES = [
+  { v: 'text', label: 'ຂໍ້ຄວາມ', ic: 'doc' },
+  { v: 'youtube', label: 'YouTube', ic: 'video' },
+  { v: 'pdf', label: 'PDF', ic: 'pdf' },
+]
+export const KN_STATUS = {
+  draft: { t: 'ຮ່າງ', c: 'cancel' },
+  progress: { t: 'ລໍຖ້າອະນຸມັດ', c: 'wait' },
+  rejected: { t: 'ຖືກປະຕິເສດ', c: 'rej' },
+  approved: { t: 'ເຜີຍແຜ່ແລ້ວ', c: 'done' },
 }
 
 // doc: { id, title, creatorId, date, ts, files[{name,pages,summary?}], attachments[], cc[ids], signers[], comments[], status }
@@ -224,4 +275,87 @@ export function isMyTurn(d, me) {
 export function progress(d) {
   const done = d.signers.filter((s) => s.status === 'signed').length
   return { done, total: d.signers.length, pct: Math.round((done / d.signers.length) * 100) }
+}
+// ── ໂຄງການ → ກິດຈະກຳ → ໜ້າວຽກ (ຟອມໂອທີ: ເລືອກໂຄງການ → ກິດຈະກຳ → ຕິກໜ້າວຽກ ໄດ້ຫຼາຍອັນ) ──
+export const PROJECTS = [
+  { name: 'Super Work', activities: [
+    { name: 'Work board', tasks: ['ອອກແບບ UI ໜ້າ board', 'ເຊື່ອມ API', 'ແກ້ໄຂ drag & drop', 'ທົດສອບ'] },
+    { name: 'Dashboard', tasks: ['ກຣາຟສະຫຼຸບ', 'Filter ຕາມທີມ', 'Export Excel'] },
+    { name: 'ລະບົບຄຳຂໍ', tasks: ['ຟອມລາພັກ', 'ຟອມໂອທີ', 'ສາຍອະນຸມັດ', 'ແຈ້ງເຕືອນ'] },
+    { name: 'ແກ້ໄຂ Bug', tasks: ['Bug ໜ້າ login', 'Bug ແຈ້ງເຕືອນ', 'Bug ອັບໂຫລດໄຟລ໌'] },
+  ] },
+  { name: 'e-Signature App', activities: [
+    { name: 'UI Prototype', tasks: ['ໜ້າສ້າງຄຳຂໍ', 'ໜ້າວາງລາຍເຊັນ', 'ໜ້າກວດ/ສົ່ງ'] },
+    { name: 'PDF Viewer', tasks: ['Render PDF', 'ວາງກ່ອງລາຍເຊັນ', 'QR ທ້າຍໜ້າ'] },
+    { name: 'ທົດສອບລະບົບ', tasks: ['ທົດສອບ flow ເຊັນ', 'ທົດສອບ LANIT', 'ທົດສອບ ແຈ້ງເຕືອນ'] },
+  ] },
+  { name: 'FDI / BOL System', activities: [
+    { name: 'Master Test Cases', tasks: ['ຂຽນ TC ໂມດູນ Mobile', 'ຂຽນ TC ໂມດູນ BOL', 'ທົບທວນ TC'] },
+    { name: 'UAT', tasks: ['ກຽມຂໍ້ມູນ UAT', 'ຮັນ UAT ຮອບ 1', 'ສະຫຼຸບຜົນ'] },
+    { name: 'ແກ້ໄຂ Bug', tasks: ['Bug ຈາກ UAT', 'Bug ຈາກລູກຄ້າ'] },
+  ] },
+  { name: 'AIDC work', activities: [
+    { name: 'ງານທົ່ວໄປ', tasks: ['ປະຊຸມທີມ', 'ເອກະສານ', 'ຊ່ວຍງານອື່ນ'] },
+    { name: 'ບຳລຸງຮັກສາລະບົບ', tasks: ['ອັບເດດ server', 'ສຳຮອງຂໍ້ມູນ', 'ກວດ log'] },
+  ] },
+]
+// ປະເພດວັນ (ອັດຕາໂອທີຕ່າງກັນ) — ຕາມລະບົບຈິງ 4 ແບບ
+export const DAY_TYPES = [
+  { v: 'ວັນທຳມະດາ', dot: '#1f3fb5' },
+  { v: 'ວັນເສົາ-ອາທິດ', dot: '#7c3aed' },
+  { v: 'ວັນພັກລັດຖະການ', dot: '#dc2626' },
+  { v: 'ວັນພິເສດ', dot: '#f59e0b' },
+]
+
+// ── ຄິດເວລາຄຳຂໍ (ໃຊ້ຮ່ວມ: ຟອມສ້າງ · ການ໌ດ · ໜ້າລາຍລະອຽດ) ──
+// ພັກທ່ຽງ 12:00–13:00 ບໍ່ນັບ ຖ້າຊ່ວງເວລາຄ້ອມ
+const LUNCH = { from: 12 * 60, to: 13 * 60 }
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m }
+export const daysBetween = (a, b) => {
+  const [d1, m1, y1] = a.split('/').map(Number); const [d2, m2, y2] = b.split('/').map(Number)
+  return Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 864e5) + 1
+}
+export const fmtH = (mins) => `${Math.floor(mins / 60)}h ${mins % 60}m`
+// ── ຊ່ວງວັນທີ ແບບສັ້ນ: ຕັດປີ/ເດືອນທີ່ຊ້ຳອອກ → "03 – 07/08/2026" (ບໍ່ຕົກແຖວ) ──
+export const fmtRange = (a, b) => {
+  if (!b || b === a) return a
+  const [d1, m1, y1] = a.split('/'); const [d2, m2, y2] = b.split('/')
+  if (y1 !== y2) return `${a} – ${b}`
+  if (m1 !== m2) return `${d1}/${m1} – ${d2}/${m2}/${y2}`
+  return `${d1} – ${d2}/${m2}/${y2}`
+}
+// r = { date, dateTo?, from, to } → { days, cut, perDay, total, totalText }
+export function reqTime(r) {
+  const days = r.dateTo && r.dateTo !== r.date ? Math.max(1, daysBetween(r.date, r.dateTo)) : 1
+  if (!r.from || !r.to) return { days, cut: 0, perDay: 0, total: 0, totalText: '' }
+  let mins = toMin(r.to) - toMin(r.from)
+  if (mins < 0) mins += 24 * 60
+  const cut = Math.max(0, Math.min(toMin(r.to), LUNCH.to) - Math.max(toMin(r.from), LUNCH.from))
+  const perDay = Math.max(0, mins - cut)
+  return { days, cut, perDay, total: perDay * days, totalText: fmtH(perDay * days) }
+}
+
+// ── ສາຍອະນຸມັດຄຳຂໍ — ຕ່າງກັນຕາມປະເພດ ──
+//   ລາພັກ / ວຽກນອກສະຖານທີ → ຫົວໜ້າພະແນກ → HR (2 ຂັ້ນ)
+//   ໂອທີ                  → ຫົວໜ້າພະແນກ ຢ່າງດຽວ (1 ຂັ້ນ)
+// ໃຊ້ຮ່ວມ ຟອມສ້າງ ແລະ ໜ້າລາຍລະອຽດ → ສາຍທີ່ໂຊຕອນສ້າງ ກັບ ຕອນເບິ່ງ ຕ້ອງກົງກັນ
+export const approvalChain = (byId, kind = 'leave') => {
+  const rec = DIRECTORY.find((p) => p.id === byId)
+  const head = DIRECTORY.find((p) => p.dept === rec?.dept && p.rank === 'head' && p.id !== byId)
+  const hr = DIRECTORY.find((p) => p.id === 'u1') // Pimlada — HR ແລະ ບໍລິຫານ
+  const chain = [head && { id: head.id, name: head.name, role: 'ຫົວໜ້າພະແນກ' }]
+  if (kind !== 'ot') chain.push(hr && { id: hr.id, name: hr.name, role: 'HR ແລະ ບໍລິຫານ' })
+  return chain.filter(Boolean)
+}
+
+// ── ນັບແຍກ role: ຜູ້ລົງນາມ (ມີຊ່ອງເຊັນໃນເອກະສານ) / ຜູ້ອະນຸມັດ (ບໍ່ມີຊ່ອງ — ອະນຸມັດຢ່າງດຽວ) ──
+// ໃຊ້ຮ່ວມທຸກທີ່ ເພື່ອໃຫ້ຕົວເລກ ກົງກັບ ຈຳນວນຊ່ອງເຊັນ ໃນເອກະສານສະເໝີ
+export const roleCount = (d) => ({
+  signers: d.signers.filter((s) => s.role !== 'approver').length,
+  approvers: d.signers.filter((s) => s.role === 'approver').length,
+})
+// ປ້າຍສະຫຼຸບ: "ຜູ້ລົງນາມ 1 · ຜູ້ອະນຸມັດ 1"
+export const rolesLabel = (d) => {
+  const { signers, approvers } = roleCount(d)
+  return [signers ? `ຜູ້ລົງນາມ ${signers}` : '', approvers ? `ຜູ້ອະນຸມັດ ${approvers}` : ''].filter(Boolean).join(' · ')
 }

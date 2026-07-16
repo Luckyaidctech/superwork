@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Icon, initials, Header, ResultPopup, ReasonModal } from '../flow/shared.jsx'
-import RequestScreen, { REQ_KINDS } from './RequestScreen.jsx'
-import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf } from './data.js'
+import RequestScreen, { REQ_KINDS, KIND_META, ReqCard, RequestDetailBody } from './RequestScreen.jsx'
+import KnowledgeScreen, { KnowledgeDetailBody } from './KnowledgeScreen.jsx'
+import FilePreviewModal from '../flow/FilePreviewModal.jsx'
+import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel } from './data.js'
 import PointsRequest from './PointsRequest.jsx'
 
 // avatar style: ຮູບໂປຣไฟล์ (ຖ້າມີ) ຫຼື ສີພື້ນ
@@ -42,10 +44,11 @@ function DocCard({ d, me, onOpen }) {
         {d.attachments.length > 0 && <span className="doc-chip alt"><Icon.layers /> ໄຟລ໌ແນບ {d.attachments.length}</span>}
         {d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me) && <span className="doc-chip cc"><Icon.users /> CC</span>}
       </div>
-      <p className="doc-prog-label">ລົງນາມແລ້ວ {done}/{total}</p>
+      <p className="doc-prog-label">ດຳເນີນການແລ້ວ {done}/{total}</p>
       <div className="doc-prog"><span className="doc-prog-fill" style={{ width: `${pct}%` }} /></div>
       <div className="doc-signers">
-        <span className="doc-signers-lbl"><Icon.users /> ຜູ້ລົງນາມ ({total})</span>
+        {/* ນັບແຍກ role → ຕົວເລກກົງກັບຈຳນວນຊ່ອງເຊັນໃນເອກະສານ (ຜູ້ອະນຸມັດບໍ່ມີຊ່ອງ) */}
+        <span className="doc-signers-lbl"><Icon.users /> {rolesLabel(d)}</span>
         <div className="doc-avs">
           {d.signers.map((s, i) => <Av key={i} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
         </div>
@@ -378,35 +381,38 @@ function Overview({ docs, me, onOpen }) {
 }
 
 // ─────────── Approval Center (bottom tab ອະນຸມັດ) — ລວມ request ທຸກປະເພດຈາກ Superwork · ຂໍລາຍເຊັນ ຢູ່ທຳອິດ ───────────
+// icon ຕ້ອງກົງກັບ ໂມດູນ "ຄຳຂໍ" (REQ_KINDS) ແລະ ສື່ຄວາມໝາຍຖືກ:
+// ລາພັກ = ຄັນຮົ່ມ (ບໍ່ແມ່ນຮູບຄົນ) · ວຽກນອກ = ກະເປົາ · ຈອງ = ປະຕິທິນຕິກ (ບໍ່ແມ່ນປຶ້ມ) · ຄວາມຮູ້ = ຫຼອດໄຟ (ບໍ່ແມ່ນເອກະສານ)
 const AC_CATS = [
   { key: 'all', label: 'ທັງໝົດ', icon: Icon.layers },
   { key: 'esign', label: 'ຂໍລາຍເຊັນ', icon: Icon.pen },
   { key: 'ot', label: 'ໂອທີ', icon: Icon.clock },
-  { key: 'leave', label: 'ລາພັກ', icon: Icon.user },
-  { key: 'offsite', label: 'ວຽກນອກສະຖານທີ', icon: Icon.pin },
-  { key: 'booking', label: 'ການຈອງ', icon: Icon.book },
-  { key: 'knowledge', label: 'ຄວາມຮູ້', icon: Icon.doc },
+  { key: 'leave', label: 'ລາພັກ', icon: Icon.umbrella },
+  { key: 'offsite', label: 'ວຽກນອກສະຖານທີ', icon: Icon.briefcase },
+  { key: 'booking', label: 'ການຈອງ', icon: Icon.calCheck },
+  { key: 'knowledge', label: 'ຄວາມຮູ້', icon: Icon.bulb },
   { key: 'points', label: 'ຄະແນນ', icon: Icon.chart },
 ]
-// icon ຂອງ card ໃຫ້ຕົງກັບ tab หมวด
-const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.user, offsite: Icon.pin, booking: Icon.book, knowledge: Icon.doc, points: Icon.chart }
+const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.umbrella, offsite: Icon.briefcase, booking: Icon.calCheck, knowledge: Icon.bulb, points: Icon.chart }
 const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', leave: 'ລາພັກ', offsite: 'ວຽກນອກສະຖານທີ', booking: 'ການຈອງ', knowledge: 'ຄວາມຮູ້', points: 'ຄະແນນ' }
 // ຂໍ້ມູນຄຳຂໍ (leave/offsite/ot/booking/knowledge) ຢູ່ໃນ App.jsx (initialReqs) → ສົ່ງລົງມາທາງ props
 // ເພື່ອໃຫ້ ໂມດູນ "ຄຳຂໍ" ແລະ "ການອະນຸມັດ" ເຫັນຂໍ້ມູນຊຸດດຽວກັນ
 const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: '' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' } }
 const AC_SF = [{ key: 'all', label: 'ທັງໝົດ' }, { key: 'waiting', label: 'ລໍຖ້າອະນຸມັດ' }, { key: 'approved', label: 'ອະນຸມັດແລ້ວ' }, { key: 'rejected', label: 'ປະຕິເສດ' }]
 
-function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, openReqId, onConsumeOpen }) {
+function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment, openReqId, onConsumeOpen }) {
   const [cat, setCat] = useState('all')
   const [sf, setSf] = useState('all')
   const [acDetail, setAcDetail] = useState(null) // request detail (mock ຫຼື points req)
   const [acFlash, setAcFlash] = useState('')
   const [acPopup, setAcPopup] = useState(null) // { msg, ok } dark success popup
+  const [acPreview, setAcPreview] = useState(null) // ໄຟລ໌ແນບ ທີ່ກຳລັງເປີດເບິ່ງ
   const [cmtText, setCmtText] = useState('')
   const [cmtReplyTo, setCmtReplyTo] = useState(null) // { id, name } กำลังตอบกลับ
   const [cmtEditId, setCmtEditId] = useState(null)
   const [cmtEditText, setCmtEditText] = useState('')
   const [rejMode, setRejMode] = useState(false)
+  const [cancelMode, setCancelMode] = useState(false)
   const acAct = (m) => { setAcDetail(null); setRejMode(false); setAcFlash(m); setTimeout(() => setAcFlash(''), 2200) }
   // เปิด detail ของ req ที่เพิ่งสร้าง (หลังกด "ເບิ่งรายละเอียด")
   useEffect(() => {
@@ -422,11 +428,17 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     .map((d) => {
       const mine = d.signers.find((s) => s.id === me)
       const status = mine.status === 'signed' ? 'approved' : mine.status === 'rejected' ? 'rejected' : 'esign'
-      return { kind: 'esign', id: d.id, title: d.title, by: nameOf(d.creatorId), date: d.date, status, docId: d.id }
+      return { kind: 'esign', id: d.id, title: d.title, by: nameOf(d.creatorId), date: d.date, status, docId: d.id, signers: d.signers }
     })
   const esignPending = esignItems.filter((i) => i.status === 'esign').length // badge = ທີ່ລໍຖ້າ me ເຊັນ
+  // ⚠ ຄະແນນ: ຍັງໂຊຂອງຕົນເອງຢູ່ — ເພາະໂມດູນ "ຄຳຂໍ" ຍັງບໍ່ມີ tab ຄະແນນ ໃຫ້ມັນຢູ່
+  //   ຖ້າກອງອອກຕອນນີ້ ຄຳຂໍຄະແນນຂອງຕົນເອງຈະຫາຍໄປເລີຍ (ບໍ່ມີບ່ອນເບິ່ງ)
+  //   → ຕ້ອງເພີ່ມ tab ຄະແນນ ໃນໂມດູນ "ຄຳຂໍ" ກ່ອນ ຈຶ່ງກອງໄດ້
   const pointsItems = pointsReqs.map((r) => ({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, sub: r.target === 'task' ? 'Task' : 'Activity', proj: r.projectName, req: r }))
-  const mockItems = (k) => (reqs[k] || []).map((m) => ({ kind: k, ...m, by: nameOf(m.byId) }))
+  // ໂມດູນ "ການອະນຸມັດ" = ຄຳຂໍຂອງ "ຄົນອື່ນ" ເທົ່ານັ້ນ (ຂອງຕົນເອງ ຢູ່ໂມດູນ "ຄຳຂໍ" — ບໍ່ຊ້ຳກັນ
+  // ແລະ ຕົນເອງ ອະນຸມັດຄຳຂໍຕົນເອງບໍ່ໄດ້ຢູ່ແລ້ວ)
+  //   + ໂພສຄວາມຮູ້ທີ່ຍັງເປັນ "ຮ່າງ" (draft) → ຍັງບໍ່ໄດ້ສົ່ງ ຜູ້ອະນຸມັດບໍ່ຄວນເຫັນ
+  const mockItems = (k) => (reqs[k] || []).filter((m) => m.byId !== me && m.status !== 'draft').map((m) => ({ kind: k, ...m, by: nameOf(m.byId) }))
   const base = cat === 'all'
     ? [...esignItems, ...pointsItems, ...Object.keys(reqs).flatMap(mockItems)]
     : cat === 'esign' ? esignItems
@@ -438,7 +450,19 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     || (sf === 'rejected' && (m.status === 'rejected' || m.status === 'cancelled'))
   const list = base.filter(matchSf)
 
+  // ── badge ແຕ່ລະ tab = ຈຳນວນທີ່ "ລໍຖ້າຂ້ອຍດຳເນີນການ" ຈິງ ──
+  //    ຂໍລາຍເຊັນ: ຮອບຂ້ອຍເຊັນ · ຄະແນນ: ຂ້ອຍເປັນ director · ຄຳຂໍທົ່ວໄປ: ຂອງຄົນອື່ນ ທີ່ຍັງລໍຖ້າ
+  const pendingOf = (k) => {
+    if (k === 'esign') return esignPending
+    // ຄະແນນ: ນັບຄຳຂໍທີ່ຍັງລໍຖ້າ ຂອງຄົນອື່ນ (ໃຫ້ຕົວເລກ ກົງກັບການ໌ດທີ່ໂຊໃນ tab)
+    if (k === 'points') return pointsReqs.filter((r) => r.status === 'progress' && r.by !== me).length
+    if (k === 'all') return AC_CATS.filter((c) => c.key !== 'all').reduce((n, c) => n + pendingOf(c.key), 0)
+    return (reqs[k] || []).filter((r) => r.byId !== me && r.status === 'progress').length
+  }
+
   const Card = (m) => {
+    // ຄຳຂໍທົ່ວໄປ → ໃຊ້ການ໌ດອັນດຽວກັບໂມດູນ "ຄຳຂໍ" (ຄົບ: ປະເພດ · ວັນເວລາ · ຊົ່ວໂມງ · ເຫດຜົນ · ໄຟລ໌ແນບ · ຜູ້ຂໍ+avatar)
+    if (KIND_META[m.kind]) return <ReqCard key={m.id} r={m} kind={m.kind} showBy onOpen={() => setAcDetail(m)} />
     const isEsign = m.kind === 'esign'
     const st = isEsign
       ? (m.status === 'esign' ? { t: 'ລໍຖ້າລົງນາມ', c: '' } : m.status === 'approved' ? { t: 'ເຊັນແລ້ວ', c: 'done' } : { t: 'ປະຕິເສດ', c: 'rej' })
@@ -454,6 +478,13 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
           {m.sub && <span className={`ac-sub ${m.sub.toLowerCase()}`}>{m.sub}</span>}
           {m.proj ? ` ${m.proj} · ` : ' · '}{m.date}
         </span>
+        {/* ຜູ້ລົງນາມ: ໂຊ avatar + ຕິກຖືກ ຄົນທີ່ເຊັນແລ້ວ (ຄືກັບໂມດູນ ລົງນາມ) */}
+        {isEsign && m.signers?.length > 0 && (
+          <span className="ac-avs">
+            {m.signers.map((s) => <Av key={s.id} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
+            <em>{m.signers.filter((s) => s.status === 'signed').length}/{m.signers.length} ດຳເນີນການແລ້ວ</em>
+          </span>
+        )}
       </div>
       <span className={`ac-status ${st.c}`}>{st.t}</span>
     </>)
@@ -466,7 +497,7 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
       <div className="ac-cats">
         {AC_CATS.map((c) => (
           <button key={c.key} className={`ac-cat ${cat === c.key ? 'on' : ''}`} onClick={() => setCat(c.key)}>
-            {c.icon()}<span>{c.label}</span>{(c.key === 'esign' || c.key === 'all') && esignPending > 0 && <em>{esignPending}</em>}
+            {c.icon()}<span>{c.label}</span>{pendingOf(c.key) > 0 && <em>{pendingOf(c.key)}</em>}
           </button>
         ))}
       </div>
@@ -512,29 +543,18 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                     </div>
                   </div>
                 </>)
-              })() : (() => {
-                const MockIcon = AC_ICON[acDetail.kind] || Icon.checkCircle
-                return (<>
-                  <div className="ac-req-head">
-                    <span className="ac-req-av" style={avBg(acDetail.by)}>{initials(acDetail.by)}</span>
-                    <div className="ac-req-info"><b>{acDetail.by}</b><span>{AC_LABEL[acDetail.kind]} · {acDetail.date}</span></div>
-                    <span className={`ac-status ${AC_STATUS[acDetail.status].c}`}>{AC_STATUS[acDetail.status].t}</span>
-                  </div>
-                  <div className="ac-pts-target"><span className={`ac-pts-ic ${acDetail.kind}`}><MockIcon /></span><div><b>{acDetail.title}</b><span>{AC_LABEL[acDetail.kind]}</span></div></div>
-                  <div className="ptd-info">
-                    <div className="ptd-info-row"><span className="ptd-info-av" style={avBg(acDetail.by)}>{initials(acDetail.by)}</span><div className="ptd-info-txt"><span>ຜູ້ຂໍ</span><b>{acDetail.by}</b></div></div>
-                    <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.clock /></span><div className="ptd-info-txt"><span>ວັນທີ</span><b>{acDetail.date}</b></div></div>
-                    {acDetail.note && <div className="ptd-info-row"><span className="ptd-info-ic"><Icon.info /></span><div className="ptd-info-txt"><span>ໝາຍເຫດ</span><b>{acDetail.note}</b></div></div>}
-                  </div>
-                  <div className="ptd-tl-card">
-                    <p className="ptd-card-label">ສະຖານະຄຳຂໍ</p>
-                    <div className="ptd-timeline">
-                      <div className="ptd-tl-item done"><span className="ptd-tl-dot"><Icon.check /></span><div><b>ສ້າງຄຳຂໍ</b><span>{acDetail.by} · {acDetail.date}</span></div></div>
-                      <div className={`ptd-tl-item ${acDetail.status !== 'progress' ? 'done' : 'now'}`}><span className={`ptd-tl-dot ${acDetail.status === 'rejected' || acDetail.status === 'cancelled' ? 'rej' : ''}`}>{acDetail.status === 'approved' ? <Icon.check /> : (acDetail.status === 'rejected' || acDetail.status === 'cancelled') ? <Icon.x /> : <Icon.clock />}</span><div><b>{AC_STATUS[acDetail.status].t}</b><span>{nameOf(director)}</span></div></div>
-                    </div>
-                  </div>
-                </>)
-              })()}
+              })() : (
+                // ຄຳຂໍທົ່ວໄປ (ລາພັກ/ວຽກນອກ/ໂອທີ/ຈອງ/ຄວາມຮູ້) → ໃຊ້ໜ້າດຽວກັບໂມດູນ "ຄຳຂໍ" 100%
+                acDetail.kind === 'knowledge' ? (
+                  // ໂພສຄວາມຮູ້ → ໃຊ້ໜ້າດຽວກັບໂມດູນ "ຄວາມຮູ້" (ບໍ່ແມ່ນໜ້າຄຳຂໍລາ)
+                  <KnowledgeDetailBody post={(reqs.knowledge || []).find((r) => r.id === acDetail.id) || acDetail}
+                    me={me} onPreview={setAcPreview} />
+                ) : (
+                  <RequestDetailBody req={(reqs[acDetail.kind] || []).find((r) => r.id === acDetail.id) || acDetail}
+                    kind={acDetail.kind} me={me} onPreview={setAcPreview}
+                    onComment={onReqComment} onEditComment={onReqEditComment} onDeleteComment={onReqDeleteComment} />
+                )
+              )}
 
               {detailReq && (() => {
                 const roots = detailReq.comments.filter((c) => !c.parentId)
@@ -579,10 +599,16 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                   </div>
                 )
               })()}
+            </div>
+          </div>
 
-              {(() => {
+          {/* ປຸ່ມ — ຢູ່ນອກ .scroll ຈຶ່ງລອຍຕິດລຸ່ມໄດ້ */}
+          {(() => {
                 const isProgress = (detailReq || acDetail).status === 'progress'
-                const canAct = detailReq ? (me === director && isProgress) : isProgress // points: director / mock: ใครก็อนุมัดได้
+                // ຄຳຂໍຂອງຕົນເອງ → ບໍ່ມີສິດອະນຸມັດ/ປະຕິເສດ (ໂຊປຸ່ມ ຍົກເລີກ ແທນ)
+                const isMine = detailReq ? detailReq.by === me : acDetail.byId === me
+                const canAct = !isMine && (detailReq ? (me === director && isProgress) : isProgress)
+                const canCancel = isMine && isProgress
                 const doApprove = () => {
                   if (detailReq) onPointsAction(detailReq.id, 'approved')
                   else onReqAction(acDetail.kind, acDetail.id, 'approved')
@@ -594,21 +620,33 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                   setRejMode(false)
                   setAcPopup({ msg: 'ໄດ້ປະຕິເສດຄຳຂໍແລ້ວ', danger: true })
                 }
-                if (!canAct) return <button className="btn ghost" style={{ marginTop: 14, width: '100%' }} onClick={() => setAcDetail(null)}>ປິດ</button>
+                const doCancel = (rsn) => { onCancelReq(acDetail.kind, acDetail.id, rsn); setCancelMode(false); setAcPopup({ msg: 'ໄດ້ຍົກເລີກຄຳຂໍແລ້ວ', danger: true }) }
                 return (<>
-                  <div className="success-btns" style={{ marginTop: 16, maxWidth: 'none' }}>
-                    <button className="btn danger" onClick={() => setRejMode(true)}><Icon.x /> ປະຕິເສດ</button>
-                    <button className="btn primary" onClick={doApprove}><Icon.check /> ອະນຸມັດ</button>
+                  {/* ປຸ່ມລອຍຕິດລຸ່ມ — ບໍ່ຕ້ອງເລື່ອນຫາ */}
+                  <div className="rf-foot">
+                    {canAct ? (
+                      <div className="success-btns" style={{ maxWidth: 'none' }}>
+                        <button className="btn danger" onClick={() => setRejMode(true)}><Icon.x /> ປະຕິເສດ</button>
+                        <button className="btn primary" onClick={doApprove}><Icon.check /> ອະນຸມັດ</button>
+                      </div>
+                    ) : canCancel && !detailReq ? (
+                      <button className="btn danger" style={{ width: '100%' }} onClick={() => setCancelMode(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
+                    ) : (
+                      <button className="btn ghost" style={{ width: '100%' }} onClick={() => setAcDetail(null)}>ປິດ</button>
+                    )}
                   </div>
                   {rejMode && (
                     <ReasonModal title="ປະຕິເສດຄຳຂໍ" hint="ກະລຸນາລະບຸເຫດຜົນ (ຜູ້ຂໍຈະໄດ້ຮັບການແຈ້ງເຕືອນ)"
                       placeholder="ເຫດຜົນທີ່ປະຕິເສດ..." confirmLabel="ຢືນຢັນປະຕິເສດ"
                       onConfirm={doReject} onClose={() => setRejMode(false)} />
                   )}
+                  {cancelMode && (
+                    <ReasonModal title="ຍົກເລີກຄຳຂໍ" hint="ກະລຸນາລະບຸເຫດຜົນທີ່ຍົກເລີກ" placeholder="ເຫດຜົນ..."
+                      confirmLabel="ຢືນຢັນຍົກເລີກ" cancelLabel="ບໍ່ຍົກເລີກ" onConfirm={doCancel} onClose={() => setCancelMode(false)} />
+                  )}
                 </>)
-              })()}
-            </div>
-          </div>
+          })()}
+          {acPreview && <FilePreviewModal file={acPreview} onClose={() => setAcPreview(null)} />}
           {/* ຜົນລັບ: ອະນຸມັດ / ປະຕິເສດ — popup ດຽວກັນທຸກທີ່ */}
           {acPopup && (
             <ResultPopup danger={!!acPopup.danger} title={acPopup.msg} desc="ລະບົບໄດ້ບັນທຶກ ແລະ ແຈ້ງເຕືອນຜູ້ກ່ຽວຂ້ອງແລ້ວ"
@@ -662,10 +700,12 @@ const NOTI_META = {
   cc:        { icon: Icon.mail,        cls: 'slate',  title: 'ໄດ້ຮັບສຳເນົາ (CC)' },
   info:      { icon: Icon.bell,        cls: 'slate',  title: 'ການແຈ້ງເຕືອນ' },
 }
-function NotiCard({ n, onOpen }) {
+function NotiCard({ n, onOpen, onOpenReq }) {
   const m = NOTI_META[n.kind] || NOTI_META.info
+  // ແຈ້ງເຕືອນຈາກ ເອກະສານເຊັນ → ເປີດເອກະສານ · ຈາກຄຳຂໍ → ເປີດຄຳຂໍ
+  const go = () => { if (n.docId) onOpen(n.docId); else if (n.req) onOpenReq(n.req) }
   return (
-    <button className={`noti-card kind-${m.cls} ${n.read ? '' : 'unread'}`} onClick={() => n.docId && onOpen(n.docId)}>
+    <button className={`noti-card kind-${m.cls} ${n.read ? '' : 'unread'} ${n.docId || n.req ? 'tap' : ''}`} onClick={go}>
       <span className="noti-ic">{m.icon()}</span>
       <div className="noti-c">
         <b className="noti-title">{m.title}</b>
@@ -677,13 +717,15 @@ function NotiCard({ n, onOpen }) {
   )
 }
 
-export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
+export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment,
+  onCreateKn, onSubmitKn, onKnLike, onKnView, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
   const [tab, setTab] = useState('created')
   const [nav, setNav] = useState('sign')
   const [userMenu, setUserMenu] = useState(false)
   const [fabMenu, setFabMenu] = useState(false)
   const [pointsForm, setPointsForm] = useState(false)
   const [openReqId, setOpenReqId] = useState(null) // เปิด detail ของ points req หลังสร้าง
+  const [openReq, setOpenReq] = useState(null) // { kind, id } — ເປີດຄຳຂໍ ຈາກແຈ້ງເຕືອນ
 
   // tab 1 ລໍຖ້າຜູ້ອື່ນ = request ທີ່ຂ້ອຍສ້າງ ແລະ ຍັງບໍ່ສຳເລັດ
   // tab 2 ລົງນາມແລ້ວ = ຄົນອື່ນສ້າງ+ຂ້ອຍເຊັນແລ້ວ  ຫຼື  ຂ້ອຍສ້າງ+ເຊັນຄົບແລ້ວ (ບໍ່ແຍກຕາມຜູ້ສ້າງ)
@@ -696,14 +738,17 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
   const myNotis = notis.filter((n) => n.forId === me)
   const unread = myNotis.filter((n) => !n.read).length
   const badge = { created: created.filter((d) => d.status === 'progress').length, signed: signed.length }
-  // badge ໂມດູນ "ຄຳຂໍ" = ຄຳຂໍ 3 ໝວດ ທີ່ຄົນອື່ນສົ່ງມາ ແລະ ລໍຖ້າຂ້ອຍອະນຸມັດ
-  const reqPending = REQ_KINDS.reduce((n, k) => n + (reqs[k.key] || []).filter((r) => r.byId !== me && r.status === 'progress').length, 0)
+  // badge ໂມດູນ "ຄຳຂໍ" = ຄຳຂໍ "ຂອງຂ້ອຍ" ທີ່ຍັງລໍຖ້າຜົນອະນຸມັດ
+  // (ທີ່ຄົນອື່ນສົ່ງມາໃຫ້ຂ້ອຍອະນຸມັດ ຢູ່ໂມດູນ "ການອະນຸມັດ" — ບໍ່ນັບຢູ່ນີ້)
+  const reqPending = REQ_KINDS.reduce((n, k) => n + (reqs[k.key] || []).filter((r) => r.byId === me && r.status === 'progress').length, 0)
+  // badge ຄວາມຮູ້ = ຮ່າງ + ທີ່ຍັງລໍຖ້າກວດສອບ ຂອງຂ້ອຍ (ສິ່ງທີ່ຂ້ອຍຕ້ອງຕາມ)
+  const knPending = (reqs.knowledge || []).filter((p) => p.byId === me && (p.status === 'draft' || p.status === 'progress')).length
 
   return (
     <div className="app home">
       <div className="home-header">
         <div className="home-title-row">
-          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'request' ? 'ຄຳຂໍ' : nav === 'profile' ? 'ໂປຣໄຟລ໌' : 'My e-Signature'}</h1>
+          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'request' ? 'ຄຳຂໍ' : nav === 'knowledge' ? 'ຄວາມຮູ້' : 'My e-Signature'}</h1>
           <div className="home-actions">
             {nav === 'sign' && <button className="home-iconbtn" onClick={onOpenSettings} title="ຕັ້ງຄ່າ"><Icon.gear /></button>}
             <div className="user-wrap">
@@ -714,6 +759,15 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
               {userMenu && (<>
                 <div className="sort-backdrop" onClick={() => setUserMenu(false)} />
                 <div className="user-menu">
+                  {/* ໂປຣໄຟລ໌ຂອງຂ້ອຍ — ຍ້າຍມາຈາກ tab ລຸ່ມ (ໄດ້ slot ໃຫ້ "ຄວາມຮູ້") */}
+                  <div className="user-me">
+                    <span className="user-opt-av lg" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
+                    <div className="user-me-info">
+                      <b>{nameOf(me)}</b>
+                      <span>{USERS.find((u) => u.id === me)?.role}</span>
+                    </div>
+                    <button className="home-iconbtn" title="ຕັ້ງຄ່າ" onClick={() => { setUserMenu(false); onOpenSettings() }}><Icon.gear /></button>
+                  </div>
                   <p className="user-menu-title"><Icon.swap /> ສະຫຼັບຜູ້ໃຊ້ (demo)</p>
                   {USERS.map((u) => (
                     <button key={u.id} className={`user-opt ${me === u.id ? 'on' : ''}`} onClick={() => { setMe(u.id); setUserMenu(false); setTab('created') }}>
@@ -744,19 +798,22 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
 
       <div className="scroll home-scroll">
         {nav === 'approve' ? (
-          <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} reqs={reqs} onReqAction={onReqAction} openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
+          <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} reqs={reqs} onReqAction={onReqAction} onCancelReq={onCancelReq}
+            onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
+            openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
         ) : nav === 'request' ? (
-          <RequestScreen me={me} director={director} reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq} />
+          <RequestScreen me={me} director={director} reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq}
+            onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
+            openReq={openReq} onConsumeOpenReq={() => setOpenReq(null)} />
         ) : nav === 'noti' ? (
           myNotis.length === 0
             ? <p className="empty-list">ຍັງບໍ່ມີການແຈ້ງເຕືອນ</p>
-            : myNotis.map((n) => <NotiCard key={n.id} n={n} onOpen={onOpenFromNoti} />)
-        ) : nav === 'profile' ? (
-          <div className="profile-view">
-            <span className="user-opt-av lg" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
-            <b className="profile-name">{nameOf(me)}</b>
-            <span className="profile-role">{USERS.find((u) => u.id === me)?.role}</span>
-          </div>
+            : myNotis.map((n) => <NotiCard key={n.id} n={n} onOpen={onOpenFromNoti} onOpenReq={(r) => { setNav('request'); setOpenReq(r) }} />)
+        ) : nav === 'knowledge' ? (
+          <KnowledgeScreen me={me} posts={reqs.knowledge || []}
+            onCreateKn={onCreateKn} onSubmitKn={onSubmitKn} onKnLike={onKnLike} onKnView={onKnView}
+            onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
+            openReq={openReq} onConsumeOpenReq={() => setOpenReq(null)} />
         ) : tab === 'overview'
           ? <Overview docs={docs} me={me} onOpen={onOpenDoc} />
           : tab === 'cc'
@@ -795,9 +852,10 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         {[
           { key: 'approve', label: 'ອະນຸມັດ', icon: Icon.checkCircle },
           { key: 'sign', label: 'ລົງນາມ', icon: Icon.pen },
-          { key: 'request', label: 'ຄຳຂໍ', icon: Icon.inbox, badge: reqPending },
+          { key: 'request', label: 'ຄຳຂໍ', icon: Icon.reqDoc, badge: reqPending },
+          // ໂປຣໄຟລ໌ ຍ້າຍໄປຢູ່ user-pill ເທິງຫົວ (ມີສະຫຼັບຜູ້ໃຊ້ຢູ່ແລ້ວ) → ໄດ້ slot ໃຫ້ "ຄວາມຮູ້"
+          { key: 'knowledge', label: 'ຄວາມຮູ້', icon: Icon.bulb, badge: knPending },
           { key: 'noti', label: 'ແຈ້ງເຕືອນ', icon: Icon.bell, badge: unread },
-          { key: 'profile', label: 'ໂປຣໄຟລ໌', icon: Icon.user },
         ].map((b) => (
           <button key={b.key} className={`bnav ${nav === b.key ? 'active' : ''}`} onClick={() => { setNav(b.key); if (b.key === 'noti') onMarkRead() }}>
             <span className="bnav-ic">{b.icon()}{b.badge > 0 && <span className="bnav-badge">{b.badge}</span>}</span>
