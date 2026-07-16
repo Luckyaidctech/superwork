@@ -889,12 +889,13 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
 
       <div className="home-bottomnav">
         {[
-          { key: 'approve', label: 'ອະນຸມັດ', icon: Icon.checkCircle },
-          { key: 'sign', label: 'ລົງນາມ', icon: Icon.pen },
-          { key: 'request', label: 'ຄຳຂໍ', icon: Icon.reqDoc, badge: reqPending },
+          // label ອັງກິດ (Lucky ຂໍ) — ຫົວຂໍ້ຂ້າງໃນ ຍັງເປັນລາວ
+          { key: 'approve', label: 'Approval', icon: Icon.checkCircle },
+          { key: 'sign', label: 'e-Sign', icon: Icon.pen },
+          { key: 'request', label: 'Request', icon: Icon.reqDoc, badge: reqPending },
           // ໂປຣໄຟລ໌ ຍ້າຍໄປຢູ່ user-pill ເທິງຫົວ (ມີສະຫຼັບຜູ້ໃຊ້ຢູ່ແລ້ວ) → ໄດ້ slot ໃຫ້ "ຄວາມຮູ້"
-          { key: 'knowledge', label: 'ຄວາມຮູ້', icon: Icon.bulb, badge: knPending },
-          { key: 'noti', label: 'ແຈ້ງເຕືອນ', icon: Icon.bell, badge: unread },
+          { key: 'knowledge', label: 'Knowledge', icon: Icon.bulb, badge: knPending },
+          { key: 'noti', label: 'Alerts', icon: Icon.bell, badge: unread },
         ].map((b) => (
           <button key={b.key} className={`bnav ${nav === b.key ? 'active' : ''}`} onClick={() => { setNav(b.key); if (b.key === 'noti') onMarkRead() }}>
             <span className="bnav-ic">{b.icon()}{b.badge > 0 && <span className="bnav-badge">{b.badge}</span>}</span>
