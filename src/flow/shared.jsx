@@ -36,35 +36,108 @@ export const signerColor = (idx) => SIGNER_COLORS[idx % SIGNER_COLORS.length]
 // ── ລາຍชื่อ / Directory (mock) — ໂຄງສ້າງອົງກອນ: ຜู้บริหาร → ພະແนก (ຫົວໜ້າ→ພະນັກງານ) ──
 // hasSig = ມີລາຍເຊັນບັນທຶກໄວ້ໃນລະບົບແລ້ວ → preview ໂຊລາຍເຊັນຈິງ (ຄົນທີ່ບໍ່ມີ = mock)
 // dept: 'exec'|'hr'|'finance'|'legal'|'it'  ·  rank: 'director'|'deputy'|'head'|'staff'
-export const DEPTS = { exec: 'ຜູ້ບໍລິຫານ', it: 'ພະແນກ Tech', bd: 'ພະແນກ BD', hr: 'ພະແນກບຸກຄະລາກອນ', finance: 'ພະແນກການເງິນ', legal: 'ພະແນກກົດໝາຍ' }
-export const RANK_TITLE = { director: 'ຜູ້ອຳນວຍການ', deputy: 'ຮອງຜູ້ອຳນວຍການ', head: 'ຫົວໜ້າພະແນກ', staff: 'ພະນັກງານ' }
-const RANK_ORDER = { director: 0, deputy: 1, head: 0, staff: 1 }
+// ── 13 ພະແນກ ຕາມໂຄງສ້າງຈິງ AIDC (Lucky ສັ່ງ 16/07/2026) — IT ແລະ BD ຂຶ້ນກ່ອນ ──
+export const DEPTS = {
+  exec: 'President Office',
+  it: 'IT Department',
+  bd: 'Business Development',
+  infra: 'Infrastructure & Digital Solutions',
+  finance: 'Finance',
+  acct: 'Accounting',
+  studio: 'Digital Studio',
+  budget: 'Budgeting Department',
+  audit: 'Internal Audit',
+  construction: 'Construction I',
+  hr: 'HR and Admin',
+  legal: 'Legal',
+  corp: 'Corporate Affairs',
+}
+export const RANK_TITLE = { director: 'ຜູ້ອຳນວຍການ', deputy: 'ຮອງຜູ້ອຳນວຍການ', secretary: 'ເລຂານຸການ', head: 'ຫົວໜ້າພະແນກ', staff: 'ພະນັກງານ' }
+const RANK_ORDER = { director: 0, deputy: 1, secretary: 2, head: 0, staff: 1 }
 
+// ⚠ id ເກົ່າ (A B C D F G u1 u2 u4-u8) ຫ້າມປ່ຽນ — seed request/doc ອ້າງຢູ່ · ຄົນໃໝ່ = id ໃໝ່ລ້ວນ
+// ຫົວໜ້າຕົວຈິງ ຕາມທີ່ Lucky ສົ່ງ · ບ່ອນບໍ່ຮູ້ຊື່ = mockup (Latin ກັນ charset ໄທຫຼົງ)
 export const DIRECTORY = [
-  // ── ຜູ້ບໍລິຫານ / C-Level ──
+  // ── President Office ──
   { id: 'C', name: 'Pheutsapha Phoummasak', email: 'pheutsapha@aidctech.la', hasSig: true, dept: 'exec', rank: 'director' },
-  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', email: 'pimlada@aidc.la', hasSig: true, dept: 'exec', rank: 'deputy' },
-  { id: 'u3', name: 'Vithaya Souk Chanthavongsy', email: 'vithaya@aidc.la', hasSig: true, dept: 'exec', rank: 'deputy' },
-  // ── ພະແນກ Tech (ຜູ້ໃຊ້ demo A/B ຢູ່ນີ້) ──
-  { id: 'B', name: 'Decha Ning', email: 'decha@aidc.la', hasSig: true, dept: 'it', rank: 'head' },
+  { id: 'u3', name: 'Adul Chaiprom', email: 'adul@aidc.la', hasSig: true, dept: 'exec', rank: 'deputy' },
+  { id: 'u9', name: 'Latdavanh Nina Manivanh', email: 'latdavanh@aidc.la', hasSig: false, dept: 'exec', rank: 'secretary' },
+  // ── IT Department (ຜູ້ໃຊ້ demo A/B ຢູ່ນີ້) ──
+  { id: 'B', name: 'Decha Ning Kenthaworn', email: 'decha@aidc.la', hasSig: true, dept: 'it', rank: 'head' },
   { id: 'A', name: 'Anoulack Phengphaxaichanh', email: 'anoulack@aidc.la', hasSig: false, dept: 'it', rank: 'staff' },
   { id: 'D', name: 'ວິໄລ ຈັນທະລາ', email: 'vilay@aidc.la', hasSig: false, dept: 'it', rank: 'staff' },
-  // ── ພະແນກ BD ──
-  { id: 'F', name: 'Chanon Leng', email: 'chanon@aidc.la', hasSig: true, dept: 'bd', rank: 'head' },
-  { id: 'G', name: 'Take', email: 'take@aidc.la', hasSig: false, dept: 'bd', rank: 'staff' },
-  // ── ພະແນກບຸກຄະລາກອນ (HR) ──
-  { id: 'u4', name: 'Khamla Vongsavath', email: 'khamla@aidc.la', hasSig: false, dept: 'hr', rank: 'head' },
-  { id: 'u6', name: 'Souphaphone Douangdala', email: 'souphaphone@aidc.la', hasSig: false, dept: 'hr', rank: 'staff' },
-  // ── ພະແນກການເງິນ (Finance) ──
-  { id: 'u2', name: 'Sompong Lilee Phetdaoheuang', email: 'sompong@aidc.la', hasSig: false, dept: 'finance', rank: 'head' },
+  { id: 'it4', name: 'Somsak Inthavong', email: 'somsak@aidc.la', hasSig: false, dept: 'it', rank: 'staff' },
+  { id: 'it5', name: 'Phonesavanh Keomany', email: 'phonesavanh@aidc.la', hasSig: false, dept: 'it', rank: 'staff' },
+  // ── Business Development ──
+  { id: 'F', name: 'Chanon Leng Chamnandechakun', email: 'chanon@aidc.la', hasSig: true, dept: 'bd', rank: 'head' },
+  { id: 'G', name: 'Take Khounphaxay', email: 'take@aidc.la', hasSig: false, dept: 'bd', rank: 'staff' },
+  { id: 'bd3', name: 'Vilayvone Sengdara', email: 'vilayvone@aidc.la', hasSig: false, dept: 'bd', rank: 'staff' },
+  { id: 'bd4', name: 'Khamphet Chanthala', email: 'khamphet@aidc.la', hasSig: false, dept: 'bd', rank: 'staff' },
+  { id: 'bd5', name: 'Malaythong Phimmasone', email: 'malaythong@aidc.la', hasSig: false, dept: 'bd', rank: 'staff' },
+  // ── Infrastructure & Digital Solutions ──
+  { id: 'in1', name: 'Bounthavy Sisouphanh', email: 'bounthavy@aidc.la', hasSig: false, dept: 'infra', rank: 'head' },
+  { id: 'in2', name: 'Anousone Keopaseuth', email: 'anousone@aidc.la', hasSig: false, dept: 'infra', rank: 'staff' },
+  { id: 'in3', name: 'Sengphet Vongsa', email: 'sengphet@aidc.la', hasSig: false, dept: 'infra', rank: 'staff' },
+  { id: 'in4', name: 'Thipphavanh Chanthavong', email: 'thipphavanh@aidc.la', hasSig: false, dept: 'infra', rank: 'staff' },
+  { id: 'in5', name: 'Kongkham Silavanh', email: 'kongkham@aidc.la', hasSig: false, dept: 'infra', rank: 'staff' },
+  // ── Finance ──
+  { id: 'u2', name: 'Souksan San LABANG', email: 'souksan@aidc.la', hasSig: true, dept: 'finance', rank: 'head' },
   { id: 'u5', name: 'Bounmy Sisavath', email: 'bounmy@aidc.la', hasSig: false, dept: 'finance', rank: 'staff' },
-  // ── ພະແນກກົດໝາຍ (Legal) ──
-  { id: 'u7', name: 'Li Hansheng', email: 'lihs@haixin.com', hasSig: true, dept: 'legal', rank: 'head' },
-  { id: 'u8', name: 'Ngoc An', email: 'ngocan@haixin.com', hasSig: false, dept: 'legal', rank: 'staff' },
+  { id: 'fn3', name: 'Chansamone Vixay', email: 'chansamone@aidc.la', hasSig: false, dept: 'finance', rank: 'staff' },
+  { id: 'fn4', name: 'Daosavanh Phongsavath', email: 'daosavanh@aidc.la', hasSig: false, dept: 'finance', rank: 'staff' },
+  { id: 'fn5', name: 'Outhai Sayavong', email: 'outhai@aidc.la', hasSig: false, dept: 'finance', rank: 'staff' },
+  // ── Accounting ──
+  { id: 'ac1', name: 'Pannapat Pure NURATKAEW', email: 'pannapat@aidc.la', hasSig: true, dept: 'acct', rank: 'head' },
+  { id: 'ac2', name: 'Viengkham Sourinho', email: 'viengkham@aidc.la', hasSig: false, dept: 'acct', rank: 'staff' },
+  { id: 'ac3', name: 'Somphone Rattanavong', email: 'somphone@aidc.la', hasSig: false, dept: 'acct', rank: 'staff' },
+  { id: 'ac4', name: 'Chindavanh Keola', email: 'chindavanh@aidc.la', hasSig: false, dept: 'acct', rank: 'staff' },
+  { id: 'ac5', name: 'Bouasone Phanthavy', email: 'bouasone@aidc.la', hasSig: false, dept: 'acct', rank: 'staff' },
+  // ── Digital Studio ──
+  { id: 'st1', name: 'Xaypaseuth Vongphachanh', email: 'xaypaseuth@aidc.la', hasSig: false, dept: 'studio', rank: 'head' },
+  { id: 'st2', name: 'Nalinthone Syhalath', email: 'nalinthone@aidc.la', hasSig: false, dept: 'studio', rank: 'staff' },
+  { id: 'st3', name: 'Phoutthasone Inthilath', email: 'phoutthasone@aidc.la', hasSig: false, dept: 'studio', rank: 'staff' },
+  { id: 'st4', name: 'Kettavanh Soulinthone', email: 'kettavanh@aidc.la', hasSig: false, dept: 'studio', rank: 'staff' },
+  { id: 'st5', name: 'Athid Manolom', email: 'athid@aidc.la', hasSig: false, dept: 'studio', rank: 'staff' },
+  // ── Budgeting Department ──
+  { id: 'bg1', name: 'Somchit Phanthalangsy', email: 'somchit@aidc.la', hasSig: false, dept: 'budget', rank: 'head' },
+  { id: 'bg2', name: 'Latsamy Chanthaphone', email: 'latsamy@aidc.la', hasSig: false, dept: 'budget', rank: 'staff' },
+  { id: 'bg3', name: 'Khambay Vorachit', email: 'khambay@aidc.la', hasSig: false, dept: 'budget', rank: 'staff' },
+  { id: 'bg4', name: 'Soudalath Phommachanh', email: 'soudalath@aidc.la', hasSig: false, dept: 'budget', rank: 'staff' },
+  { id: 'bg5', name: 'Vanhsy Keobounphanh', email: 'vanhsy@aidc.la', hasSig: false, dept: 'budget', rank: 'staff' },
+  // ── Internal Audit ──
+  { id: 'ia1', name: 'Khampheng Soulivong', email: 'khampheng@aidc.la', hasSig: false, dept: 'audit', rank: 'head' },
+  { id: 'ia2', name: 'Manivone Thepvongsa', email: 'manivone@aidc.la', hasSig: false, dept: 'audit', rank: 'staff' },
+  { id: 'ia3', name: 'Bounheng Sackda', email: 'bounheng@aidc.la', hasSig: false, dept: 'audit', rank: 'staff' },
+  { id: 'ia4', name: 'Phaivanh Luangrath', email: 'phaivanh@aidc.la', hasSig: false, dept: 'audit', rank: 'staff' },
+  { id: 'ia5', name: 'Sinnakhone Douangchak', email: 'sinnakhone@aidc.la', hasSig: false, dept: 'audit', rank: 'staff' },
+  // ── Construction I ──
+  { id: 'cn1', name: 'Pongsurin ALEX Chaicae', email: 'pongsurin@aidc.la', hasSig: true, dept: 'construction', rank: 'head' },
+  { id: 'cn2', name: 'Somdy Oudomsack', email: 'somdy@aidc.la', hasSig: false, dept: 'construction', rank: 'staff' },
+  { id: 'cn3', name: 'Khamsing Phanthavong', email: 'khamsing@aidc.la', hasSig: false, dept: 'construction', rank: 'staff' },
+  { id: 'cn4', name: 'Viengsay Chittavong', email: 'viengsay@aidc.la', hasSig: false, dept: 'construction', rank: 'staff' },
+  { id: 'cn5', name: 'Bounmak Sengaloun', email: 'bounmak@aidc.la', hasSig: false, dept: 'construction', rank: 'staff' },
+  // ── HR and Admin (Pimlada ຍ້າຍມາເປັນຫົວໜ້າ — id u1 ເກົ່າ ໃຊ້ໃນ approvalChain) ──
+  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', email: 'pimlada@aidc.la', hasSig: true, dept: 'hr', rank: 'head' },
+  { id: 'u4', name: 'Khamla Vongsavath', email: 'khamla@aidc.la', hasSig: false, dept: 'hr', rank: 'staff' },
+  { id: 'u6', name: 'Souphaphone Douangdala', email: 'souphaphone@aidc.la', hasSig: false, dept: 'hr', rank: 'staff' },
+  { id: 'hr4', name: 'Chanthala Keovilay', email: 'chanthala@aidc.la', hasSig: false, dept: 'hr', rank: 'staff' },
+  { id: 'hr5', name: 'Phetsamone Vannavong', email: 'phetsamone@aidc.la', hasSig: false, dept: 'hr', rank: 'staff' },
+  // ── Legal ──
+  { id: 'u7', name: 'Somphavanh Chanthabouly', email: 'somphavanh@aidc.la', hasSig: true, dept: 'legal', rank: 'head' },
+  { id: 'u8', name: 'Douangmala Sivongsa', email: 'douangmala@aidc.la', hasSig: false, dept: 'legal', rank: 'staff' },
+  { id: 'lg3', name: 'Bounthan Xayasith', email: 'bounthan@aidc.la', hasSig: false, dept: 'legal', rank: 'staff' },
+  { id: 'lg4', name: 'Alounny Thammavong', email: 'alounny@aidc.la', hasSig: false, dept: 'legal', rank: 'staff' },
+  { id: 'lg5', name: 'Phonepadith Volachit', email: 'phonepadith@aidc.la', hasSig: false, dept: 'legal', rank: 'staff' },
+  // ── Corporate Affairs ──
+  { id: 'cp1', name: 'Souliya Phommavongsa', email: 'souliya@aidc.la', hasSig: false, dept: 'corp', rank: 'head' },
+  { id: 'cp2', name: 'Vatsana Keomixay', email: 'vatsana@aidc.la', hasSig: false, dept: 'corp', rank: 'staff' },
+  { id: 'cp3', name: 'Thongbay Chanthavixay', email: 'thongbay@aidc.la', hasSig: false, dept: 'corp', rank: 'staff' },
+  { id: 'cp4', name: 'Amphay Soundala', email: 'amphay@aidc.la', hasSig: false, dept: 'corp', rank: 'staff' },
+  { id: 'cp5', name: 'Davone Sisombath', email: 'davone@aidc.la', hasSig: false, dept: 'corp', rank: 'staff' },
 ]
 
-// ── ຈັດ directory ເປັນ sections: ຕົວຂ້ອຍ → ຜູ້ບໍລິຫານ → ພະແນກ (ຫົວໜ້າກ່ອນ) ──
-const DEPT_ORDER = ['exec', 'it', 'bd', 'hr', 'finance', 'legal']
+// ── ຈັດ directory ເປັນ sections: ຕົວຂ້ອຍ → President Office → IT → BD → ພະແນກອື່ນ (ຫົວໜ້າກ່ອນ) ──
+const DEPT_ORDER = ['exec', 'it', 'bd', 'infra', 'finance', 'acct', 'studio', 'budget', 'audit', 'construction', 'hr', 'legal', 'corp']
 export function directorySections(meId, query = '') {
   const q = query.trim().toLowerCase()
   const match = (p) => !q || (p.name + ' ' + p.email).toLowerCase().includes(q)

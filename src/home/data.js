@@ -8,13 +8,13 @@ export const SAMPLE_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 
 // ── ຜູ້ใช้ demo (ສະຫຼັບໄດ້) — Tech + BD + ຜู้บริหาร ──
 export const USERS = [
-  { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · ພະແນກ Tech', avatarUrl: PHOTO_A },
-  { id: 'B', name: 'Decha Ning', role: 'ຫົວໜ້າພະແນກ Tech' },
+  { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · IT Department', avatarUrl: PHOTO_A },
+  { id: 'B', name: 'Decha Ning Kenthaworn', role: 'ຫົວໜ້າ IT Department' },
   { id: 'C', name: 'Pheutsapha Phoummasak', role: 'ຜູ້ອຳນວຍການ' },
   // Pimlada = ຜູ້ອະນຸມັດຂັ້ນ 2 (HR) ຂອງທຸກຄຳຂໍ — ຕ້ອງຢູ່ demo switcher ຈຶ່ງທົດສອບ/demo ຄົບສາຍ
-  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', role: 'HR ແລະ ບໍລິຫານ' },
-  { id: 'F', name: 'Chanon Leng', role: 'ຫົວໜ້າພະແນກ BD' },
-  { id: 'G', name: 'Take', role: 'ພະນັກງານ · ພະແນກ BD' },
+  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', role: 'ຫົວໜ້າ HR and Admin' },
+  { id: 'F', name: 'Chanon Leng Chamnandechakun', role: 'ຫົວໜ້າ Business Development' },
+  { id: 'G', name: 'Take Khounphaxay', role: 'ພະນັກງານ · Business Development' },
 ]
 const OTHERS = { D: 'ວິໄລ ຈັນທະລາ', E: 'ບຸນມີ ສີສະຫວາດ' }
 // nameOf ຮອງຮັບ id ຈາກ DIRECTORY ນຳ (ສຳລັບ request ໃໝ່ທີ່ເລືອກຄົນຈາກ picker)
@@ -381,7 +381,8 @@ export const approvalChain = (byId, kind = 'leave') => {
   const hr = DIRECTORY.find((p) => p.id === 'u1') // Pimlada — HR ແລະ ບໍລິຫານ
   const chain = [head && { id: head.id, name: head.name, role: 'ຫົວໜ້າພະແນກ' }]
   if (kind !== 'ot') chain.push(hr && { id: hr.id, name: hr.name, role: 'HR ແລະ ບໍລິຫານ' })
-  return chain.filter(Boolean)
+  // ກັນຄົນດຽວກັນຊ້ຳ 2 ຂັ້ນ (ເຊັ່ນ ພະນັກງານ HR: ຫົວໜ້າຕົ້ນສັງກັດ = Pimlada = HR ເອງ)
+  return chain.filter(Boolean).filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i)
 }
 
 // ── ອະນຸມັດຫຼາຍຂັ້ນ: r.approvedBy = ລາຍ id ທີ່ອະນຸມັດແລ້ວ ຕາມລຳດັບ ──
