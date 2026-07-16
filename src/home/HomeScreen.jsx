@@ -3,7 +3,7 @@ import { Icon, initials, Header, ResultPopup, ReasonModal, ScreenPortal } from '
 import RequestScreen, { REQ_KINDS, KIND_META, ReqCard, RequestDetailBody } from './RequestScreen.jsx'
 import KnowledgeScreen, { KnowledgeDetailBody } from './KnowledgeScreen.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
-import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, sortPendingFirst, currentApprover } from './data.js'
+import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, sortPendingFirst, currentApprover, DOC_TYPES, docTypeOf } from './data.js'
 import PointsRequest from './PointsRequest.jsx'
 
 // avatar style: ຮູບໂປຣไฟล์ (ຖ້າມີ) ຫຼື ສີພື້ນ
@@ -131,10 +131,12 @@ function TimeDropdown({ value, onChange, range, setRange }) {
 
 // ─────────── list view ───────────
 // filter ຕ້ອງກົງກັບຄວາມໝາຍ tab (mode):
-//   tosign  → ກອງຕາມ "ຄິວ" (ຮອດຮອບຂ້ອຍ/ລໍຄິວ) — ທຸກໃບເປັນ progress ຢູ່ແລ້ວ ກອງສະຖານະບໍ່ມີຄວາມໝາຍ
-//   created → ບໍ່ມີ "ສຳເລັດແລ້ວ" (ໃບ done ຍ້າຍໄປ tab ລົງນາມແລ້ວ)
-//   signed / cc → ສະຖານະຄົບ 5
-const TURNS = [{ key: 'all', label: 'ທຸກຄິວ' }, { key: 'myturn', label: 'ຮອດຮອບຂ້ອຍ' }, { key: 'queued', label: 'ລໍຄິວກ່ອນໜ້າ' }]
+//   ທຸກ tab → ມີ filter ປະເພດເອກະສານ (DTYPES)
+//   tosign  → ບໍ່ມີ filter ສະຖານະ/ຄິວ (ທຸກໃບລໍຂ້ອຍຢູ່ແລ້ວ — Lucky ໃຫ້ຕັດ filter ຄິວອອກ)
+//   created → ບໍ່ມີ "ສຳເລັດແລ້ວ" (ໃບ done ຢູ່ ປະຫວັດທັງໝົດ)
+//   history → dropdown ຜົນລັບ (ຄືກັບ tab ອື່ນ) + ບໍ່ໂຊໃບທີ່ຍັງຄ້າງ (progress)
+// filter ປະເພດເອກະສານ — ໃຊ້ທຸກ tab ຂອງໂມດູນ Sign (ຫົວໜ້າ/Lucky ສັ່ງ 17/07)
+const DTYPES = [{ key: 'all', label: 'ທຸກປະເພດ' }, ...DOC_TYPES.map((t) => ({ key: t, label: t }))]
 // ປະຫວັດທັງໝົດ — ກອງຕາມຜົນ/ການກະທຳ (ຫົວໜ້າ confirm: ເຊັນ · ອະນຸມັດ · ປະຕິເສດ · ຍົກເລີກ)
 const HIST = [
   { key: 'all', label: 'ທັງໝົດ' },
@@ -146,13 +148,14 @@ const HIST = [
 function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
+  const [dtype, setDtype] = useState('all') // ປະເພດເອກະສານ
   const [who, setWho] = useState('all')
   const [time, setTime] = useState('all')
   const [range, setRange] = useState({ from: '', to: '' })
   const [sort, setSort] = useState('recent')
   const [sortOpen, setSortOpen] = useState(false)
   const SORTS = mode === 'history' ? SORTS_SIGNED : SORTS_SENT
-  const STATUS_OPTS = mode === 'tosign' ? TURNS : mode === 'created' ? CATS.filter((c) => c.key !== 'done') : mode === 'history' ? HIST : CATS
+  const STATUS_OPTS = mode === 'created' ? CATS.filter((c) => c.key !== 'done') : mode === 'history' ? HIST : CATS
   const REF = 14
 
   let list = docs.filter((d) => {
@@ -161,16 +164,14 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
       const s = q.trim().toLowerCase()
       if (!d.title.toLowerCase().includes(s) && !nameOf(d.creatorId).toLowerCase().includes(s)) return false
     }
-    if (mode === 'tosign') {
-      if (cat === 'myturn' && !isMyTurn(d, me)) return false
-      if (cat === 'queued' && isMyTurn(d, me)) return false
-    } else if (mode === 'history') {
+    if (dtype !== 'all' && docTypeOf(d) !== dtype) return false
+    if (mode === 'history') {
       // ເຊັນ/ອະນຸມັດ = ການກະທຳຂອງ "ຂ້ອຍ" · ປະຕິເສດ/ຍົກເລີກ = ຜົນຂອງໃບເອກະສານ
       if (cat === 'signed' && !d.signers.some((s) => s.id === me && s.status === 'signed' && s.role !== 'approver')) return false
       if (cat === 'approved' && !d.signers.some((s) => s.id === me && s.status === 'signed' && s.role === 'approver')) return false
       if (cat === 'rejected' && d.status !== 'rejected') return false
       if (cat === 'cancelled' && d.status !== 'cancelled') return false
-    } else if (cat !== 'all' && d.status !== cat) return false
+    } else if (mode !== 'tosign' && cat !== 'all' && d.status !== cat) return false
     if (creatorMode && who === 'mine' && d.creatorId !== me) return false
     if (creatorMode && who === 'others' && d.creatorId === me) return false
     if (time === '7d' && REF - d.ts > 7) return false
@@ -190,24 +191,18 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
     if (sort === 'az') return a.title.localeCompare(b.title, 'lo')
     return b.title.localeCompare(a.title, 'lo')
   })
-  const catLabel = STATUS_OPTS.find((c) => c.key === cat).label
+  const catLabel = (STATUS_OPTS.find((c) => c.key === cat) || STATUS_OPTS[0]).label
   const timeLabel = TIMES.find((t) => t.key === time).label
 
   return (
     <>
       <div className="home-search"><Icon.search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ຄົ້ນຫາເອກະສານ ຫຼື ຊື່ຜູ້ສ້າງ..." /></div>
-      {/* ປະຫວັດທັງໝົດ: ກອງຜົນລັບເປັນຊິບແຖວເທິງ (ເຫັນຄົບທຸກຕົວເລືອກ — ຫົວໜ້າຢາກໃຫ້ all show) */}
-      {mode === 'history' && (
-        <div className="req-sf hist-sf">
-          {HIST.map((o) => (
-            <button key={o.key} className={`req-sf-chip ${cat === o.key ? 'on' : ''}`} onClick={() => setCat(o.key)}>{o.label}</button>
-          ))}
-        </div>
-      )}
       <div className="home-filters">
+        {/* ປະເພດເອກະສານ — ທຸກ tab (ແທນ filter ຄິວເກົ່າຂອງ tab 1) */}
+        <FilterDropdown btnLabel={dtype === 'all' ? `ທຸກປະເພດ${mode === 'tosign' ? ` (${list.length})` : ''}` : dtype} title="ປະເພດເອກະສານ" options={DTYPES} value={dtype} onChange={setDtype} />
         {creatorMode && <FilterDropdown btnLabel={CREATORS.find((c) => c.key === who).label} title="ຜູ້ສ້າງ" options={CREATORS} value={who} onChange={setWho} />}
-        {mode !== 'history' && (
-          <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title={mode === 'tosign' ? 'ຄິວຂອງຂ້ອຍ' : 'ສະຖານະ'} options={STATUS_OPTS} value={cat} onChange={setCat} />
+        {mode !== 'tosign' && (
+          <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title="ສະຖານະ" options={STATUS_OPTS} value={cat} onChange={setCat} />
         )}
         <TimeDropdown value={time} onChange={setTime} range={range} setRange={setRange} />
         <div className="sort-wrap">
@@ -808,8 +803,10 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
     .filter((d) => d.status === 'progress' && d.signers.some((s) => s.id === me && s.status !== 'signed' && s.status !== 'rejected'))
     .sort((a, b) => (isMyTurn(b, me) ? 1 : 0) - (isMyTurn(a, me) ? 1 : 0))
   const created = docs.filter((d) => d.creatorId === me && d.status !== 'done')
-  // tab ປະຫວັດທັງໝົດ = ທຸກໃບທີ່ຂ້ອຍກ່ຽວຂ້ອງ (ສ້າງ / ຢູ່ໃນສາຍເຊັນ / ໄດ້ CC) ທຸກສະຖານະ
-  const history = docs.filter((d) => d.creatorId === me || d.signers.some((s) => s.id === me) || (d.cc || []).includes(me))
+  // tab ປະຫວັດທັງໝົດ = ໃບທີ່ຂ້ອຍກ່ຽວຂ້ອງ (ສ້າງ / ຢູ່ໃນສາຍເຊັນ / ໄດ້ CC) ທີ່ "ຈົບແລ້ວ"
+  //   ໃບທີ່ຍັງຄ້າງ (progress) ບໍ່ນັບເປັນປະຫວັດ — ຢູ່ tab 1/2/3 ຢູ່ແລ້ວ (Lucky ສັ່ງ 17/07)
+  const history = docs.filter((d) => d.status !== 'progress'
+    && (d.creatorId === me || d.signers.some((s) => s.id === me) || (d.cc || []).includes(me)))
   // ໄດ້ຮັບ CC = ຄົນອื่นสร้าง + ฉันไม่ได้เป็นผู้เซ็น + ฉันอยู่ใน cc
   const ccDocs = docs.filter((d) => d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me))
   const myNotis = notis.filter((n) => n.forId === me)
@@ -903,13 +900,13 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
             onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
             openReq={openReq} onConsumeOpenReq={() => setOpenReq(null)} />
         ) : tab === 'tosign'
-          ? <DocList mode="tosign" docs={toSign} me={me} onOpen={onOpenDoc} empty="ບໍ່ມີເອກະສານທີ່ລໍຖ້າລາຍເຊັນທ່ານ" creatorMode />
+          ? <DocList key="tosign" mode="tosign" docs={toSign} me={me} onOpen={onOpenDoc} empty="ບໍ່ມີເອກະສານທີ່ລໍຖ້າລາຍເຊັນທ່ານ" creatorMode />
           : tab === 'cc'
-            ? (<><p className="cc-note"><Icon.users /> ເອກະສານທີ່ທ່ານໄດ້ຮັບສຳເນົາ (CC) — ເບິ່ງໄດ້ ບໍ່ຕ້ອງເຊັນ</p><DocList mode="cc" docs={ccDocs} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ໄດ້ຮັບ CC" creatorMode /></>)
+            ? <DocList key="cc" mode="cc" docs={ccDocs} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີເອກະສານທີ່ໄດ້ຮັບ CC" creatorMode />
             : tab === 'created'
-              ? <DocList mode="created" docs={created} me={me} onOpen={onOpenDoc} empty="ທ່ານຍັງບໍ່ໄດ້ສ້າງເອກະສານ" />
+              ? <DocList key="created" mode="created" docs={created} me={me} onOpen={onOpenDoc} empty="ທ່ານຍັງບໍ່ໄດ້ສ້າງເອກະສານ" />
               : tab === 'history'
-                ? <DocList mode="history" docs={history} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີປະຫວັດເອກະສານ" creatorMode />
+                ? <DocList key="history" mode="history" docs={history} me={me} onOpen={onOpenDoc} empty="ຍັງບໍ່ມີປະຫວັດເອກະສານ" creatorMode />
                 : <Overview docs={docs} me={me} onOpen={onOpenDoc} />}
       </div>
 
