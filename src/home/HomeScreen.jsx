@@ -472,8 +472,8 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     // ຄະແນນ: ນັບຄຳຂໍທີ່ຍັງລໍຖ້າ ຂອງຄົນອື່ນ (ໃຫ້ຕົວເລກ ກົງກັບການ໌ດທີ່ໂຊໃນ tab)
     if (k === 'points') return pointsReqs.filter((r) => r.status === 'progress' && r.by !== me).length
     if (k === 'all') return AC_CATS.filter((c) => c.key !== 'all').reduce((n, c) => n + pendingOf(c.key), 0)
-    // ຫຼາຍຂັ້ນ: ນັບສະເພາະທີ່ "ຮອດຄິວຂ້ອຍ" ຈິງ (ບໍ່ນັບທີ່ຍັງລໍຂັ້ນກ່ອນໜ້າ)
-    return (reqs[k] || []).filter((r) => r.byId !== me && currentApprover(r, k)?.id === me).length
+    // badge = ຈຳນວນທີ່ຍັງ "ລໍຖ້າອະນຸມັດ" ໃນ tab ນັ້ນ — ຕ້ອງກົງກັບການ໌ດ pending ທີ່ເຫັນໃນ list
+    return (reqs[k] || []).filter((r) => r.byId !== me && r.status === 'progress').length
   }
 
   const Card = (m) => {
