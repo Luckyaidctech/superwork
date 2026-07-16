@@ -3,7 +3,7 @@ import { Icon, initials, Header, ResultPopup, ReasonModal, ScreenPortal } from '
 import RequestScreen, { REQ_KINDS, KIND_META, ReqCard, RequestDetailBody } from './RequestScreen.jsx'
 import KnowledgeScreen, { KnowledgeDetailBody } from './KnowledgeScreen.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
-import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, sortPendingFirst } from './data.js'
+import { USERS, nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, sortPendingFirst, currentApprover } from './data.js'
 import PointsRequest from './PointsRequest.jsx'
 
 // avatar style: ຮູບໂປຣไฟล์ (ຖ້າມີ) ຫຼື ສີພື້ນ
@@ -402,7 +402,7 @@ const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', lea
 const AC_STATUS = { approved: { t: 'ອະນຸມັດແລ້ວ', c: 'done' }, progress: { t: 'ລໍຖ້າອະນຸມັດ', c: 'wait' }, rejected: { t: 'ປະຕິເສດ', c: 'rej' }, cancelled: { t: 'ຍົກເລີກ', c: 'cancel' }, draft: { t: 'ຮ່າງ', c: 'cancel' } }
 const AC_SF = [{ key: 'all', label: 'ທັງໝົດ' }, { key: 'waiting', label: 'ລໍຖ້າອະນຸມັດ' }, { key: 'approved', label: 'ອະນຸມັດແລ້ວ' }, { key: 'rejected', label: 'ປະຕິເສດ' }]
 
-function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment, openReqId, onConsumeOpen }) {
+function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment, openReqId, onConsumeOpen, openReq, onConsumeOpenReq }) {
   const [cat, setCat] = useState('all')
   const [sf, setSf] = useState('all')
   const [acDetail, setAcDetail] = useState(null) // request detail (mock ຫຼື points req)
@@ -423,6 +423,18 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     if (r) { setCat('points'); setAcDetail({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, req: r }) }
     onConsumeOpen && onConsumeOpen()
   }, [openReqId])
+  // ເປີດຈາກແຈ້ງເຕືອນ (ຜູ້ອະນຸມັດ) → ໄປ tab ຂອງໝວດນັ້ນ + ເປີດ detail ໃຫ້ເລີຍ
+  useEffect(() => {
+    if (!openReq) return
+    if (openReq.kind === 'points') {
+      const r = pointsReqs.find((p) => p.id === openReq.id)
+      if (r) { setCat('points'); setAcDetail({ kind: 'points', id: r.id, title: `+${r.points} · ${r.targetName}`, by: nameOf(r.by), date: r.date, status: r.status, note: r.projectName, req: r }) }
+    } else {
+      const r = (reqs[openReq.kind] || []).find((x) => x.id === openReq.id)
+      if (r) { setCat(openReq.kind); setAcDetail({ kind: openReq.kind, ...r, by: nameOf(r.byId) }) }
+    }
+    onConsumeOpenReq && onConsumeOpenReq()
+  }, [openReq])
   const detailReq = acDetail?.req ? pointsReqs.find((p) => p.id === acDetail.req.id) : null // live points req
   // request ຂໍລາຍເຊັນ: ລໍຖ້າ me (esign) + ທີ່ me ເຊັນແລ້ວ (approved) + ທີ່ me ປະຕິເສດ (rejected) → ຢູ່ຄົບທຸກ tab
   const esignItems = docs
@@ -460,7 +472,8 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     // ຄະແນນ: ນັບຄຳຂໍທີ່ຍັງລໍຖ້າ ຂອງຄົນອື່ນ (ໃຫ້ຕົວເລກ ກົງກັບການ໌ດທີ່ໂຊໃນ tab)
     if (k === 'points') return pointsReqs.filter((r) => r.status === 'progress' && r.by !== me).length
     if (k === 'all') return AC_CATS.filter((c) => c.key !== 'all').reduce((n, c) => n + pendingOf(c.key), 0)
-    return (reqs[k] || []).filter((r) => r.byId !== me && r.status === 'progress').length
+    // ຫຼາຍຂັ້ນ: ນັບສະເພາະທີ່ "ຮອດຄິວຂ້ອຍ" ຈິງ (ບໍ່ນັບທີ່ຍັງລໍຂັ້ນກ່ອນໜ້າ)
+    return (reqs[k] || []).filter((r) => r.byId !== me && currentApprover(r, k)?.id === me).length
   }
 
   const Card = (m) => {
@@ -488,14 +501,7 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
             <span className="req-chip">{AC_LABEL[m.kind]}</span>
             {m.sub && <span className="req-chip hl">{m.sub}</span>}
           </div>
-          {/* ຜູ້ລົງນາມ: avatar + ຕິກຖືກ ຄົນທີ່ເຊັນແລ້ວ (ຄືກັບໂມດູນ ລົງນາມ) */}
-          {isEsign && m.signers?.length > 0 && (
-            <span className="ac-avs">
-              {m.signers.map((s) => <Av key={s.id} id={s.id} done={s.status === 'signed'} rej={s.status === 'rejected'} />)}
-              <em>{m.signers.filter((s) => s.status === 'signed').length}/{m.signers.length} ດຳເນີນການແລ້ວ</em>
-            </span>
-          )}
-          {/* ຜູ້ຂໍ (ຜູ້ສ້າງ request) — ໂຊທຸກປະເພດ ຮວມທັງ ຂໍລາຍເຊັນ */}
+          {/* ຜູ້ຂໍ (ຜູ້ສ້າງ request) — ໂຊທຸກປະເພດ ຮວມທັງ ຂໍລາຍເຊັນ (ລາຍລະອຽດຜູ້ເຊັນ ຢູ່ໜ້າ detail) */}
           {m.byId && (
             <span className="req-card-by">
               <span className="req-card-av" style={avBg(m.byId)}>{!avatarOf(m.byId) && initials(m.by)}</span>
@@ -623,7 +629,10 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                 const isProgress = (detailReq || acDetail).status === 'progress'
                 // ຄຳຂໍຂອງຕົນເອງ → ບໍ່ມີສິດອະນຸມັດ/ປະຕິເສດ (ໂຊປຸ່ມ ຍົກເລີກ ແທນ)
                 const isMine = detailReq ? detailReq.by === me : acDetail.byId === me
-                const canAct = !isMine && (detailReq ? (me === director && isProgress) : isProgress)
+                // ຄຳຂໍທົ່ວໄປ: ອະນຸມັດໄດ້ສະເພາະ "ຄິວປັດຈຸບັນ" (ຫຼາຍຂັ້ນ) · ຄະແນນ: director
+                const liveReq = detailReq ? null : (reqs[acDetail.kind] || []).find((x) => x.id === acDetail.id) || acDetail
+                const turn = liveReq ? currentApprover(liveReq, acDetail.kind) : null
+                const canAct = !isMine && isProgress && (detailReq ? me === director : turn?.id === me)
                 const canCancel = isMine && isProgress
                 const doApprove = () => {
                   if (detailReq) onPointsAction(detailReq.id, 'approved')
@@ -647,9 +656,12 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                       </div>
                     ) : canCancel && !detailReq ? (
                       <button className="btn danger" style={{ width: '100%' }} onClick={() => setCancelMode(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
-                    ) : (
+                    ) : (<>
+                      {!isMine && isProgress && turn && (
+                        <p className="rf-turnnote"><Icon.clock /> ຮອດຮອບຂອງ {turn.name} ({turn.role})</p>
+                      )}
                       <button className="btn ghost" style={{ width: '100%' }} onClick={() => setAcDetail(null)}>ປິດ</button>
-                    )}
+                    </>)}
                   </div>
                   {rejMode && (
                     <ReasonModal title="ປະຕິເສດຄຳຂໍ" hint="ກະລຸນາລະບຸເຫດຜົນ (ຜູ້ຂໍຈະໄດ້ຮັບການແຈ້ງເຕືອນ)"
@@ -817,7 +829,8 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         {nav === 'approve' ? (
           <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} reqs={reqs} onReqAction={onReqAction} onCancelReq={onCancelReq}
             onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
-            openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)} />
+            openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)}
+            openReq={openReq} onConsumeOpenReq={() => setOpenReq(null)} />
         ) : nav === 'request' ? (
           <RequestScreen me={me} director={director} reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq}
             onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
@@ -825,7 +838,13 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
         ) : nav === 'noti' ? (
           myNotis.length === 0
             ? <p className="empty-list">ຍັງບໍ່ມີການແຈ້ງເຕືອນ</p>
-            : myNotis.map((n) => <NotiCard key={n.id} n={n} onOpen={onOpenFromNoti} onOpenReq={(r) => { setNav('request'); setOpenReq(r) }} />)
+            : myNotis.map((n) => <NotiCard key={n.id} n={n} onOpen={onOpenFromNoti} onOpenReq={(r) => {
+              // ຄຳຂໍຂອງຂ້ອຍ → ໂມດູນ ຄຳຂໍ/ຄວາມຮູ້ · ຂອງຄົນອື่ນ (ຂ້ອຍເປັນຜູ້ອະນຸມັດ) → ໂມດູນ ອະນຸມັດ (ມີປຸ່ມ)
+              const rec = r.kind === 'points' ? null : (reqs[r.kind] || []).find((x) => x.id === r.id)
+              const mine = rec?.byId === me
+              setNav(r.kind === 'points' || !mine ? 'approve' : r.kind === 'knowledge' ? 'knowledge' : 'request')
+              setOpenReq(r)
+            }} />)
         ) : nav === 'knowledge' ? (
           <KnowledgeScreen me={me} posts={reqs.knowledge || []}
             onCreateKn={onCreateKn} onSubmitKn={onSubmitKn} onKnLike={onKnLike} onKnView={onKnView}

@@ -11,6 +11,8 @@ export const USERS = [
   { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · ພະແນກ Tech', avatarUrl: PHOTO_A },
   { id: 'B', name: 'Decha Ning', role: 'ຫົວໜ້າພະແນກ Tech' },
   { id: 'C', name: 'Pheutsapha Phoummasak', role: 'ຜູ້ອຳນວຍການ' },
+  // Pimlada = ຜູ້ອະນຸມັດຂັ້ນ 2 (HR) ຂອງທຸກຄຳຂໍ — ຕ້ອງຢູ່ demo switcher ຈຶ່ງທົດສອບ/demo ຄົບສາຍ
+  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', role: 'HR ແລະ ບໍລິຫານ' },
   { id: 'F', name: 'Chanon Leng', role: 'ຫົວໜ້າພະແນກ BD' },
   { id: 'G', name: 'Take', role: 'ພະນັກງານ · ພະແນກ BD' },
 ]
@@ -381,6 +383,12 @@ export const approvalChain = (byId, kind = 'leave') => {
   if (kind !== 'ot') chain.push(hr && { id: hr.id, name: hr.name, role: 'HR ແລະ ບໍລິຫານ' })
   return chain.filter(Boolean)
 }
+
+// ── ອະນຸມັດຫຼາຍຂັ້ນ: r.approvedBy = ລາຍ id ທີ່ອະນຸມັດແລ້ວ ຕາມລຳດັບ ──
+// ຄິວປັດຈຸບັນ = chain[approvedBy.length] — ໃຊ້ຮ່ວມ ປຸ່ມອະນຸມັດ · badge · timeline ທຸກໂມດູນ
+export const approvedCount = (r) => (r.approvedBy || []).length
+export const currentApprover = (r, kind) =>
+  (r.status === 'progress' ? approvalChain(r.byId, kind)[approvedCount(r)] || null : null)
 
 // ── ນັບແຍກ role: ຜູ້ລົງນາມ (ມີຊ່ອງເຊັນໃນເອກະສານ) / ຜູ້ອະນຸມັດ (ບໍ່ມີຊ່ອງ — ອະນຸມັດຢ່າງດຽວ) ──
 // ໃຊ້ຮ່ວມທຸກທີ່ ເພື່ອໃຫ້ຕົວເລກ ກົງກັບ ຈຳນວນຊ່ອງເຊັນ ໃນເອກະສານສະເໝີ

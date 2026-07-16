@@ -4,7 +4,7 @@ import DocDetail from './home/DocDetail.jsx'
 import SignatureFlow from './flow/SignatureFlow.jsx'
 import SignScreen from './flow/SignScreen.jsx'
 import Settings from './flow/Settings.jsx'
-import { initialDocs, initialReqs, SAMPLE_IMG, uid, nameOf, isMyTurn, approvalChain } from './home/data.js'
+import { initialDocs, initialReqs, SAMPLE_IMG, uid, nameOf, isMyTurn, approvalChain, approvedCount } from './home/data.js'
 
 // noti เริ่มต้น: แจ้งผู้เซ็นที่ถึงคิว (ให้เข้าถึง request ที่ต้องเซ็นได้ ผ่านกระดิ่ง)
 function buildInitialNotis(ds) {
@@ -113,7 +113,7 @@ export default function App() {
   const onCreatePoints = (req) => {
     const r = { id: uid(), by: me, date: '14/07/2026', status: 'progress', comments: [], ...req }
     setPointsReqs((p) => [r, ...p])
-    if (me !== DIRECTOR) pushNoti(DIRECTOR, `${nameOf(me)} ຂໍ +${req.points} ຄະແນນ (${req.targetName})`, null, 'points')
+    if (me !== DIRECTOR) pushNoti(DIRECTOR, `${nameOf(me)} ຂໍ +${req.points} ຄະແນນ (${req.targetName})`, null, 'points', { kind: 'points', id: r.id })
     return r // ໃຫ້ໜ້າฟอร์ม → เปิด detail ຂອງ req ທີ່ສ້າງ
   }
   const onPointsComment = (id, text, parentId) => {
@@ -122,7 +122,7 @@ export default function App() {
     if (!r) return
     // แจ้งไปหาอีกฝ่าย (requester ↔ director)
     const other = me === r.by ? DIRECTOR : r.by
-    if (other !== me) pushNoti(other, `${nameOf(me)} ໄດ້ໃຫ້ຄວາມຄິດເຫັນໃນຄຳຂໍຄະແນນ`, null, parentId ? 'reply' : 'comment')
+    if (other !== me) pushNoti(other, `${nameOf(me)} ໄດ້ໃຫ້ຄວາມຄິດເຫັນໃນຄຳຂໍຄະແນນ`, null, parentId ? 'reply' : 'comment', { kind: 'points', id })
   }
   const onPointsEditComment = (reqId, cmtId, text) => setPointsReqs((ps) => ps.map((p) => p.id === reqId
     ? { ...p, comments: p.comments.map((c) => c.id === cmtId ? { ...c, text, edited: true } : c) } : p))
@@ -133,7 +133,7 @@ export default function App() {
     const r = pointsReqs.find((p) => p.id === id)
     if (r && r.by !== me) pushNoti(r.by, action === 'approved'
       ? `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ໄດ້ຮັບອະນຸມັດ`
-      : `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`, null, action === 'approved' ? 'approved' : 'rejected')
+      : `ຄຳຂໍ +${r.points} ຄະແນນ (${r.targetName}) ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`, null, action === 'approved' ? 'approved' : 'rejected', { kind: 'points', id })
   }
 
   // ── ผู้เซ็นปฏิเสธ → แจ้งเตือนผู้สร้าง ──
@@ -215,13 +215,24 @@ export default function App() {
     d?.signers.forEach((s) => { if (s.id !== me) pushNoti(s.id, `${nameOf(me)} ໄດ້ຍົກເລີກ "${d.title}"${reason ? ` — ${reason}` : ''}`, docId, 'cancelled') })
   }
   // ── ຄຳຂໍທົ່ວໄປ (ໂອທີ / ລາພັກ / ວຽກນອກ / ຈອງ / ຄວາມຮູ້) — ໃຊ້ຮ່ວມ 2 ໂມດູນ ──
-  // ອະນຸມັດ / ປະຕິເສດ → ປ່ຽນ status ຈິງ + ແຈ້ງເຕືອນຜູ້ຂໍ (ໂຊທັງ 2 ໂມດູນ)
+  // ອະນຸມັດຫຼາຍຂັ້ນ: ຂັ້ນທຳອິດອະນຸມັດ → ຍັງ progress + ແຈ້ງຄິວຖັດໄປ (ກົດເປີດຈາກ noti ໄດ້)
+  // ຄົບທຸກຂັ້ນ → approved + ແຈ້ງຜູ້ຂໍ · ປະຕິເສດຂັ້ນໃດກໍຕາມ → rejected ທັນທີ
   const onReqAction = (kind, id, action, reason) => {
-    setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id ? { ...r, status: action, reason } : r)) }))
     const r = (reqs[kind] || []).find((x) => x.id === id)
-    if (!r || r.byId === me) return
-    pushNoti(r.byId, action === 'approved'
-      ? `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ໄດ້ຮັບອະນຸມັດ`
+    if (!r) return
+    const chain = approvalChain(r.byId, kind)
+    const done = action === 'approved' ? [...(r.approvedBy || []), me] : (r.approvedBy || [])
+    const finished = action !== 'approved' || done.length >= chain.length
+    const status = finished ? action : 'progress'
+    setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((x) => (x.id === id ? { ...x, status, reason, approvedBy: done } : x)) }))
+    if (!finished) {
+      const next = chain[done.length]
+      if (next && next.id !== me) pushNoti(next.id, `ຮອດຮອບຂອງທ່ານແລ້ວ — ກະລຸນາອະນຸມັດຄຳຂໍ "${r.title}" (ຂັ້ນ ${done.length + 1}/${chain.length})`, null, 'sign', { kind, id })
+      if (r.byId !== me) pushNoti(r.byId, `ຄຳຂໍ "${r.title}" ຜ່ານການອະນຸມັດຂັ້ນ ${done.length}/${chain.length} ແລ້ວ — ລໍຖ້າ ${chain[done.length]?.name}`, null, 'approved', { kind, id })
+      return
+    }
+    if (r.byId !== me) pushNoti(r.byId, action === 'approved'
+      ? `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ໄດ້ຮັບອະນຸມັດຄົບທຸກຂັ້ນແລ້ວ`
       : `ຄຳຂໍ "${r.title}" ຂອງທ່ານ ຖືກປະຕິເສດ${reason ? ` — ${reason}` : ''}`,
       null, action === 'approved' ? 'approved' : 'rejected', { kind, id })
   }
@@ -280,9 +291,14 @@ export default function App() {
     ? { ...r, likes: (r.likes || []).includes(me) ? r.likes.filter((x) => x !== me) : [...(r.likes || []), me] } : r)) }))
   const onKnView = (id) => setReqs((rs) => ({ ...rs, knowledge: (rs.knowledge || []).map((r) => (r.id === id ? { ...r, views: (r.views || 0) + 1 } : r)) }))
 
-  // ຜູ້ຂໍຍົກເລີກຄຳຂໍຂອງຕົນເອງ
+  // ຜູ້ຂໍຍົກເລີກຄຳຂໍຂອງຕົນເອງ → ແຈ້ງຜູ້ອະນຸມັດທີ່ກ່ຽວຂ້ອງແລ້ວ (ເຄີຍໄດ້ noti ຄິວ) ບໍ່ໃຫ້ອະນຸມັດຄ້າງ
   const onCancelReq = (kind, id, reason) => {
     setReqs((rs) => ({ ...rs, [kind]: (rs[kind] || []).map((r) => (r.id === id ? { ...r, status: 'cancelled', reason } : r)) }))
+    const r = (reqs[kind] || []).find((x) => x.id === id)
+    if (!r) return
+    approvalChain(r.byId, kind).slice(0, approvedCount(r) + 1).forEach((p) => {
+      if (p.id !== me) pushNoti(p.id, `${nameOf(me)} ໄດ້ຍົກເລີກຄຳຂໍ "${r.title}"${reason ? ` — ${reason}` : ''}`, null, 'cancelled', { kind, id })
+    })
   }
   // ── เตือนผู้ที่ยังไม่ลงนาม ──
   const onRemind = (docId) => {

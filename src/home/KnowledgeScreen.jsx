@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Icon, Header, ResultPopup, ReasonModal, initials, ScreenPortal } from '../flow/shared.jsx'
-import { nameOf, colorOf, avatarOf, approvalChain, sortPendingFirst, KN_CATS, KN_TYPES, KN_STATUS } from './data.js'
+import { nameOf, colorOf, avatarOf, approvalChain, approvedCount, sortPendingFirst, KN_CATS, KN_TYPES, KN_STATUS } from './data.js'
 import KnowledgeForm from './KnowledgeForm.jsx'
 import CommentBox from './CommentBox.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
@@ -131,10 +131,12 @@ export function KnowledgeDetailBody({ post, me, onPreview }) {
             <div className="aud-body"><span className="aud-t">ສ້າງໂພສ</span><span className="aud-tm">{nameOf(post.byId)} · {post.date}</span></div>
           </div>
           {chain.map((p, i) => {
-            const cls = post.status === 'approved' ? 'ok' : post.status === 'rejected' ? (i === 0 ? 'rej' : '') : i === 0 ? 'now' : ''
-            const label = post.status === 'approved' ? 'ອະນຸມັດ & ເຜີຍແຜ່ແລ້ວ'
-              : post.status === 'rejected' ? (i === 0 ? 'ປະຕິເສດ' : 'ບໍ່ໄດ້ດຳເນີນການ')
-                : i === 0 ? 'ລໍຖ້າກວດສອບ' : 'ລໍຖ້າຄິວກ່ອນໜ້າ'
+            // ຫຼາຍຂັ້ນ: ນັບຈາກ approvedBy ຄືກັບຄຳຂໍທົ່ວໄປ (helper ດຽວກັນ)
+            const okCount = post.status === 'approved' ? chain.length : approvedCount(post)
+            const cls = i < okCount ? 'ok' : post.status === 'rejected' ? (i === okCount ? 'rej' : '') : post.status === 'progress' && i === okCount ? 'now' : ''
+            const label = i < okCount || post.status === 'approved' ? (post.status === 'approved' && i === chain.length - 1 ? 'ອະນຸມັດ & ເຜີຍແຜ່ແລ້ວ' : 'ອະນຸມັດແລ້ວ')
+              : post.status === 'rejected' ? (i === okCount ? 'ປະຕິເສດ' : 'ບໍ່ໄດ້ດຳເນີນການ')
+                : i === okCount ? 'ລໍຖ້າກວດສອບ' : 'ລໍຖ້າຄິວກ່ອນໜ້າ'
             return (
               <div className={`aud ${cls}`} key={p.id}>
                 <span className="aud-ic">{cls === 'ok' ? <Icon.checkCircle /> : cls === 'rej' ? <Icon.warn /> : <Icon.clock />}</span>

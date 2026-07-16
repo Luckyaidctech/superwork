@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Icon, Header, ResultPopup, ReasonModal, initials, ScreenPortal } from '../flow/shared.jsx'
-import { nameOf, colorOf, avatarOf, approvalChain, reqTime, fmtRange, sortPendingFirst } from './data.js'
+import { nameOf, colorOf, avatarOf, approvalChain, approvedCount, currentApprover, reqTime, fmtRange, sortPendingFirst } from './data.js'
 
 // avatar: ຮູບໂປຣໄຟລ໌ (ຖ້າມີ) ຫຼື ສີພື້ນ + ຕົວຫຍໍ້
 const avBg = (id) => { const u = avatarOf(id); return u ? { backgroundImage: `url("${u}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: colorOf(id) } }
@@ -183,13 +183,15 @@ export function RequestDetailBody({ req, kind, me, onPreview, onComment, onEditC
           <div className="aud-body"><span className="aud-t">ສ້າງຄຳຂໍ</span><span className="aud-tm">{nameOf(req.byId)} · {req.date}</span></div>
         </div>
         {chain.map((p, i) => {
-          const cls = req.status === 'approved' ? 'ok'
-            : req.status === 'rejected' || req.status === 'cancelled' ? (i === 0 ? 'rej' : '')
-              : i === 0 ? 'now' : ''
-          const label = req.status === 'approved' ? 'ອະນຸມັດແລ້ວ'
-            : req.status === 'rejected' ? (i === 0 ? 'ປະຕິເສດ' : 'ບໍ່ໄດ້ດຳເນີນການ')
-              : req.status === 'cancelled' ? 'ຍົກເລີກແລ້ວ'
-                : i === 0 ? 'ລໍຖ້າອະນຸມັດ' : 'ລໍຖ້າຄິວກ່ອນໜ້າ'
+          // ຫຼາຍຂັ້ນ: ຂັ້ນທີ່ອະນຸມັດແລ້ວ (approvedBy) = ຕິກຂຽວ · ຂັ້ນປັດຈຸບັນ = now/rej · ຂັ້ນຫຼັງ = ລໍຄິວ
+          const okCount = req.status === 'approved' ? chain.length : approvedCount(req)
+          const cls = i < okCount ? 'ok'
+            : req.status === 'rejected' || req.status === 'cancelled' ? (i === okCount ? 'rej' : '')
+              : req.status === 'progress' && i === okCount ? 'now' : ''
+          const label = i < okCount || req.status === 'approved' ? 'ອະນຸມັດແລ້ວ'
+            : req.status === 'rejected' ? (i === okCount ? 'ປະຕິເສດ' : 'ບໍ່ໄດ້ດຳເນີນການ')
+              : req.status === 'cancelled' ? (i === okCount ? 'ຍົກເລີກແລ້ວ' : 'ບໍ່ໄດ້ດຳເນີນການ')
+                : i === okCount ? 'ລໍຖ້າອະນຸມັດ' : 'ລໍຖ້າຄິວກ່ອນໜ້າ'
           return (
             <div className={`aud ${cls}`} key={p.id}>
               <span className="aud-ic">{cls === 'ok' ? <Icon.checkCircle /> : cls === 'rej' ? <Icon.warn /> : <Icon.clock />}</span>
@@ -242,7 +244,7 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
 
   // ມາຈາກແຈ້ງເຕືອນ → ສະຫຼັບໄປ tab ນັ້ນ ແລ້ວເປີດລາຍລະອຽດຄຳຂໍໃຫ້ເລີຍ
   useEffect(() => {
-    if (!openReq) return
+    if (!openReq || openReq.kind === 'knowledge' || openReq.kind === 'points') return // ສອງໝວດນີ້ ເປີດໃນໂມດູນອື່ນ
     const r = (reqs[openReq.kind] || []).find((x) => x.id === openReq.id)
     if (r) { setKind(openReq.kind); setSf('all'); setDetail(r) }
     onConsumeOpenReq?.()
@@ -259,7 +261,9 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
     // ດຶງຕົວຫຼ້າສຸດຈາກ state (detail ເປັນ snapshot ຕອນກົດ) → comment ໃໝ່ຂຶ້ນທັນທີ
     const live = (reqs[kind] || []).find((r) => r.id === detail.id) || detail
     const mine = live.byId === me
-    const canAct = !mine && live.status === 'progress'
+    // ອະນຸມັດໄດ້ສະເພາະ "ຄິວປັດຈຸບັນ" ເທົ່ານັ້ນ (ຫຼາຍຂັ້ນ: ຫົວໜ້າ → HR)
+    const turn = currentApprover(live, kind)
+    const canAct = !mine && live.status === 'progress' && turn?.id === me
     const canCancel = mine && live.status === 'progress'
     return (
       <ScreenPortal>
@@ -281,9 +285,12 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
             </div>
           ) : canCancel ? (
             <button className="btn danger" style={{ width: '100%' }} onClick={() => setCancelMode(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
-          ) : (
+          ) : (<>
+            {!mine && live.status === 'progress' && turn && (
+              <p className="rf-turnnote"><Icon.clock /> ຮອດຮອບຂອງ {turn.name} ({turn.role})</p>
+            )}
             <button className="btn ghost" style={{ width: '100%' }} onClick={closeDetail}>ປິດ</button>
-          )}
+          </>)}
         </div>
 
         {rejMode && (
