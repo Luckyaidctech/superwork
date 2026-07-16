@@ -819,9 +819,12 @@ body {
 .noti-body span { font-size: 11px; color: var(--muted); }
 
 /* ═══ doc card additions ═══ */
+.doc-card { position: relative; }
 .doc-card.myturn { border-color: #f0b040; box-shadow: 0 0 0 2px rgba(224,123,31,.15); }
-.doc-status.turn { display: inline-flex; align-items: center; gap: 4px; color: #b45309; background: #fff5e6; }
-.doc-status.turn svg { width: 11px; height: 11px; }
+/* ribbon ມູມຂວາເທິງ "ຮອບຂອງທ່ານ" — ຮູບແບບເດີມຂອງ Lucky ຫ້າມປ່ຽນ */
+.doc-turn-flag { position: absolute; top: -1px; right: -1px; display: flex; align-items: center; gap: 4px;
+  background: var(--blue); color: #fff; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 0 12px 0 12px; }
+.doc-turn-flag svg { width: 11px; height: 11px; }
 .doc-status.done { color: #16a34a; background: #e7f6ec; }
 .doc-status.cancel { color: #64748b; background: #eef1f6; }
 .doc-status.rej { color: var(--danger); background: var(--danger-soft); }

@@ -32,10 +32,12 @@ function DocCard({ d, me, onOpen }) {
       : rejected ? { t: 'ຖືກປະຕິເສດ', c: 'rej' } : { t: 'ກຳລັງດຳເນີນການ', c: '' }
   return (
     <button className={`doc-card ${myTurn ? 'myturn' : ''}`} onClick={() => onOpen(d.id)}>
+      {/* ribbon "ຮອບຂອງທ່ານ" ມູມການ໌ດ — ຮູບແບບເດີມ (ຫ້າມປ່ຽນເປັນ badge ສະຖານະ) */}
+      {myTurn && <span className="doc-turn-flag"><Icon.pen /> ຮອບຂອງທ່ານ</span>}
       <div className="doc-card-top">
         <span className="doc-card-icon"><Icon.doc /></span>
         <b className="doc-card-title">{d.title}</b>
-        {myTurn ? <span className="doc-status turn"><Icon.pen /> ຮອບຂອງທ່ານ</span> : <span className={`doc-status ${st.c}`}>{st.t}</span>}
+        {!myTurn && <span className={`doc-status ${st.c}`}>{st.t}</span>}
       </div>
       <p className="doc-meta">ສ້າງໂດຍ: {nameOf(d.creatorId)} · {d.date}</p>
       <div className="doc-chips">
