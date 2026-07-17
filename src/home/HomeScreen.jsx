@@ -130,21 +130,10 @@ function TimeDropdown({ value, onChange, range, setRange }) {
 }
 
 // ─────────── list view ───────────
-// filter ຕ້ອງກົງກັບຄວາມໝາຍ tab (mode):
-//   ທຸກ tab → ມີ filter ປະເພດເອກະສານ (DTYPES)
-//   tosign  → ບໍ່ມີ filter ສະຖານະ/ຄິວ (ທຸກໃບລໍຂ້ອຍຢູ່ແລ້ວ — Lucky ໃຫ້ຕັດ filter ຄິວອອກ)
-//   created → ບໍ່ມີ "ສຳເລັດແລ້ວ" (ໃບ done ຢູ່ ປະຫວັດທັງໝົດ)
-//   history → dropdown ຜົນລັບ (ຄືກັບ tab ອື່ນ) + ບໍ່ໂຊໃບທີ່ຍັງຄ້າງ (progress)
+// filter 4 tab ຕ້ອງຄືກັນໝົດ ຕາມລຳດັບ: ປະເພດເອກະສານ → ສະຖານະ → ຜູ້ສ້າງ → ໄລຍະເວລາ → ຈັດລຳດັບ
+// ຕ່າງກັນຈຸດດຽວ: tab ປະຫວັດທັງໝົດ ບໍ່ມີ "ກຳລັງດຳເນີນການ" (Lucky ສັ່ງ 17/07)
 // filter ປະເພດເອກະສານ — ໃຊ້ທຸກ tab ຂອງໂມດູນ Sign (ຫົວໜ້າ/Lucky ສັ່ງ 17/07)
 const DTYPES = [{ key: 'all', label: 'ທຸກປະເພດ' }, ...DOC_TYPES.map((t) => ({ key: t, label: t }))]
-// ປະຫວັດທັງໝົດ — ກອງຕາມຜົນ/ການກະທຳ (ຫົວໜ້າ confirm: ເຊັນ · ອະນຸມັດ · ປະຕິເສດ · ຍົກເລີກ)
-const HIST = [
-  { key: 'all', label: 'ທັງໝົດ' },
-  { key: 'signed', label: 'ເຊັນແລ້ວ' },
-  { key: 'approved', label: 'ອະນຸມັດແລ້ວ' },
-  { key: 'rejected', label: 'ປະຕິເສດ' },
-  { key: 'cancelled', label: 'ຍົກເລີກ' },
-]
 function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
@@ -155,8 +144,8 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
   const [sort, setSort] = useState('recent')
   const [sortOpen, setSortOpen] = useState(false)
   const SORTS = mode === 'history' ? SORTS_SIGNED : SORTS_SENT
-  const STATUS_OPTS = mode === 'created' ? CATS.filter((c) => c.key !== 'done') : mode === 'history' ? HIST : CATS
-  const REF = 14
+  const STATUS_OPTS = mode === 'history' ? CATS.filter((c) => c.key !== 'progress') : CATS
+  const REF = new Date().getDate() // ໄລຍະເວລາ ນັບຈາກມື້ນີ້ຈິງ (realtime)
 
   let list = docs.filter((d) => {
     // ຄົ້ນຫາໄດ້ທັງ ຊື່ເອກະສານ ແລະ ຊື່ຜູ້ສ້າງ (ທຸກ tab)
@@ -165,15 +154,9 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
       if (!d.title.toLowerCase().includes(s) && !nameOf(d.creatorId).toLowerCase().includes(s)) return false
     }
     if (dtype !== 'all' && docTypeOf(d) !== dtype) return false
-    if (mode === 'history') {
-      // ເຊັນ/ອະນຸມັດ = ການກະທຳຂອງ "ຂ້ອຍ" · ປະຕິເສດ/ຍົກເລີກ = ຜົນຂອງໃບເອກະສານ
-      if (cat === 'signed' && !d.signers.some((s) => s.id === me && s.status === 'signed' && s.role !== 'approver')) return false
-      if (cat === 'approved' && !d.signers.some((s) => s.id === me && s.status === 'signed' && s.role === 'approver')) return false
-      if (cat === 'rejected' && d.status !== 'rejected') return false
-      if (cat === 'cancelled' && d.status !== 'cancelled') return false
-    } else if (mode !== 'tosign' && cat !== 'all' && d.status !== cat) return false
-    if (creatorMode && who === 'mine' && d.creatorId !== me) return false
-    if (creatorMode && who === 'others' && d.creatorId === me) return false
+    if (cat !== 'all' && d.status !== cat) return false
+    if (who === 'mine' && d.creatorId !== me) return false
+    if (who === 'others' && d.creatorId === me) return false
     if (time === '7d' && REF - d.ts > 7) return false
     if (time === '30d' && REF - d.ts > 30) return false
     if (time === 'custom') {
@@ -184,8 +167,7 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
     return true
   })
   list = [...list].sort((a, b) => {
-    // tab ຕ້ອງການລາຍເຊັນຂ້ອຍ: ຮອດຮອບຂ້ອຍ ຂຶ້ນກ່ອນສະເໝີ ແລ້ວຄ່ອຍຮຽງຕາມ sort ທີ່ເລືອກ
-    if (mode === 'tosign') { const t = (isMyTurn(b, me) ? 1 : 0) - (isMyTurn(a, me) ? 1 : 0); if (t) return t }
+    // ຄ່າເລີ່ມຕົ້ນ recent = ສ້າງໃໝ່ສຸດ ຂຶ້ນກ່ອນ (Lucky ສັ່ງ 17/07 — tab 1 ບໍ່ຈັດຄິວກ່ອນແລ້ວ)
     if (sort === 'recent') return b.ts - a.ts
     if (sort === 'oldest') return a.ts - b.ts
     if (sort === 'az') return a.title.localeCompare(b.title, 'lo')
@@ -197,13 +179,11 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
   return (
     <>
       <div className="home-search"><Icon.search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ຄົ້ນຫາເອກະສານ ຫຼື ຊື່ຜູ້ສ້າງ..." /></div>
+      {/* ລຳດັບ filter ຄືກັນທຸກ tab: ປະເພດ → ສະຖານະ → ຜູ້ສ້າງ → ໄລຍະເວລາ → ຈັດລຳດັບ */}
       <div className="home-filters">
-        {/* ປະເພດເອກະສານ — ທຸກ tab (ແທນ filter ຄິວເກົ່າຂອງ tab 1) */}
-        <FilterDropdown btnLabel={dtype === 'all' ? `ທຸກປະເພດ${mode === 'tosign' ? ` (${list.length})` : ''}` : dtype} title="ປະເພດເອກະສານ" options={DTYPES} value={dtype} onChange={setDtype} />
-        {creatorMode && <FilterDropdown btnLabel={CREATORS.find((c) => c.key === who).label} title="ຜູ້ສ້າງ" options={CREATORS} value={who} onChange={setWho} />}
-        {mode !== 'tosign' && (
-          <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title="ສະຖານະ" options={STATUS_OPTS} value={cat} onChange={setCat} />
-        )}
+        <FilterDropdown btnLabel={dtype === 'all' ? 'ທຸກປະເພດ' : dtype} title="ປະເພດເອກະສານ" options={DTYPES} value={dtype} onChange={setDtype} />
+        <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title="ສະຖານະ" options={STATUS_OPTS} value={cat} onChange={setCat} />
+        <FilterDropdown btnLabel={CREATORS.find((c) => c.key === who).label} title="ຜູ້ສ້າງ" options={CREATORS} value={who} onChange={setWho} />
         <TimeDropdown value={time} onChange={setTime} range={range} setRange={setRange} />
         <div className="sort-wrap">
           <button className="home-filter" onClick={() => setSortOpen(true)}><Icon.sort /> {SORTS.find((s) => s.key === sort).label}</button>

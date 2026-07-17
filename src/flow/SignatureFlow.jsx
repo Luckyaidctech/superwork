@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon, groupSignatories, isOrdered, normalizeSteps, uid } from './shared.jsx'
+import { nowDate } from '../home/data.js'
 import Step1Input from './Step1Input.jsx'
 import Step2Place from './Step2Place.jsx'
 import Step3Send from './Step3Send.jsx'
@@ -27,8 +28,9 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A' }) {
       id: uid(),
       title: title.trim() || 'ເອກະສານໃໝ່',
       creatorId: me,
-      date: '14/07/2026',
-      ts: 15,
+      // realtime: ວັນທີສ້າງ = ມື້ນີ້ຈິງ (Lucky ສັ່ງ 17/07) · ts = ວັນຂອງເດືອນ ໃຊ້ filter ໄລຍະເວລາ
+      date: nowDate(),
+      ts: new Date().getDate(),
       files: pdfs.map((p) => ({ id: p.id, name: p.name, pages: p.pages || 1, file: p.file })),
       attachments: attachments.map((a) => ({ name: a.name, file: a.file })),
       signers: signatories.map((s) => ({ id: s.id, step: s.step, status: 'pending', role: s.role || 'signer' })),

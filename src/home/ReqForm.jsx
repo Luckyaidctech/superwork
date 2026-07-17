@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { Icon, Header, initials, ScreenPortal } from '../flow/shared.jsx'
-import { approvalChain, reqTime, fmtH, daysBetween, PROJECTS, DAY_TYPES } from './data.js'
+import { approvalChain, reqTime, fmtH, daysBetween, PROJECTS, DAY_TYPES, nowDate } from './data.js'
 import DateRangeSheet from './DateRangeSheet.jsx'
 import TimeSheet from './TimeSheet.jsx'
 import PickSheet from './PickSheet.jsx'
@@ -44,7 +44,7 @@ const CFG = {
 }
 const LUNCH = { from: 12 * 60, to: 13 * 60 }
 const MAX_REASON = 500
-const TODAY = '15/07/2026'
+const TODAY = nowDate() // realtime — ວັນທີມື້ນີ້ຈິງ
 
 const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
 const toISO = (d) => { const [dd, mm, yy] = d.split('/'); return `${yy}-${mm}-${dd}` }

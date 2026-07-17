@@ -4,7 +4,7 @@ import DocDetail from './home/DocDetail.jsx'
 import SignatureFlow from './flow/SignatureFlow.jsx'
 import SignScreen from './flow/SignScreen.jsx'
 import Settings from './flow/Settings.jsx'
-import { initialDocs, initialReqs, SAMPLE_IMG, uid, nameOf, isMyTurn, approvalChain, approvedCount } from './home/data.js'
+import { initialDocs, initialReqs, SAMPLE_IMG, uid, nameOf, isMyTurn, approvalChain, approvedCount, nowDate } from './home/data.js'
 
 // noti เริ่มต้น: แจ้งผู้เซ็นที่ถึงคิว (ให้เข้าถึง request ที่ต้องเซ็นได้ ผ่านกระดิ่ง)
 function buildInitialNotis(ds) {
@@ -111,7 +111,7 @@ export default function App() {
 
   // ── ຄຳຂໍຄະແນນ Workboard: ສ້າງ → ແຈ້ງ director / comment / approve-reject (director ອະນຸມັດ) ──
   const onCreatePoints = (req) => {
-    const r = { id: uid(), by: me, date: '14/07/2026', status: 'progress', comments: [], ...req }
+    const r = { id: uid(), by: me, date: nowDate(), status: 'progress', comments: [], ...req } // ວັນທີສ້າງ realtime
     setPointsReqs((p) => [r, ...p])
     if (me !== DIRECTOR) pushNoti(DIRECTOR, `${nameOf(me)} ຂໍ +${req.points} ຄະແນນ (${req.targetName})`, null, 'points', { kind: 'points', id: r.id })
     return r // ໃຫ້ໜ້າฟอร์ม → เปิด detail ຂອງ req ທີ່ສ້າງ
@@ -238,7 +238,8 @@ export default function App() {
   }
   // ສ້າງຄຳຂໍໃໝ່ → ເຂົ້າຄິວລໍຖ້າອະນຸມັດ + ແຈ້ງຜູ້ອຳນວຍການ
   const onCreateReq = (kind, data) => {
-    const r = { id: uid(), byId: me, status: 'progress', ...data }
+    // createdAt = ວັນທີສ້າງຈິງ (realtime) — ຕ່າງຈາກ date ທີ່ເປັນວັນລາ/ວັນຈອງ
+    const r = { id: uid(), byId: me, status: 'progress', createdAt: nowDate(), ...data }
     setReqs((rs) => ({ ...rs, [kind]: [r, ...(rs[kind] || [])] }))
     // ແຈ້ງຫົວໜ້າພະແນກ (ຜູ້ອະນຸມັດຂັ້ນທຳອິດ) — ກົດເປີດຄຳຂໍໄດ້
     const first = approvalChain(me, kind)[0]
@@ -272,7 +273,7 @@ export default function App() {
   // ── ຄວາມຮູ້ (Knowledge Sharing) — ເກັບໃນ reqs.knowledge → ໃຊ້ onReqAction/onReqComment ຮ່ວມກັນໄດ້ ──
   // ບັນທຶກຮ່າງ (draft) = ບໍ່ແຈ້ງໃຜ · ສົ່ງກວດສອບ (progress) = ແຈ້ງຜູ້ອະນຸມັດຂັ້ນທຳອິດ
   const onCreateKn = (data, publish) => {
-    const r = { id: uid(), byId: me, status: publish ? 'progress' : 'draft', views: 0, likes: [], comments: [], ...data }
+    const r = { id: uid(), byId: me, status: publish ? 'progress' : 'draft', createdAt: nowDate(), views: 0, likes: [], comments: [], ...data }
     setReqs((rs) => ({ ...rs, knowledge: [r, ...(rs.knowledge || [])] }))
     if (publish) {
       const first = approvalChain(me, 'knowledge')[0]

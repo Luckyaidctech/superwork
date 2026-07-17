@@ -378,11 +378,19 @@ export function reqTime(r) {
 
 // ── ຈັດລຳດັບລາຍການ (ໃຊ້ຮ່ວມ: ອະນຸມັດ · ຄຳຂໍ · ຄວາມຮູ້) ──
 // ທີ່ຍັງລໍຖ້າ ຂຶ້ນກ່ອນສະເໝີ ແລ້ວຮຽງຕາມວັນທີ (ໃກ້ຮອດກ່ອນ) · ທີ່ຈົບແລ້ວ = ໃໝ່ສຸດກ່ອນ
+// ── ວັນທີ/ເວລາ ຈິງ (realtime) — ໃຊ້ຕອນສ້າງ request/ເອກະສານ ໃໝ່ທຸກໂມດູນ ──
+const pad2 = (n) => String(n).padStart(2, '0')
+export const nowDate = () => { const d = new Date(); return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}` }
+export const nowTime = () => { const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}` }
+
 const dnum = (d) => { const [dd, mm, yy] = String(d || '').split('/').map(Number); return (yy || 0) * 10000 + (mm || 0) * 100 + (dd || 0) }
 const isPending = (m) => m.status === 'progress' || m.status === 'esign'
+// ວັນທີໃຊ້ຮຽງ = ວັນທີສ້າງ (createdAt ຂອງ request ໃໝ່) ຫຼື date ຂອງ seed
+const sortDate = (m) => m.createdAt || m.date
 export const sortPendingFirst = (list) => [...list].sort((a, b) => {
   if (isPending(a) !== isPending(b)) return isPending(a) ? -1 : 1
-  return isPending(a) ? dnum(a.date) - dnum(b.date) : dnum(b.date) - dnum(a.date)
+  // ທັງສອງກຸ່ມ: ສ້າງໃໝ່ສຸດ ຂຶ້ນກ່ອນ (Lucky ສັ່ງ 17/07)
+  return dnum(sortDate(b)) - dnum(sortDate(a))
 })
 
 // ── ສາຍອະນຸມັດຄຳຂໍ — ຕ່າງກັນຕາມປະເພດ ──

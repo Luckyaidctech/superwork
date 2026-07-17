@@ -180,7 +180,7 @@ export function RequestDetailBody({ req, kind, me, onPreview, onComment, onEditC
       <div className="dd-audit">
         <div className="aud ok">
           <span className="aud-ic"><Icon.checkCircle /></span>
-          <div className="aud-body"><span className="aud-t">ສ້າງຄຳຂໍ</span><span className="aud-tm">{nameOf(req.byId)} · {req.date}</span></div>
+          <div className="aud-body"><span className="aud-t">ສ້າງຄຳຂໍ</span><span className="aud-tm">{nameOf(req.byId)} · {req.createdAt || req.date}</span></div>
         </div>
         {chain.map((p, i) => {
           // ຫຼາຍຂັ້ນ: ຂັ້ນທີ່ອະນຸມັດແລ້ວ (approvedBy) = ຕິກຂຽວ · ຂັ້ນປັດຈຸບັນ = now/rej · ຂັ້ນຫຼັງ = ລໍຄິວ

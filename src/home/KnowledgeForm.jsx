@@ -1,12 +1,12 @@
 import { useState, useRef, useMemo } from 'react'
 import { Icon, Header, initials, ScreenPortal } from '../flow/shared.jsx'
-import { approvalChain, KN_CATS, KN_TEAMS, KN_TYPES } from './data.js'
+import { approvalChain, KN_CATS, KN_TEAMS, KN_TYPES, nowDate } from './data.js'
 import PickSheet from './PickSheet.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
 
 const MAX_OVERVIEW = 200
 const MAX_IMG = 10
-const TODAY = '16/07/2026'
+const TODAY = nowDate() // realtime — ວັນທີມື້ນີ້ຈິງ
 const LAYOUTS = [{ v: 'grid', t: 'Grid', ic: 'layers' }, { v: 'carousel', t: 'Carousel', ic: 'image' }, { v: 'stack', t: 'Stack', ic: 'doc' }]
 
 // ── ຊ່ອງກອກ ແບບ inline label (ປ້າຍນ້ອຍຢູ່ໃນກອບ) — ອ່ານງ່າຍ ບໍ່ເປືອງທີ່ ──
