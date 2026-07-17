@@ -10,13 +10,14 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A' }) {
   const [done, setDone] = useState(false)
 
   const [title, setTitle] = useState('')
+  const [docType, setDocType] = useState('ເອກະສານທົ່ວໄປ') // Q5: ປະເພດກຳນົດເສັ້ນທາງ
   const [pdfs, setPdfs] = useState([])
   const [attachments, setAttachments] = useState([])
-  const [signers, setSigners] = useState([])   // {id,name,email,role:'signer'|'cc',step}
+  const [signers, setSigners] = useState([])   // {id,name,email,role:'signer'|'cc',step,locked?}
   const [placements, setPlacements] = useState([])
 
   const store = {
-    title, setTitle, pdfs, setPdfs, attachments, setAttachments,
+    title, setTitle, docType, setDocType, pdfs, setPdfs, attachments, setAttachments,
     signers, setSigners, placements, setPlacements,
   }
 
@@ -27,6 +28,7 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A' }) {
     onCreate && onCreate({
       id: uid(),
       title: title.trim() || 'ເອກະສານໃໝ່',
+      docType, // ປະເພດເອກະສານ (Q5) → ໂຊເທິງການ໌ດ/detail + filter ໄດ້
       creatorId: me,
       // realtime: ວັນທີສ້າງ = ມື້ນີ້ຈິງ (Lucky ສັ່ງ 17/07) · ts = ວັນຂອງເດືອນ ໃຊ້ filter ໄລຍະເວລາ
       date: nowDate(),
@@ -41,7 +43,7 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A' }) {
     setDone(true)
   }
   const resetAll = () => {
-    setScreen(1); setDone(false); setTitle(''); setPdfs([]); setAttachments([])
+    setScreen(1); setDone(false); setTitle(''); setDocType('ເອກະສານທົ່ວໄປ'); setPdfs([]); setAttachments([])
     setSigners([]); setPlacements([])
   }
 

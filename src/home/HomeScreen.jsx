@@ -41,6 +41,7 @@ function DocCard({ d, me, onOpen }) {
       </div>
       <p className="doc-meta">ສ້າງໂດຍ: {nameOf(d.creatorId)} · {d.date}</p>
       <div className="doc-chips">
+        <span className="doc-chip type">{docTypeOf(d)}</span>
         <span className="doc-chip"><Icon.doc /> {d.files.length} ໄຟລ໌</span>
         {d.attachments.length > 0 && <span className="doc-chip alt"><Icon.layers /> ໄຟລ໌ແນບ {d.attachments.length}</span>}
         {d.creatorId !== me && !d.signers.some((s) => s.id === me) && (d.cc || []).includes(me) && <span className="doc-chip cc"><Icon.users /> CC</span>}

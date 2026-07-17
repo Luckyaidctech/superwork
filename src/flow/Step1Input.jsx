@@ -5,6 +5,7 @@ import {
 } from './shared.jsx'
 import FilePreviewModal from './FilePreviewModal.jsx'
 import AiSummary from './AiSummary.jsx'
+import { DOC_TYPES, DOC_TYPE_INFO, docTypeRoute } from '../home/data.js'
 
 // ─────────────── Directory picker (ໂຄງສ້າງອົງກອນ + sticky headers) ───────────────
 function DirectoryPicker({ open, onClose, signers, onAdd, me }) {
@@ -81,6 +82,30 @@ function DirectoryPicker({ open, onClose, signers, onAdd, me }) {
   )
 }
 
+// ─────────────── ແຜ່ນເລືອກປະເພດເອກະສານ (Q5) — ປະເພດກຳນົດເສັ້ນທາງອັດຕະໂນມັດ ───────────────
+function DocTypeSheet({ open, value, onPick, onClose }) {
+  if (!open) return null
+  return (
+    <div className="fsheet-overlay" onClick={onClose}>
+      <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+        <p className="fsheet-title">ປະເພດເອກະສານ — ເສັ້ນທາງອະນຸມັດຖືກກຳນົດອັດຕະໂນມັດ</p>
+        {DOC_TYPES.map((t) => {
+          const info = DOC_TYPE_INFO[t] || {}
+          return (
+            <button key={t} className={`dtype-opt ${value === t ? 'on' : ''}`} onClick={() => onPick(t)}>
+              <div className="dtype-info">
+                <b>{t}{info.live && t !== 'ເອກະສານທົ່ວໄປ' && <em className="dtype-auto"><Icon.lock /> ເສັ້ນທາງບັງຄັບ</em>}</b>
+                <span>{info.d}</span>
+              </div>
+              {value === t && <Icon.check />}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─────────────── inline role segmented control ───────────────
 function RoleSeg({ role, onChange }) {
   return (
@@ -94,15 +119,20 @@ function RoleSeg({ role, onChange }) {
 
 export default function Step1Input({ store, me = 'A', onNext, onBack }) {
   const {
-    title, setTitle, pdfs, setPdfs, attachments, setAttachments, signers, setSigners,
+    title, setTitle, docType, setDocType, pdfs, setPdfs, attachments, setAttachments, signers, setSigners,
   } = store
 
   const [titleCleaned, setTitleCleaned] = useState(false)
   const [loading, setLoading] = useState({ pdf: false, attach: false })
   const [showErrors, setShowErrors] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [typeOpen, setTypeOpen] = useState(false)
   const [previewFile, setPreviewFile] = useState(null)
   const [dragId, setDragId] = useState(null)
+
+  // Q5: ປະເພດ → ເສັ້ນທາງບັງຄັບ (lockAll = ເອກະສານລັບ ຫ້າມເພີ່ມໃຜ)
+  const route = docTypeRoute(docType, me)
+  const lockAll = route.lockAll
 
   const pdfInput = useRef(null)
   const attachInput = useRef(null)
@@ -146,6 +176,22 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
     return [...sig, ...cc]
   }
 
+  // ── ເລືອກປະເພດ → ວາງເສັ້ນທາງບັງຄັບໃໝ່ (ຂັ້ນ lock ຢູ່ໜ້າ · ຄົນທີ່ຜູ້ໃຊ້ເພີ່ມເອງ ຕໍ່ທ້າຍ) ──
+  const applyDocType = (t) => {
+    setDocType(t)
+    const r = docTypeRoute(t, me)
+    setSigners((prev) => {
+      const lockedIds = new Set([...r.chain, ...r.cc].map((p) => p.id))
+      // ເອກະສານລັບ: ລ້າງທຸກຄົນທີ່ເພີ່ມເອງ · ປະເພດອື່ນ: ຮັກສາໄວ້ (ຕັດຄົນທີ່ຊ້ຳກັບຂັ້ນບັງຄັບ)
+      const userAdded = r.lockAll ? [] : prev.filter((s) => !s.locked && !lockedIds.has(s.id))
+      const k = r.chain.length
+      const rest = userAdded.map((s) => (isOrdered(s.role) ? { ...s, step: (s.step || 1) + k } : s))
+      return rebuild([...r.chain, ...rest, ...r.cc])
+    })
+    setShowErrors(false)
+    setTypeOpen(false)
+  }
+
   const addFromDirectory = (person, role) => {
     setSigners((prev) => {
       if (prev.some((s) => s.id === person.id)) return prev
@@ -168,12 +214,14 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
     }))
   })
 
+  // preset ປັບສະເພາະຄົນທີ່ຜູ້ໃຊ້ເພີ່ມເອງ — ຂັ້ນບັງຄັບ (locked) ຄົງລຳດັບເດີມສະເໝີ
   const applyPreset = (kind) => setSigners((prev) => {
+    const lockedK = prev.filter((s) => s.locked && isOrdered(s.role)).length
     let i = 0
     return rebuild(prev.map((s) => {
-      if (!isOrdered(s.role)) return s
+      if (!isOrdered(s.role) || s.locked) return s
       i += 1
-      return { ...s, step: kind === 'parallel' ? 1 : i }
+      return { ...s, step: kind === 'parallel' ? lockedK + 1 : lockedK + i }
     }))
   })
 
@@ -186,8 +234,10 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
       const sig = prev.filter((s) => isOrdered(s.role))
       const cc = prev.filter((s) => !isOrdered(s.role))
       const dragged = sig.find((s) => s.id === dragId)
-      if (!dragged) return prev
-      const others = sig.filter((s) => s.id !== dragId)
+      if (!dragged || dragged.locked) return prev
+      // ຂັ້ນບັງຄັບ (locked) ປັກຢູ່ໜ້າສະເໝີ — ລາກຈັດລຳດັບໄດ້ສະເພາະຄົນທີ່ເພີ່ມເອງ
+      const lockedSig = sig.filter((s) => s.locked)
+      const others = sig.filter((s) => !s.locked && s.id !== dragId)
       let idx = others.length
       for (let i = 0; i < others.length; i++) {
         const el = cardRef.current[others[i].id]
@@ -197,8 +247,9 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
       }
       const next = [...others]
       next.splice(idx, 0, dragged)
-      if (next.length === sig.length && next.every((s, i) => s.id === sig[i].id)) return prev
-      return [...next.map((s, i) => ({ ...s, step: i + 1 })), ...cc]
+      const merged = [...lockedSig, ...next]
+      if (merged.length === sig.length && merged.every((s, i) => s.id === sig[i].id)) return prev
+      return [...merged.map((s, i) => ({ ...s, step: i + 1 })), ...cc]
     })
   }
   const endDrag = () => setDragId(null)
@@ -213,6 +264,21 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
       <Header title="ເອກະສານ E-Signature ໃໝ່" subtitle="ສ້າງ ແລະ ສົ່ງເພື່ອຂໍລາຍເຊັນ" onBack={onBack || (() => {})} />
       <div className="scroll">
         <Stepper current={1} />
+
+        {/* ── ປະເພດເອກະສານ (Q5) — ກຳນົດເສັ້ນທາງອະນຸມັດອັດຕະໂນມັດ ── */}
+        <div className="card">
+          <SectionHead icon={<Icon.layers />} title="ປະເພດເອກະສານ" sub="ເສັ້ນທາງອະນຸມັດ ຖືກກຳນົດຕາມປະເພດ" />
+          <button className="dtype-btn" onClick={() => setTypeOpen(true)}>
+            <div className="dtype-btn-info">
+              <b>{docType}</b>
+              <span>{(DOC_TYPE_INFO[docType] || {}).d}</span>
+            </div>
+            <Icon.chevron />
+          </button>
+          {route.chain.length > 0 && (
+            <p className="dtype-note"><Icon.lock /> ຂັ້ນບັງຄັບ {route.chain.length} ຂັ້ນ ຖືກໃສ່ໃຫ້ອັດຕະໂນມັດ — ລຶບ/ສະຫຼັບບໍ່ໄດ້{lockAll ? ' · ຫ້າມເພີ່ມຜູ້ອື່ນ ແລະ CC' : ''}</p>
+          )}
+        </div>
 
         {/* ── ຫົວຂໍ້ການເຊັນ ── */}
         <div className="card">
@@ -255,8 +321,10 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
 
         {/* ── ຜູ້ລົງນາມ + CC ── */}
         <div className={`card ${showErrors && !valid.signer ? 'card-invalid' : ''}`}>
-          <SectionHead icon={<Icon.addUser />} title="ຜູ້ລົງນາມ & ຮັບສຳເນົາ" sub="ເລືອກຄົນຈາກລາຍຊື່" />
-          <button className="add-btn" onClick={() => setPickerOpen(true)}><Icon.book /> ເພີ່ມຈາກລາຍຊື່</button>
+          <SectionHead icon={<Icon.addUser />} title="ຜູ້ລົງນາມ & ຮັບສຳເນົາ" sub={lockAll ? 'ເອກະສານລັບ — ຜູ້ອຳນວຍການເຊັນຄົນດຽວ' : 'ເລືອກຄົນຈາກລາຍຊື່'} />
+          {lockAll
+            ? <p className="dtype-lockmsg"><Icon.lock /> ເອກະສານລັບ ສົ່ງກົງຫາຜູ້ອຳນວຍການເທົ່ານັ້ນ — ເພີ່ມຜູ້ເຊັນ/CC ບໍ່ໄດ້ ເນື້ອໃນເຫັນສະເພາະຜູ້ສ້າງ ແລະ ຜູ້ເຊັນ</p>
+            : <button className="add-btn" onClick={() => setPickerOpen(true)}><Icon.book /> ເພີ່ມຈາກລາຍຊື່</button>}
 
           {signatories.length > 0 && (
             <>
@@ -277,24 +345,30 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
                   return (
                     <div key={s.id}
                       ref={(el) => { if (el) cardRef.current[s.id] = el; else delete cardRef.current[s.id] }}
-                      className={`sig-card ${dragId === s.id ? 'dragging' : ''} ${sameAsPrev ? 'grouped' : ''}`}>
+                      className={`sig-card ${s.locked ? 'locked' : ''} ${dragId === s.id ? 'dragging' : ''} ${sameAsPrev ? 'grouped' : ''}`}>
                       <div className="sig-row1">
-                        <span className="sig-grip" title="ລາກເພື່ອຈັດລຳດັບ" onPointerDown={beginDrag(s.id)}><Icon.grip /></span>
+                        {s.locked
+                          ? <span className="sig-grip lock" title="ຂັ້ນບັງຄັບຕາມປະເພດເອກະສານ"><Icon.lock /></span>
+                          : <span className="sig-grip" title="ລາກເພື່ອຈັດລຳດັບ" onPointerDown={beginDrag(s.id)}><Icon.grip /></span>}
                         <div className="signer-avatar" style={{ background: c.main }}>{initials(s.name)}</div>
                         <div className="signer-info">
                           <b>{s.name}</b>
                           <span className="signer-email">{isApprover ? 'ອະນຸມັດ · ບໍ່ໂຊລາຍເຊັນ' : s.email}</span>
                         </div>
                         <span className="sig-step">ຂັ້ນທີ່ {s.step}{sameAsPrev && <em>· ພ້ອມກັນ</em>}</span>
-                        <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>
+                        {!s.locked && <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>}
                       </div>
-                      <div className="sig-row2">
-                        <RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} />
-                        <div className="step-ctrl">
-                          <button className="icon-mini" onClick={() => changeStep(s.id, -1)} disabled={s.step <= 1}><Icon.minus /></button>
-                          <button className="icon-mini" onClick={() => changeStep(s.id, +1)}><Icon.plus /></button>
+                      {s.locked ? (
+                        <div className="sig-row2"><span className="sig-locktag"><Icon.lock /> ຂັ້ນບັງຄັບ — {isApprover ? 'ຜູ້ກວດ/ອະນຸມັດ' : 'ຜູ້ເຊັນປາຍທາງ'} ຕາມປະເພດ "{docType}"</span></div>
+                      ) : (
+                        <div className="sig-row2">
+                          <RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} />
+                          <div className="step-ctrl">
+                            <button className="icon-mini" onClick={() => changeStep(s.id, -1)} disabled={s.step <= 1}><Icon.minus /></button>
+                            <button className="icon-mini" onClick={() => changeStep(s.id, +1)}><Icon.plus /></button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )
                 })}
@@ -307,16 +381,18 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
             <div className="cc-block">
               <div className="cc-head"><Icon.mail /> <b>ຮັບສຳເນົາ (CC)</b> <i>· ບໍ່ຕ້ອງເຊັນ</i></div>
               {ccList.map((s) => (
-                <div className="sig-card cc" key={s.id}>
+                <div className={`sig-card cc ${s.locked ? 'locked' : ''}`} key={s.id}>
                   <div className="sig-row1">
                     <div className="signer-avatar cc">{initials(s.name)}</div>
                     <div className="signer-info">
                       <b>{s.name}</b>
                       <span className="signer-email">{s.email}</span>
                     </div>
-                    <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>
+                    {s.locked
+                      ? <span className="sig-locktag sm"><Icon.lock /> CC ອັດຕະໂນມັດ</span>
+                      : <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>}
                   </div>
-                  <div className="sig-row2"><RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} /></div>
+                  {!s.locked && <div className="sig-row2"><RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} /></div>}
                 </div>
               ))}
             </div>
@@ -332,7 +408,8 @@ export default function Step1Input({ store, me = 'A', onNext, onBack }) {
         </button>
       </div>
 
-      <DirectoryPicker open={pickerOpen} onClose={() => setPickerOpen(false)} signers={signers} onAdd={addFromDirectory} me={me} />
+      <DirectoryPicker open={pickerOpen && !lockAll} onClose={() => setPickerOpen(false)} signers={signers} onAdd={addFromDirectory} me={me} />
+      <DocTypeSheet open={typeOpen} value={docType} onPick={applyDocType} onClose={() => setTypeOpen(false)} />
       <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   )

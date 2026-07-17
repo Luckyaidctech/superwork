@@ -1731,6 +1731,43 @@ button.ac-card:active { transform: scale(.99); }
 /* ຂໍ້ຄວາມໃນກ່ອງຢືນຢັນອະນຸມັດ (DocDetail — approver) */
 .dd-approve-note { margin: 4px 18px 14px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
 
+/* ═══ Q5: ປະເພດເອກະສານ ກຳນົດເສັ້ນທາງ ═══ */
+.dtype-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px; cursor: pointer; font-family: inherit; text-align: left; }
+.dtype-btn:hover { border-color: var(--blue); background: #eff4ff; }
+.dtype-btn-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dtype-btn-info b { font-size: 14.5px; color: var(--ink); }
+.dtype-btn-info span { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dtype-btn > svg { width: 17px; height: 17px; color: var(--muted); transform: rotate(-90deg); flex-shrink: 0; }
+.dtype-note { display: flex; align-items: center; gap: 6px; margin: 9px 2px 0; font-size: 11.5px; color: #b45309; }
+.dtype-note svg { width: 13px; height: 13px; flex-shrink: 0; }
+/* ແຜ່ນເລືອກປະເພດ */
+.dtype-opt { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; border-radius: 10px;
+  padding: 11px 10px; cursor: pointer; font-family: inherit; text-align: left; }
+.dtype-opt:hover { background: #f4f6fb; }
+.dtype-opt.on { background: var(--blue-soft); }
+.dtype-opt.on > svg { color: var(--blue); }
+.dtype-opt > svg { width: 17px; height: 17px; flex-shrink: 0; }
+.dtype-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dtype-info b { font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dtype-info span { font-size: 11.5px; color: var(--muted); }
+.dtype-auto { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 10px; font-weight: 700;
+  color: #b45309; background: #fff5e6; border-radius: 999px; padding: 2px 8px; }
+.dtype-auto svg { width: 10px; height: 10px; }
+.dtype-lockmsg { display: flex; align-items: flex-start; gap: 8px; background: #fff5e6; border: 1px solid #f2dfb6;
+  border-radius: 10px; padding: 10px 12px; font-size: 12.5px; line-height: 1.55; color: #9a5b00; margin: 4px 0 0; }
+.dtype-lockmsg svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+/* ຂັ້ນບັງຄັບໃນລາຍການຜູ້ເຊັນ */
+.sig-card.locked { background: #fbfcfe; border-color: #dbe3f2; }
+.sig-grip.lock { color: #b45309; cursor: default; }
+.sig-locktag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #b45309;
+  background: #fff5e6; border-radius: 999px; padding: 3px 10px; }
+.sig-locktag svg { width: 11px; height: 11px; }
+.sig-locktag.sm { flex-shrink: 0; }
+/* chip ປະເພດ ເທິງການ໌ດ/detail */
+.doc-chip.type { background: #f3e8fd; color: #7c3aed; border: none; font-weight: 700; }
+.dd-badge.type { color: #7c3aed; background: #f3e8fd; }
+
 /* ─────────── OTP resend disabled (countdown) ─────────── */
 .otp-resend.off { color: var(--muted); cursor: not-allowed; opacity: .7; }
 

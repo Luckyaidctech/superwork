@@ -147,6 +147,45 @@ const DOC_TYPE_BY_ID = {
   d17: 'ສັນຍາທຸລະກິດ / MOU', d21: 'ສັນຍາທຸລະກິດ / MOU', d22: 'ສັນຍາທຸລະກິດ / MOU', d23: 'ການເງິນ-ເບີກຈ່າຍ',
 }
 export const docTypeOf = (d) => d.docType || DOC_TYPE_BY_ID[d.id] || 'ເອກະສານທົ່ວໄປ'
+
+// ── ຂໍ້ມູນປະເພດ + ເສັ້ນທາງບັງຄັບ (Q5: demo ເຕັມ 6 ປະເພດ · ອີກ 5 ເລືອກໄດ້ ແຕ່ຍັງບໍ່ເປີດເສັ້ນທາງ) ──
+export const DOC_TYPE_INFO = {
+  'ເອກະສານທົ່ວໄປ': { live: true, d: 'ສົ່ງກົງ — ເລືອກຜູ້ເຊັນ/ຜູ້ອະນຸມັດເອງ' },
+  'ເອກະສານລັບ': { live: true, d: 'ສົ່ງກົງຫາ ຜູ້ອຳນວຍການ ເຊັນຄົນດຽວ · ຫ້າມເພີ່ມຄົນອື່ນ · ຫ້າມ CC' },
+  'ເອກະສານບຸກຄະລາກອນ': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → HR and Admin → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ສັນຍາທຸລະກິດ / MOU': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → Legal → Business Development → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ການເງິນ-ເບີກຈ່າຍ': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → Finance → ຜູ້ອຳນວຍການ ເຊັນ · CC Accounting ອັດຕະໂນມັດ' },
+  'ງົບປະມານ': { live: true, d: 'Budgeting → Finance → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ເອກະສານໂຄງການກໍ່ສ້າງ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ຈັດຊື້ຈັດຈ້າງ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ເອກະສານກວດສອບພາຍໃນ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ໜັງສືອອກພາຍນອກ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ງານສື່ / ແບຣນດ໌': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+}
+const headOf = (dept, exceptId) => DIRECTORY.find((p) => p.dept === dept && p.rank === 'head' && p.id !== exceptId)
+// ຄືນເສັ້ນທາງບັງຄັບຂອງປະເພດ: chain (approver ຕາມລຳດັບ + ຜູ້ເຊັນປາຍທາງ) · cc ອັດຕະໂນມັດ · lockAll (ຫ້າມເພີ່ມໃຜ)
+// ກົດ: ຂ້າມຕົນເອງ + ບໍ່ໃສ່ຄົນຊ້ຳ (ເຊັ່ນ ຫົວໜ້າ Finance ເບີກເງິນເອງ → ບໍ່ຕ້ອງກວດຕົນເອງ)
+export function docTypeRoute(type, meId) {
+  const rec = DIRECTORY.find((p) => p.id === meId)
+  const P = DIRECTORY.find((p) => p.id === 'C') // President
+  const mk = (p, role) => p && { id: p.id, name: p.name, email: p.email, hasSig: !!p.hasSig, role, locked: true }
+  const myHead = headOf(rec?.dept, meId)
+  let chain = [], cc = [], lockAll = false
+  if (type === 'ເອກະສານລັບ') { chain = [mk(P, 'signer')]; lockAll = true }
+  else if (type === 'ເອກະສານບຸກຄະລາກອນ') chain = [mk(myHead, 'approver'), mk(headOf('hr', meId), 'approver'), mk(P, 'signer')]
+  else if (type === 'ສັນຍາທຸລະກິດ / MOU') chain = [mk(myHead, 'approver'), mk(headOf('legal', meId), 'approver'), mk(headOf('bd', meId), 'approver'), mk(P, 'signer')]
+  else if (type === 'ການເງິນ-ເບີກຈ່າຍ') { chain = [mk(myHead, 'approver'), mk(headOf('finance', meId), 'approver'), mk(P, 'signer')]; cc = [mk(headOf('acct', meId), 'cc')] }
+  else if (type === 'ງົບປະມານ') chain = [mk(headOf('budget', meId), 'approver'), mk(headOf('finance', meId), 'approver'), mk(P, 'signer')]
+  else return { chain: [], cc: [], lockAll: false }
+  const seen = new Set([meId])
+  const uniq = chain.filter(Boolean).filter((p) => !seen.has(p.id) && seen.add(p.id))
+  if (!uniq.length) return { chain: [], cc: [], lockAll: false } // ເຊັ່ນ ຜູ້ອຳນວຍການ ສ້າງເອກະສານລັບເອງ
+  return {
+    chain: uniq.map((p, i) => ({ ...p, step: i + 1 })),
+    cc: cc.filter(Boolean).filter((p) => !seen.has(p.id)).map((p) => ({ ...p, step: null })),
+    lockAll,
+  }
+}
 // ── ໂຄງສ້າງ flow: ພະນັກງານສ້າງ → ຫົວໜ້າພະແນກ → ຜູ້ອຳນວຍການ(C) approve ສຸດທ້າຍ → C ເຊັນຫຼາຍສຸດ ──
 export function initialDocs() {
   return [

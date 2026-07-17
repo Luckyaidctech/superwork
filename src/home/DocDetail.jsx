@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Icon, Header, SectionHead, initials, ResultPopup, ReasonModal, DIRECTORY } from '../flow/shared.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
-import { nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel } from './data.js'
+import { nameOf, colorOf, progress, isMyTurn, avatarOf, rolesLabel, docTypeOf } from './data.js'
 
 // ໄຟລ໌ຕົວຢ່າງ (mock) — ຄລິກໄຟລ໌ → ເປີດເບິ່ງ PDF ຈິງ (BASE_URL → ໃຊ້ໄດ້ທັງ dev ແລະ GitHub Pages)
 const SAMPLE_PDFS = ['sample.pdf', 'super-work-agreement.pdf', 'super-work-invitation.pdf'].map((f) => `${import.meta.env.BASE_URL}${f}`)
@@ -246,6 +246,7 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
                     {d.status === 'done' ? 'ສຳເລັດແລ້ວ' : d.status === 'cancelled' ? 'ຍົກເລີກແລ້ວ' : d.status === 'rejected' ? 'ຖືກປະຕິເສດ' : 'ກຳລັງດຳເນີນການ'}
                   </span>
                 )}
+                <span className="doc-status dd-badge type">{docTypeOf(d)}</span>
                 {myTurn && <span className="doc-status dd-badge turn"><Icon.pen /> ຮອບຂອງທ່ານ</span>}
                 {iCreated && <span className="doc-status dd-badge mine">ທ່ານເປັນຜູ້ສ້າງ</span>}
               </div>
