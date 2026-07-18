@@ -151,6 +151,7 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
   const [role, setRole] = useState('all') // ສະເພາະ tab tosign: ບົດບາດຂອງຂ້ອຍໃນໃບນັ້ນ
+  const [dir, setDir] = useState('all') // ສະເພາະ tab history: ທິດທາງມອບໝາຍ (Lucky 19/07)
   const [dtype, setDtype] = useState('all') // ປະເພດເອກະສານ
   const [who, setWho] = useState('all')
   const [time, setTime] = useState('all')
@@ -172,6 +173,11 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
     if (dtype !== 'all' && docTypeOf(d) !== dtype) return false
     if (isTosign) { if (role !== 'all' && d.signers.find((s) => s.id === me)?.role !== role) return false }
     else if (cat !== 'all' && d.status !== cat) return false
+    // tab history: ກອງທິດທາງມອບໝາຍ (Lucky 19/07 — ປະຫວັດການມອບໝາຍຕ້ອງຊອກເຫັນຈາກ tab ນີ້ໄດ້)
+    if (mode === 'history' && dir !== 'all') {
+      if (dir === 'out' && !d.signers.some((s) => s.id === me && s.assignedTo)) return false
+      if (dir === 'in' && !d.signers.some((s) => s.assignedTo === me)) return false
+    }
     if (who === 'mine' && d.creatorId !== me) return false
     if (who === 'others' && d.creatorId === me) return false
     if (time === '7d' && REF - d.ts > 7) return false
@@ -203,6 +209,10 @@ function DocList({ docs, me, onOpen, empty, creatorMode, mode = 'cc' }) {
         {isTosign
           ? <FilterDropdown btnLabel={`${roleLabel} (${list.length})`} title="ບົດບາດຂອງທ່ານ" options={ROLE_OPTS} value={role} onChange={setRole} />
           : <FilterDropdown btnLabel={`${catLabel} (${list.length})`} title="ສະຖານະ" options={STATUS_OPTS} value={cat} onChange={setCat} />}
+        {/* history ມີກອງທິດທາງມອບໝາຍເພີ່ມ (Lucky 19/07) — tab ອື່ນຄົງ 5 ຕົວເດີມ */}
+        {mode === 'history' && (
+          <FilterDropdown btnLabel={ASSIGN_FILTERS.find((f) => f.key === dir).label} title="ທິດທາງມອບໝາຍ" options={ASSIGN_FILTERS} value={dir} onChange={setDir} />
+        )}
         <FilterDropdown btnLabel={CREATORS.find((c) => c.key === who).label} title="ຜູ້ສ້າງ" options={CREATORS} value={who} onChange={setWho} />
         <TimeDropdown value={time} onChange={setTime} range={range} setRange={setRange} />
         <div className="sort-wrap">
