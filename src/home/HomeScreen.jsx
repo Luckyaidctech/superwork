@@ -485,7 +485,8 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
     .map((d) => {
       const mine = d.signers.find((s) => actingId(s) === me)
       const status = mine.status === 'signed' ? 'approved' : mine.status === 'rejected' ? 'rejected' : 'esign'
-      return { kind: 'esign', id: d.id, title: d.title, byId: d.creatorId, by: nameOf(d.creatorId), date: d.date, status, myRole: mine.role, docId: d.id, docNo: d.docNo, docType: docTypeOf(d), signers: d.signers }
+      // recvFrom: ໃບນີ້ຖືກມອບໝາຍມາໃຫ້ me ເຮັດແທນ — ການ໌ດຕ້ອງບອກ (Lucky 19/07: ເບິ່ງນອກບໍ່ຮູ້ວ່າແມ່ນໃບຮັບມອບ)
+      return { kind: 'esign', id: d.id, title: d.title, byId: d.creatorId, by: nameOf(d.creatorId), date: d.date, status, myRole: mine.role, recvFrom: mine.assignedTo === me ? mine.id : null, docId: d.id, docNo: d.docNo, docType: docTypeOf(d), signers: d.signers }
     })
   const esignPending = esignItems.filter((i) => i.status === 'esign').length // badge = ທີ່ລໍຖ້າ me ເຊັນ
   // ⚠ ຄະແນນ: ຍັງໂຊຂອງຕົນເອງຢູ່ — ເພາະໂມດູນ "ຄຳຂໍ" ຍັງບໍ່ມີ tab ຄະແນນ ໃຫ້ມັນຢູ່
@@ -548,8 +549,12 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
           </span>
           <div className="req-chips">
             <span className="req-chip">{AC_LABEL[m.kind]}</span>
+            {/* ຂໍລາຍເຊັນ: ບອກປະເພດເອກະສານ ເທິງການ໌ດເລີຍ (Lucky 19/07) */}
+            {isEsign && m.docType && <span className="req-chip" style={esty ? { color: esty.main, background: '#fff' } : undefined}>{m.docType}</span>}
             {m.sub && <span className="req-chip hl">{m.sub}</span>}
             {m.docNo && <span className="req-chip hl">{m.docNo}</span>}
+            {/* ໃບທີ່ຮັບມອບມາ — ຕ້ອງເຫັນຈາກການ໌ດເລີຍ ບໍ່ຕ້ອງເປີດເຂົ້າໄປ (Lucky 19/07) */}
+            {m.recvFrom && <span className="req-chip" style={{ color: '#0d9488', background: '#d9f2ef' }}><Icon.swap /> ຮັບມອບຈາກ {nameOf(m.recvFrom)}</span>}
           </div>
           {/* ຜູ້ຂໍ (ຜູ້ສ້າງ request) — ໂຊທຸກປະເພດ ຮວມທັງ ຂໍລາຍເຊັນ (ລາຍລະອຽດຜູ້ເຊັນ ຢູ່ໜ້າ detail) */}
           {m.byId && (

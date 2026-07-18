@@ -525,7 +525,8 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
       {/* E3/E12: เลือกคนรับมอบหมาย — จัดกลุ่มตามแผนก (directorySections ตัวเดียวกับ @mention/DirectoryPicker) */}
       {assignOpen && (
         <div className="modal-overlay" onClick={() => { setAssignOpen(false); setAssignQ('') }}>
-          <div className="modal-sheet tall" onClick={(e) => e.stopPropagation()}>
+          {/* ບໍ່ໃຊ້ .tall (height 94% ຕາຍຕົວ) — ຄົນໜ້ອຍແລ້ວເຫຼືອພື້ນຂາວຫວ່າງເປົ່າ "ຮົກ" (Lucky 19/07) */}
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head"><b><Icon.swap /> ມອບໝາຍໃຫ້ຄົນອື່ນ{mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}ແທນ</b>
               <button className="icon-mini" onClick={() => { setAssignOpen(false); setAssignQ('') }}><Icon.x /></button></div>
             <div style={{ padding: '0 14px 14px' }}>
