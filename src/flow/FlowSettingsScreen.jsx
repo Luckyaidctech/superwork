@@ -93,16 +93,24 @@ function CategoryPickSheet({ open, categories, value, onPick, onClose }) {
 }
 
 // ─────────────── ແກ້ໄຂ/ເພີ່ມ ໝວດ (ຊື່ · ສີ · ໄອຄອນ) — Lucky ຖາມ 19/07 ວ່າແກ້ຢູ່ໃສ → ຕ້ອງມີໜ້ານີ້ ───────────────
+// pool ໃຫຍ່ພໍ ເພື່ອວ່າ ຫຼັງກອງສີ/ໄອຄອນທີ່ໝວດອື່ນໃຊ້ແລ້ວອອກ ຍັງເຫຼືອ ~10 ຕົວເລືອກສະເໝີ (Lucky 19/07: ຫ້າມໂຊຊ້ຳກັບທີ່ໃຊ້ຢູ່)
 const CAT_COLOR_PRESETS = [
   { main: '#64748b', soft: '#f1f5f9' }, { main: '#16a34a', soft: '#e7f6ec' }, { main: '#0d9488', soft: '#d9f2ef' },
   { main: '#d97706', soft: '#fdf0dd' }, { main: '#7c3aed', soft: '#efe9fe' }, { main: '#0369a1', soft: '#e0f0fa' },
   { main: '#2563eb', soft: '#e7edfb' }, { main: '#ea580c', soft: '#ffedd5' }, { main: '#0891b2', soft: '#e0f5fa' },
   { main: '#db2777', soft: '#fce7f2' }, { main: '#a21caf', soft: '#fae8ff' }, { main: '#e23b4e', soft: '#fdeaec' },
+  { main: '#4f46e5', soft: '#e9e8fd' }, { main: '#059669', soft: '#def7ee' }, { main: '#b45309', soft: '#fdf1e0' },
+  { main: '#9333ea', soft: '#f3e9fd' }, { main: '#e11d48', soft: '#fde8ed' }, { main: '#0e7490', soft: '#e0f4f8' },
+  { main: '#65a30d', soft: '#f0f9df' }, { main: '#c2410c', soft: '#fdebe1' }, { main: '#475569', soft: '#eef1f6' },
+  { main: '#be185d', soft: '#fbe6ef' }, { main: '#1d4ed8', soft: '#e5ecfc' }, { main: '#0f766e', soft: '#def3f1' },
 ]
-const CAT_ICON_CHOICES = ['doc', 'money', 'cart', 'building', 'chart', 'users', 'shield', 'checkCircle', 'send', 'image', 'layers', 'mail', 'book', 'lock']
-function CategoryEditSheet({ cat, isNew, onSave, onClose }) {
+const CAT_ICON_CHOICES = ['doc', 'money', 'cart', 'building', 'chart', 'users', 'shield', 'checkCircle', 'send', 'image', 'layers', 'mail', 'book', 'lock', 'pen', 'clock', 'calendar', 'download', 'share', 'swap', 'printer', 'eye', 'user']
+function CategoryEditSheet({ cat, isNew, usedColors, usedIcons, onSave, onClose }) {
   const [draft, setDraft] = useState(cat)
   const canSave = draft.label.trim().length > 0
+  // ໂຊສະເພາະ ສີ/ໄອຄອນ ທີ່ຍັງບໍ່ມີໝວດໃດໃຊ້ (ຄ່າປັດຈຸບັນຂອງໝວດນີ້ເອງ ຍັງເລືອກໄດ້)
+  const colorChoices = CAT_COLOR_PRESETS.filter((c) => !usedColors?.has(c.main) || c.main === cat.main).slice(0, 10)
+  const iconChoices = CAT_ICON_CHOICES.filter((k) => (!usedIcons?.has(k) || k === cat.icon) && Icon[k]).slice(0, 10)
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
@@ -116,18 +124,18 @@ function CategoryEditSheet({ cat, isNew, onSave, onClose }) {
             <input className="text-input" value={draft.label} onChange={(e) => setDraft((d) => ({ ...d, label: e.target.value }))} placeholder="ຊື່ໝວດ" maxLength={40} />
           </div>
           <div className="sub-edit-field">
-            <label>ສີປະຈຳໝວດ</label>
+            <label>ສີປະຈຳໝວດ (ສະເພາະສີທີ່ຍັງບໍ່ຖືກໃຊ້)</label>
             <div className="cat-swatches">
-              {CAT_COLOR_PRESETS.map((c) => (
+              {colorChoices.map((c) => (
                 <button key={c.main} className={`cat-swatch ${draft.main === c.main ? 'on' : ''}`} style={{ background: c.main }}
                   onClick={() => setDraft((d) => ({ ...d, main: c.main, soft: c.soft }))} />
               ))}
             </div>
           </div>
           <div className="sub-edit-field">
-            <label>ໄອຄອນປະຈຳໝວດ</label>
+            <label>ໄອຄອນປະຈຳໝວດ (ສະເພາະທີ່ຍັງບໍ່ຖືກໃຊ້)</label>
             <div className="cat-icons">
-              {CAT_ICON_CHOICES.map((k) => (
+              {iconChoices.map((k) => (
                 <button key={k} className={`cat-icon-opt ${draft.icon === k ? 'on' : ''}`}
                   style={draft.icon === k ? { background: draft.main, color: '#fff', borderColor: draft.main } : undefined}
                   onClick={() => setDraft((d) => ({ ...d, icon: k }))}>{Icon[k]()}</button>
@@ -328,31 +336,37 @@ export default function FlowSettingsScreen({ subtypes, defaultSubtypes, categori
   const [creating, setCreating] = useState(false)
   const [editCatKey, setEditCatKey] = useState(null) // ໝວດທີ່ກຳລັງແກ້ (ຊື່/ສີ/ໄອຄອນ)
   const [creatingCat, setCreatingCat] = useState(false)
+  const [addMenu, setAddMenu] = useState(false) // ປຸ່ມ + ດຽວ → ເລືອກວ່າຈະເພີ່ມຫຍັງ (Lucky 19/07)
+  const [openCats, setOpenCats] = useState({}) // ໝວດທີ່ກາງຢູ່ — default ປິດໝົດ (Lucky 19/07)
+  const toggleCat = (k) => setOpenCats((o) => ({ ...o, [k]: !o[k] }))
   const cats = categories || DOC_CATEGORIES
   const openSub = subtypes.find((s) => s.key === openKey) || null
   const openDefault = openSub ? defaultSubtypes.find((s) => s.key === openSub.key) : null
+  // ສີ/ໄອຄອນ ທີ່ຖືກໃຊ້ຢູ່ແລ້ວ — ສົ່ງໃຫ້ CategoryEditSheet ກອງອອກ
+  const usedColors = new Set(Object.values(cats).map((c) => c.main))
+  const usedIcons = new Set(Object.values(cats).map((c) => c.icon))
+  // ຄ່າເລີ່ມຕົ້ນຂອງໝວດໃໝ່ = ສີ/ໄອຄອນທຳອິດທີ່ຍັງວ່າງ
+  const freshColor = CAT_COLOR_PRESETS.find((c) => !usedColors.has(c.main)) || CAT_COLOR_PRESETS[0]
+  const freshIcon = CAT_ICON_CHOICES.find((k) => !usedIcons.has(k)) || 'doc'
 
   return (
     <div className="app">
       <Header title="ຕັ້ງຄ່າສາຍອະນຸມັດ" subtitle="Flow Signature Approval Setting — ເພີ່ມ/ແກ້ໄຂ/ລຶບປະເພດເອກະສານ ແລະ ຜູ້ອະນຸມັດແຕ່ລະຂັ້ນ" onBack={onBack} />
       <div className="scroll">
-        <button className="btn primary" style={{ width: '100%', margin: '4px 0 8px' }} onClick={() => setCreating(true)}>
-          <Icon.plus /> ເພີ່ມປະເພດເອກະສານໃໝ່
-        </button>
-        <button className="btn ghost" style={{ width: '100%', margin: '0 0 12px' }} onClick={() => setCreatingCat(true)}>
-          <Icon.plus /> ເພີ່ມໝວດ (ພະແນກ) ໃໝ່
-        </button>
         {Object.entries(cats).map(([catKey, cat]) => {
           const subs = subtypes.filter((s) => s.category === catKey)
+          const opened = !!openCats[catKey]
           return (
             <div className="card" key={catKey}>
-              {/* ຫົວໝວດ: ກົດປາກກາ = ແກ້ ຊື່/ສີ/ໄອຄອນ ຂອງໝວດນີ້ (Lucky 19/07) */}
-              <div className="cat-head-row">
+              {/* ຫົວໝວດ = accordion: ແຕະເພື່ອກາງ/ພັບ (default ພັບ) · ປາກກາ = ແກ້ ຊື່/ສີ/ໄອຄອນ */}
+              <div className="cat-head-row acc" onClick={() => toggleCat(catKey)}>
                 <p className="dd-section" style={{ color: cat.main, margin: 0 }}>{Icon[cat.icon] ? Icon[cat.icon]() : <Icon.doc />} {cat.label}</p>
-                <button className="icon-mini" title="ແກ້ໄຂໝວດ" onClick={() => setEditCatKey(catKey)}><Icon.pen /></button>
+                <span className="cat-count" style={{ color: cat.main, background: cat.soft }}>{subs.length}</span>
+                <button className="icon-mini" title="ແກ້ໄຂໝວດ" onClick={(e) => { e.stopPropagation(); setEditCatKey(catKey) }}><Icon.pen /></button>
+                <span className={`cat-acc-chevron ${opened ? 'open' : ''}`}><Icon.chevron /></span>
               </div>
-              {subs.length === 0 && <p className="muted" style={{ padding: '8px 0', margin: 0 }}>ຍັງບໍ່ມີເອກະສານຍ່ອຍໃນໝວດນີ້ — ເພີ່ມໄດ້ດ້ວຍປຸ່ມ "ເພີ່ມປະເພດເອກະສານໃໝ່"</p>}
-              {subs.map((s) => {
+              {opened && subs.length === 0 && <p className="muted" style={{ padding: '8px 0', margin: 0 }}>ຍັງບໍ່ມີເອກະສານຍ່ອຍໃນໝວດນີ້ — ເພີ່ມໄດ້ດ້ວຍປຸ່ມ +</p>}
+              {opened && subs.map((s) => {
                 const def = defaultSubtypes.find((d) => d.key === s.key)
                 const edited = def ? JSON.stringify(def) !== JSON.stringify(s) : true
                 return (
@@ -369,10 +383,27 @@ export default function FlowSettingsScreen({ subtypes, defaultSubtypes, categori
           )
         })}
       </div>
+      {/* ປຸ່ມ + ດຽວ (ຮູບແບບດຽວກັບ FAB ໜ້າຫຼັກ) → ເມນູເລືອກ ເພີ່ມປະເພດ ຫຼື ເພີ່ມໝວດ */}
+      <button className="fab fs-fab" onClick={() => setAddMenu(true)}><Icon.plus /></button>
+      {addMenu && (
+        <div className="fsheet-overlay" onClick={() => setAddMenu(false)}>
+          <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+            <p className="fsheet-title">ຕ້ອງການເພີ່ມຫຍັງ?</p>
+            <button className="dtype-opt" onClick={() => { setAddMenu(false); setCreating(true) }}>
+              <span className="cat-pick-ic" style={{ background: '#e7edfb', color: '#2563eb' }}><Icon.doc /></span>
+              <div className="dtype-info"><b>ເພີ່ມປະເພດເອກະສານໃໝ່</b><span>ເອກະສານຍ່ອຍ + ເສັ້ນທາງອະນຸມັດ ຂອງມັນ</span></div>
+            </button>
+            <button className="dtype-opt" onClick={() => { setAddMenu(false); setCreatingCat(true) }}>
+              <span className="cat-pick-ic" style={{ background: '#efe9fe', color: '#7c3aed' }}><Icon.layers /></span>
+              <div className="dtype-info"><b>ເພີ່ມໝວດ (ພະແນກ) ໃໝ່</b><span>ກຳນົດ ຊື່ · ສີ · ໄອຄອນ ຂອງໝວດ</span></div>
+            </button>
+          </div>
+        </div>
+      )}
       <SubtypeEditSheet sub={openSub} isNew={false} defaultSub={openDefault} categories={cats} onUpdate={onUpdate} onDelete={onDelete} onReset={onReset} onClose={() => setOpenKey(null)} />
       {creating && <SubtypeEditSheet sub={{ ...BLANK_SUB, category: Object.keys(cats)[0] }} isNew categories={cats} onAdd={onAdd} onClose={() => setCreating(false)} />}
-      {editCatKey && <CategoryEditSheet cat={cats[editCatKey]} isNew={false} onSave={(patch) => onUpdateCategory(editCatKey, patch)} onClose={() => setEditCatKey(null)} />}
-      {creatingCat && <CategoryEditSheet cat={{ label: '', main: CAT_COLOR_PRESETS[6].main, soft: CAT_COLOR_PRESETS[6].soft, icon: 'doc' }} isNew onSave={(c) => onAddCategory(c)} onClose={() => setCreatingCat(false)} />}
+      {editCatKey && <CategoryEditSheet cat={cats[editCatKey]} isNew={false} usedColors={usedColors} usedIcons={usedIcons} onSave={(patch) => onUpdateCategory(editCatKey, patch)} onClose={() => setEditCatKey(null)} />}
+      {creatingCat && <CategoryEditSheet cat={{ label: '', main: freshColor.main, soft: freshColor.soft, icon: freshIcon }} isNew usedColors={usedColors} usedIcons={usedIcons} onSave={(c) => onAddCategory(c)} onClose={() => setCreatingCat(false)} />}
     </div>
   )
 }
