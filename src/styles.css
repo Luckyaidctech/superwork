@@ -1281,7 +1281,7 @@ button.ac-card:active { transform: scale(.99); }
 .req-card-ic { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; color: #fff; }
 .req-card-ic svg { width: 21px; height: 21px; }
 .req-card-ic.leave { background: #8b5e3c; }
-.req-card-ic.offsite { background: var(--blue); }
+.req-card-ic.offsite { background: #0891b2; } /* ຟ້າ — ຫ້າມຊ້ຳ esign (ນ້ຳເງິນ) ບໍ່ດັ່ງນັ້ນ 2 ປະເພດສີດຽວກັນ */
 .req-card-ic.ot { background: #7c3aed; }
 .req-card-ic.booking { background: #0d9488; }
 .req-card-ic.knowledge { background: #d97706; }
@@ -2256,3 +2256,12 @@ button.ac-card:active { transform: scale(.99); }
 .cat-head-row .dd-section svg { flex-shrink: 0; }
 /* ກັນ FAB ທັບປຸ່ມແຖວລຸ່ມສຸດ — ເພີ່ມບ່ອນວ່າງທ້າຍ list */
 .fs-scroll { padding-bottom: 96px; }
+
+/* pill ມອບໝາຍ/ດຶງຄືນ ໃນ detail — ນ້ອຍ contextual ຢູ່ໃຕ້ລາຍຊື່ຜູ້ເຊັນ (ບໍ່ໜັກເທົ່າປຸ່ມເຕັມແຖວ) */
+.assign-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; background: #fff;
+  border: 1.5px solid #c7cee6; color: var(--blue); border-radius: 20px; padding: 7px 13px;
+  font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.assign-pill svg { width: 14px; height: 14px; }
+.assign-pill:hover { background: var(--blue-soft); }
+.assign-pill.danger { color: var(--danger); border-color: #f3c1c8; }
+.assign-pill.danger:hover { background: var(--danger-soft); }

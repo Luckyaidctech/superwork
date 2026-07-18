@@ -335,21 +335,22 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
                     {/* E2/E13: ລະບຸວິທີເຊັນ — ຕົ້ນສະບັບ (ພິມ→ເຊັນມື→ສະແກນ) ຕ້ອງແຍກອອກຈາກເຊັນ digital ໃຫ້ກວດສອບໄດ້ */}
                     {s.status === 'signed' && <span className="dd-tl-time">{s.assignedTo ? `ເຊັນແທນໂດຍ ${nameOf(s.assignedTo)} · ` : ''}ເຊັນແລ້ວ{s.sigType === 'original' ? ' (ຕົ້ນສະບັບ)' : ''} · {s.time}</span>}
                     {s.status === 'rejected' && <span className="dd-tl-time rej">ປະຕິເສດ{s.reason ? ` · ${s.reason}` : ''}</span>}
-                    {active && <span className="dd-tl-time now">ຮອບນີ້ · ກຳລັງລໍຖ້າ</span>}
+                    {active && <span className="dd-tl-time now">ກຳລັງລໍຖ້າ</span>}
                   </div>
                 </div>
               )
             })}
           </div>
           {/* E3/E12: มอบหมายให้คนอื่นเซ็น/อนุมัติแทน — เฉพาะที่นั่งของตัวเอง, ไม่ใช่เอกสารลับ */}
-          {/* ປຸ່ມມອບໝາຍ ຕ້ອງເຫັນຊັດ (Lucky 18/07: ລິ້ງນ້ອຍຫາບໍ່ເຈິ) */}
+          {/* ປຸ່ມມອບໝາຍ = pill ນ້ອຍ ໃຕ້ລາຍຊື່ (Lucky 19/07: ປຸ່ມເຕັມແຖວໜັກເກີນ · ລິ້ງນ້ອຍກໍຫາບໍ່ເຈິ → ເອົາກາງ)
+              ຢູ່ນີ້ເພາະການມອບໝາຍເປັນ action ຂອງ "ທີ່ນັ່ງຂອງຂ້ອຍ" ໃນສາຍເຊັນ ບໍ່ແມ່ນ action ຕັດສິນເອກະສານ (ບໍ່ຄວນຢູ່ແຖບປຸ່ມລຸ່ມ) */}
           {canAssign && (
-            <button className="btn ghost" style={{ width: '100%', marginTop: 10 }} onClick={() => setAssignOpen(true)}>
+            <button className="assign-pill" onClick={() => setAssignOpen(true)}>
               <Icon.swap /> ມອບໝາຍໃຫ້ຄົນອື່ນ{mySig.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}ແທນ
             </button>
           )}
           {canRevoke && (
-            <button className="dd-cmt-reply del" style={{ marginTop: 6 }} onClick={() => onRevokeAssign(d.id, myOwnSeat.id)}>
+            <button className="assign-pill danger" onClick={() => onRevokeAssign(d.id, myOwnSeat.id)}>
               <Icon.x /> ດຶງການມອບໝາຍຄືນຈາກ {nameOf(myOwnSeat.assignedTo)}
             </button>
           )}

@@ -440,6 +440,8 @@ const AC_CATS = [
 ]
 const AC_ICON = { esign: Icon.pen, ot: Icon.clock, leave: Icon.umbrella, offsite: Icon.briefcase, booking: Icon.calCheck, knowledge: Icon.bulb, points: Icon.chart }
 const AC_LABEL = { esign: 'ຂໍລາຍເຊັນ', ot: 'ໂອທີ', leave: 'ລາພັກ', offsite: 'ວຽກນອກສະຖານທີ', booking: 'ການຈອງ', knowledge: 'ຄວາມຮູ້', points: 'ຄະແນນ' }
+// ສີປະຈຳປະເພດ approval — ຊຸດດຽວກັບ .req-card-ic ໃນ styles.css (ຫ້າມໃຫ້ 2 ບ່ອນນີ້ຄົນລະສີ)
+const AC_COLOR = { esign: '#1f3fb5', ot: '#7c3aed', leave: '#8b5e3c', offsite: '#0891b2', booking: '#0d9488', knowledge: '#d97706', points: '#16a34a' }
 // ຂໍ້ມູນຄຳຂໍ (leave/offsite/ot/booking/knowledge) ຢູ່ໃນ App.jsx (initialReqs) → ສົ່ງລົງມາທາງ props
 // ເພື່ອໃຫ້ ໂມດູນ "ຄຳຂໍ" ແລະ "ການອະນຸມັດ" ເຫັນຂໍ້ມູນຊຸດດຽວກັນ
 // ໃຊ້ class badge ດຽວກັບການ໌ດຄຳຂໍ (.req-badge) → ທຸກການ໌ດໃນ tab "ທັງໝົດ" ໜ້າຕາເທົ່າກັນ
@@ -560,12 +562,19 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
   }
   return (
     <>
+      {/* chip ແຕ່ລະປະເພດມີສີປະຈຳຕົວ — ເບິ່ງແວບດຽວຮູ້ວ່າ approval ປະເພດໃດ (ຜອ. ສັ່ງ, Lucky 19/07)
+          ສີຊຸດດຽວກັບໄອຄອນການ໌ດ (req-card-ic) ໃຫ້ຈື່ງ່າຍ · ຂໍລາຍເຊັນ=ນ້ຳເງິນ ໂອທີ=ມ່ວງ ລາພັກ=ນ້ຳຕານ ວຽກນອກ=ຟ້າ ຈອງ=ຂຽວທະເລ ຄວາມຮູ້=ສົ້ມ ຄະແນນ=ຂຽວ */}
       <div className="ac-cats">
-        {AC_CATS.map((c) => (
-          <button key={c.key} className={`ac-cat ${cat === c.key ? 'on' : ''}`} onClick={() => setCat(c.key)}>
-            {c.icon()}<span>{c.label}</span>{pendingOf(c.key) > 0 && <em>{pendingOf(c.key)}</em>}
-          </button>
-        ))}
+        {AC_CATS.map((c) => {
+          const col = AC_COLOR[c.key]
+          const on = cat === c.key
+          const style = col ? (on ? { background: col, borderColor: col, color: '#fff' } : { color: col, borderColor: `${col}66` }) : undefined
+          return (
+            <button key={c.key} className={`ac-cat ${on ? 'on' : ''}`} style={style} onClick={() => setCat(c.key)}>
+              {c.icon()}<span>{c.label}</span>{pendingOf(c.key) > 0 && <em>{pendingOf(c.key)}</em>}
+            </button>
+          )
+        })}
       </div>
       <div className="ac-sf">
         {AC_SF.map((s) => (
