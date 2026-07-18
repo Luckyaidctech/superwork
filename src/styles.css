@@ -2250,3 +2250,9 @@ button.ac-card:active { transform: scale(.99); }
 .cat-acc-chevron.open { transform: rotate(180deg); }
 .fs-fab { left: auto; right: 18px; transform: none; bottom: 24px; padding: 0; width: 52px; height: 52px; border-radius: 50%; justify-content: center; }
 .fs-fab svg { width: 22px; height: 22px; }
+
+/* ຫົວໝວດ Tab6: ໄອຄອນ+ຊື່ ຕ້ອງຢູ່ແຖວກາງດຽວກັນ (Lucky 19/07 ຕິບໍ່ຊື່ກັນ) */
+.cat-head-row .dd-section { display: flex; align-items: center; gap: 7px; }
+.cat-head-row .dd-section svg { flex-shrink: 0; }
+/* ກັນ FAB ທັບປຸ່ມແຖວລຸ່ມສຸດ — ເພີ່ມບ່ອນວ່າງທ້າຍ list */
+.fs-scroll { padding-bottom: 96px; }

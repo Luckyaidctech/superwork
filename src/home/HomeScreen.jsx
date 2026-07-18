@@ -772,6 +772,7 @@ const ASSIGN_STATUS = [{ key: 'all', label: 'ທຸກສະຖານະ' }, { k
 const ASSIGN_SORTS = [{ key: 'recent', label: 'ມອບລ່າສຸດກ່ອນ' }, { key: 'oldest', label: 'ມອບເກົ່າສຸດກ່ອນ' }, { key: 'az', label: 'ຊື່ເອກະສານ A-Z' }, { key: 'za', label: 'ຊື່ເອກະສານ Z-A' }]
 const seatStatusKey = (seat) => (seat.status === 'signed' ? 'done' : seat.status === 'rejected' ? 'rej' : 'wait')
 function AssignedTab({ docs, me, onOpen }) {
+  const [q, setQ] = useState('') // ຄົ້ນຫາ — ຄືກັບ tab ອື່ນ (Lucky 19/07 ຕິວ່າຂາດ)
   const [filter, setFilter] = useState('all')
   const [stFilter, setStFilter] = useState('all')
   const [time, setTime] = useState('all')
@@ -796,9 +797,17 @@ function AssignedTab({ docs, me, onOpen }) {
     }
     return true
   }
+  // ຄົ້ນຫາ: ຊື່ເອກະສານ + ເລກທີ + ຊື່ຄູ່ມອບໝາຍ + ຜູ້ສ້າງ
+  const matchQ = (e) => {
+    if (!q.trim()) return true
+    const s = q.trim().toLowerCase()
+    const counterpart = e.dir === 'out' ? e.seat.assignedTo : e.seat.id
+    return e.d.title.toLowerCase().includes(s) || (e.d.docNo || '').toLowerCase().includes(s)
+      || nameOf(counterpart).toLowerCase().includes(s) || nameOf(e.d.creatorId).toLowerCase().includes(s)
+  }
   const byDir = (k) => (k === 'all' ? entries : entries.filter((e) => e.dir === k))
   const list = byDir(filter)
-    .filter((e) => (stFilter === 'all' || seatStatusKey(e.seat) === stFilter) && inTime(e.d))
+    .filter((e) => (stFilter === 'all' || seatStatusKey(e.seat) === stFilter) && inTime(e.d) && matchQ(e))
     .sort((a, b) => {
       if (sort === 'oldest') return a.d.ts - b.d.ts
       if (sort === 'az') return a.d.title.localeCompare(b.d.title, 'lo')
@@ -811,6 +820,7 @@ function AssignedTab({ docs, me, onOpen }) {
   const sortLabel = ASSIGN_SORTS.find((f) => f.key === sort).label
   return (
     <>
+      <div className="home-search"><Icon.search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ຄົ້ນຫາເອກະສານ, ເລກທີ ຫຼື ຊື່ຄົນ..." /></div>
       <div className="home-filters">
         <FilterDropdown btnLabel={`${dirLabel} (${byDir(filter).length})`} title="ທິດທາງ" options={ASSIGN_FILTERS} value={filter} onChange={setFilter} />
         <FilterDropdown btnLabel={`${stLabel} (${list.length})`} title="ສະຖານະ" options={ASSIGN_STATUS} value={stFilter} onChange={setStFilter} />

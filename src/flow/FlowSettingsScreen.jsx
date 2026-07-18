@@ -93,18 +93,23 @@ function CategoryPickSheet({ open, categories, value, onPick, onClose }) {
 }
 
 // ─────────────── ແກ້ໄຂ/ເພີ່ມ ໝວດ (ຊື່ · ສີ · ໄອຄອນ) — Lucky ຖາມ 19/07 ວ່າແກ້ຢູ່ໃສ → ຕ້ອງມີໜ້ານີ້ ───────────────
-// pool ໃຫຍ່ພໍ ເພື່ອວ່າ ຫຼັງກອງສີ/ໄອຄອນທີ່ໝວດອື່ນໃຊ້ແລ້ວອອກ ຍັງເຫຼືອ ~10 ຕົວເລືອກສະເໝີ (Lucky 19/07: ຫ້າມໂຊຊ້ຳກັບທີ່ໃຊ້ຢູ່)
+// Lucky 19/07 (ຮອບ 2): ສີໃນ pool ຕ້ອງ "ຕ່າງຈາກສີທີ່ໝວດເກົ່າໃຊ້ຢ່າງຊັດເຈນ" ບໍ່ແມ່ນແຄ່ບໍ່ຊ້ຳ hex —
+// ຈຶ່ງໃຊ້ໂທນເຂັ້ມ/ໂທນທີ່ຍັງບໍ່ມີ (indigo, navy, ນ້ຳຕານ, ຄຳເຂັ້ມ, ມະກອກ, ເລືອດໝູ...) ທີ່ເຂົ້າກັບ palette ແອັບ
 const CAT_COLOR_PRESETS = [
+  { main: '#4f46e5', soft: '#e9e8fd' }, { main: '#1e3a8a', soft: '#e4e9f7' }, { main: '#92400e', soft: '#f7ebe0' },
+  { main: '#a16207', soft: '#f9f1dd' }, { main: '#4d7c0f', soft: '#eef7e0' }, { main: '#9f1239', soft: '#fbe7ec' },
+  { main: '#334155', soft: '#e9edf3' }, { main: '#155e75', soft: '#e0f0f5' }, { main: '#581c87', soft: '#f0e7fb' },
+  { main: '#881337', soft: '#fae7ee' },
+  // ສີເດີມຂອງໝວດ default — ຄົງໄວ້ໃນ pool ເພື່ອໃຫ້ "ແກ້ໝວດເກົ່າ" ຍັງເລືອກສີຕົນເອງຄືນໄດ້ (ຖືກກອງອອກຢູ່ແລ້ວຖ້າໝວດອື່ນໃຊ້)
   { main: '#64748b', soft: '#f1f5f9' }, { main: '#16a34a', soft: '#e7f6ec' }, { main: '#0d9488', soft: '#d9f2ef' },
   { main: '#d97706', soft: '#fdf0dd' }, { main: '#7c3aed', soft: '#efe9fe' }, { main: '#0369a1', soft: '#e0f0fa' },
   { main: '#2563eb', soft: '#e7edfb' }, { main: '#ea580c', soft: '#ffedd5' }, { main: '#0891b2', soft: '#e0f5fa' },
-  { main: '#db2777', soft: '#fce7f2' }, { main: '#a21caf', soft: '#fae8ff' }, { main: '#e23b4e', soft: '#fdeaec' },
-  { main: '#4f46e5', soft: '#e9e8fd' }, { main: '#059669', soft: '#def7ee' }, { main: '#b45309', soft: '#fdf1e0' },
-  { main: '#9333ea', soft: '#f3e9fd' }, { main: '#e11d48', soft: '#fde8ed' }, { main: '#0e7490', soft: '#e0f4f8' },
-  { main: '#65a30d', soft: '#f0f9df' }, { main: '#c2410c', soft: '#fdebe1' }, { main: '#475569', soft: '#eef1f6' },
-  { main: '#be185d', soft: '#fbe6ef' }, { main: '#1d4ed8', soft: '#e5ecfc' }, { main: '#0f766e', soft: '#def3f1' },
+  { main: '#db2777', soft: '#fce7f2' }, { main: '#a21caf', soft: '#fae8ff' }, { main: '#0284c7', soft: '#e0f2fe' },
 ]
-const CAT_ICON_CHOICES = ['doc', 'money', 'cart', 'building', 'chart', 'users', 'shield', 'checkCircle', 'send', 'image', 'layers', 'mail', 'book', 'lock', 'pen', 'clock', 'calendar', 'download', 'share', 'swap', 'printer', 'eye', 'user']
+// ໄອຄອນຕ້ອງເໝາະກັບ "ເອກະສານ/ພະແນກ" ເທົ່ານັ້ນ — ບໍ່ເອົາໄອຄອນ action (download/share/swap/clock...) (Lucky 19/07)
+const CAT_ICON_CHOICES = ['briefcase', 'pdf', 'inbox', 'reqDoc', 'book', 'calCheck', 'file', 'printer', 'pen', 'bulb', 'mail', 'video',
+  // ຂອງໝວດ default (ຖືກກອງອອກຖ້າໃຊ້ຢູ່ — ຄົງໄວ້ໃຫ້ໝວດເກົ່າເລືອກຄືນໄດ້)
+  'doc', 'money', 'cart', 'building', 'chart', 'users', 'shield', 'checkCircle', 'send', 'image', 'layers']
 function CategoryEditSheet({ cat, isNew, usedColors, usedIcons, onSave, onClose }) {
   const [draft, setDraft] = useState(cat)
   const canSave = draft.label.trim().length > 0
@@ -357,7 +362,7 @@ export default function FlowSettingsScreen({ subtypes, defaultSubtypes, categori
   return (
     <div className="app">
       <Header title="ຕັ້ງຄ່າສາຍອະນຸມັດ" subtitle="Flow Signature Approval Setting — ເພີ່ມ/ແກ້ໄຂ/ລຶບປະເພດເອກະສານ ແລະ ຜູ້ອະນຸມັດແຕ່ລະຂັ້ນ" onBack={onBack} />
-      <div className="scroll">
+      <div className="scroll fs-scroll">
         {Object.entries(cats).map(([catKey, cat]) => {
           const subs = subtypes.filter((s) => s.category === catKey)
           const opened = !!openCats[catKey]
