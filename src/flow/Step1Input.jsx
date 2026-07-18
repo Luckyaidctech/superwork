@@ -5,7 +5,7 @@ import {
 } from './shared.jsx'
 import FilePreviewModal from './FilePreviewModal.jsx'
 import AiSummary from './AiSummary.jsx'
-import { DOC_CATEGORIES, DEFAULT_DOC_SUBTYPES, subtypeRoute, legacyTypeOfCategory } from '../home/data.js'
+import { DOC_CATEGORIES, DEFAULT_DOC_SUBTYPES, subtypeRoute, legacyTypeOfSubtype } from '../home/data.js'
 
 // ─────────────── Directory picker (ໂຄງສ້າງອົງກອນ + sticky headers) ───────────────
 function DirectoryPicker({ open, onClose, signers, onAdd, me }) {
@@ -108,6 +108,17 @@ function DocTypeSheet({ open, value, subtypes, onPick, onClose }) {
               </div>
             )
           })}
+          {/* E10: "ອື່ນໆ" — ພິມຊື່ປະເພດເອງ (ບໍ່ມີເສັ້ນທາງບັງຄັບ) */}
+          <div className="dir-sec">
+            <p className="dir-sec-head" style={{ color: '#64748b' }}>ອື່ນໆ<span>1</span></p>
+            <button className={`dtype-opt ${value === 'other' ? 'on' : ''}`} onClick={() => onPick('other')}>
+              <div className="dtype-info">
+                <b>ອື່ນໆ (ພິມຊື່ເອງ)</b>
+                <span>OTH · ບໍ່ມີເສັ້ນທາງບັງຄັບ — ເລືອກຜູ້ລົງນາມເອງ</span>
+              </div>
+              {value === 'other' && <Icon.check />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -127,7 +138,8 @@ function RoleSeg({ role, onChange }) {
 
 export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBack }) {
   const {
-    title, setTitle, docType, setDocType, docSubtype, setDocSubtype, pdfs, setPdfs, attachments, setAttachments, signers, setSigners,
+    title, setTitle, docType, setDocType, docSubtype, setDocSubtype, otherTypeName, setOtherTypeName,
+    pdfs, setPdfs, attachments, setAttachments, signers, setSigners,
   } = store
   // ໃຊ້ subtypes ຈາກ App (Tab 6 ອາດແກ້ chain ໄວ້) — ບໍ່ມີ prop ສົ່ງມາ → fallback default
   const subtypes = docSubtypes || DEFAULT_DOC_SUBTYPES
@@ -142,10 +154,16 @@ export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBac
   // E7/E10: Dynamic = ເລືອກຜູ້ລົງນາມເອງ · No-Dynamic (default) = ໃຊ້ເສັ້ນທາງມາດຕະຖານຂອງເອກະສານຍ່ອຍ
   const [dynamicMode, setDynamicMode] = useState(false)
 
-  const currentSub = subtypes.find((s) => s.key === docSubtype) || subtypes[0]
+  // E10: "ອື່ນໆ" = ປະເພດພິມຊື່ເອງ — ບໍ່ຢູ່ໃນ catalog, ບໍ່ມີເສັ້ນທາງບັງຄັບ, prefix OTH
+  const isOther = docSubtype === 'other'
+  const currentSub = isOther
+    ? { key: 'other', category: 'general', name: otherTypeName?.trim() || 'ອື່ນໆ (ພິມຊື່ເອງ)', prefix: 'OTH', chain: [], lockAll: false }
+    : (subtypes.find((s) => s.key === docSubtype) || subtypes[0])
   const currentCat = DOC_CATEGORIES[currentSub.category] || {}
+  // ເສັ້ນທາງມາດຕະຖານຂອງປະເພດນີ້ (ບໍ່ຂຶ້ນກັບ mode) — ໃຊ້ຕັດສິນວ່າຄວນໂຊ toggle ຫຼືບໍ່
+  const baseRoute = isOther ? { chain: [], cc: [], lockAll: false } : subtypeRoute(docSubtype, me, subtypes)
   // E7/E8/E10: ໝວດ+ຍ່ອຍ → ເສັ້ນທາງບັງຄັບ (Dynamic mode = ບໍ່ລ໋ອກ, ເລືອກເອງໝົດ)
-  const route = dynamicMode ? { chain: [], cc: [], lockAll: false } : subtypeRoute(docSubtype, me, subtypes)
+  const route = dynamicMode ? { chain: [], cc: [], lockAll: false } : baseRoute
   const lockAll = route.lockAll
   // No-Dynamic ล็อกการเพิ่มคนเองก็ต่อเมื่อจริงๆ มีเส้นทางบังคับ — ประเภทที่ chain ว่าง (ทั่วไป/บันทึก/เชิญประชุม) ไม่มีอะไรให้ล็อก เพิ่มเองได้เสมอ
   const chainLocked = !lockAll && !dynamicMode && route.chain.length > 0
@@ -207,12 +225,19 @@ export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBac
   // ── ເລືອກເອກະສານຍ່ອຍ → ຕັ້ງ legacy docType (backward-compat E11/E15/filter) + ໃສ່ເສັ້ນທາງ (ຖ້າບໍ່ແມ່ນ Dynamic) ──
   const applySubtype = (key) => {
     setDocSubtype(key)
-    const sub = subtypes.find((s) => s.key === key)
-    setDocType(legacyTypeOfCategory(sub?.category))
-    // ເອກະສານລັບ (lockAll): ບັງຄັບ No-Dynamic ສະເໝີ — ຫ້າມຜູ້ໃຊ້ເລືອກຄົນເອງ
-    if (sub?.lockAll) setDynamicMode(false)
-    if (dynamicMode && !sub?.lockAll) setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
-    else applyLockedChain(subtypeRoute(key, me, subtypes))
+    if (key === 'other') {
+      // E10 "ອື່ນໆ": ບໍ່ມີເສັ້ນທາງບັງຄັບ — ລ້າງຂັ້ນ lock ເກົ່າອອກ ໃຫ້ເລືອກຄົນເອງທັງໝົດ
+      setDocType('ເອກະສານທົ່ວໄປ')
+      setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
+    } else {
+      const sub = subtypes.find((s) => s.key === key)
+      // legacyTypeOfSubtype: subtype ລັບ (lockAll) → "ເອກະສານລັບ" ສະເໝີ (ກັນ visibility/@mention ຮົ່ວ)
+      setDocType(legacyTypeOfSubtype(sub))
+      // ເອກະສານລັບ (lockAll): ບັງຄັບ No-Dynamic ສະເໝີ — ຫ້າມຜູ້ໃຊ້ເລືອກຄົນເອງ
+      if (sub?.lockAll) setDynamicMode(false)
+      if (dynamicMode && !sub?.lockAll) setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
+      else applyLockedChain(subtypeRoute(key, me, subtypes))
+    }
     setShowErrors(false)
     setTypeOpen(false)
   }
@@ -297,16 +322,23 @@ export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBac
       <div className="scroll">
         <Stepper current={1} />
 
-        {/* ── ປະເພດເອກະສານ (E7/E8/E10) — ໝວດ→ຍ່ອຍ ກຳນົດເສັ້ນທາງອະນຸມັດອັດຕະໂນມັດ ── */}
+        {/* ── ປະເພດເອກະສານ (E7/E8/E10) — ເລືອກປະເພດ + ກຳນົດເສັ້ນທາງ ຢູ່ບ່ອນດຽວກັນ (Lucky ສັ່ງ 18/07: ຢ່າເອົາໄປໄວ້ໂຊນຜູ້ເຊັນ/CC) ── */}
         <div className="card">
-          <SectionHead icon={<Icon.layers />} title="ປະເພດເອກະສານ" sub="ເລືອກເອກະສານຍ່ອຍ — ເສັ້ນທາງອະນຸມັດຖືກກຳນົດຕາມປະເພດ" />
+          <SectionHead icon={<Icon.layers />} title="ປະເພດເອກະສານ" sub="ເລືອກປະເພດ ແລ້ວກຳນົດເສັ້ນທາງເອງ ຫຼື ໃຊ້ມາດຕະຖານ" />
           <button className="dtype-btn" onClick={() => setTypeOpen(true)}>
+            <span className="dtype-btn-ic" style={{ background: currentCat.soft, color: currentCat.main }}>{Icon[currentCat.icon] ? Icon[currentCat.icon]() : <Icon.doc />}</span>
             <div className="dtype-btn-info">
               <b>{currentSub.name}</b>
-              <span>{currentCat.label}</span>
+              <span>{currentCat.label}{isOther ? ' · ພິມຊື່ເອງ' : ''}</span>
             </div>
             <Icon.chevron />
           </button>
+          {/* E10 "ອື່ນໆ": ຊ່ອງພິມຊື່ປະເພດເອງ */}
+          {isOther && (
+            <input className="other-type-input" value={otherTypeName || ''} maxLength={60}
+              placeholder="ພິມຊື່ປະເພດເອກະສານ ເຊັ່ນ ໃບຂໍຢືມອຸປະກອນ..."
+              onChange={(e) => setOtherTypeName(e.target.value)} />
+          )}
           {/* ພรีวิว docNo (E15) — ตัวเลขจริงกำหนดตอนกดส่ง */}
           <div className="docno-box" style={{ background: currentCat.soft }}>
             <span className="docno-box-ic" style={{ background: currentCat.main, color: '#fff' }}>{Icon[currentCat.icon] ? Icon[currentCat.icon]() : <Icon.doc />}</span>
@@ -315,15 +347,34 @@ export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBac
               <b style={{ color: currentCat.main }}>{currentSub.prefix}-{new Date().getFullYear()}/xxx</b>
             </div>
           </div>
-          {/* Dynamic (ເລືອກຄົນເອງ) ↔ No-Dynamic (ໃຊ້ເສັ້ນທາງມາດຕະຖານ) — ເອກະສານລັບ ບັງຄັບ No-Dynamic ສະເໝີ */}
-          {!currentSub.lockAll && (
+          {/* Dynamic ↔ No-Dynamic — ໂຊສະເພາະປະເພດທີ່ມີເສັ້ນທາງມາດຕະຖານແທ້ · ເອກະສານລັບ ບັງຄັບ No-Dynamic ສະເໝີ (ເຊື່ອງ toggle) */}
+          {!currentSub.lockAll && baseRoute.chain.length > 0 && (
             <div className="seg" style={{ marginTop: 10 }}>
               <button className={`seg-btn ${!dynamicMode ? 'on approver' : ''}`} onClick={() => toggleDynamic(false)}>ໃຊ້ເສັ້ນທາງມາດຕະຖານ</button>
               <button className={`seg-btn ${dynamicMode ? 'on signer' : ''}`} onClick={() => toggleDynamic(true)}>ເລືອກຜູ້ລົງນາມເອງ</button>
             </div>
           )}
-          {route.chain.length > 0 && (
-            <p className="dtype-note"><Icon.lock /> ຂັ້ນບັງຄັບ {route.chain.length} ຂັ້ນ ຖືກໃສ່ໃຫ້ອັດຕະໂນມັດ — ລຶບ/ສະຫຼັບບໍ່ໄດ້{lockAll ? ' · ຫ້າມເພີ່ມຜູ້ອື່ນ ແລະ CC' : ''}</p>
+          {/* ຜົນຂອງທາງເລືອກ ຕ້ອງເຫັນທັນທີຢູ່ນີ້ — ບໍ່ຕ້ອງເລື່ອນລົງໄປຫາ (Lucky review 18/07) */}
+          {!dynamicMode && route.chain.length > 0 && (
+            <div className="route-preview">
+              <p className="route-preview-head"><Icon.lock /> ເສັ້ນທາງມາດຕະຖານ {route.chain.length} ຂັ້ນ — ລ໋ອກອັດຕະໂນມັດ{lockAll ? ' · ຫ້າມເພີ່ມຜູ້ອື່ນ ແລະ CC' : ''}</p>
+              {route.chain.map((p, i) => (
+                <div className="route-step" key={p.id}>
+                  <span className="route-step-n">{i + 1}</span>
+                  <b>{p.name}</b>
+                  <span className="route-step-role">{p.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}</span>
+                </div>
+              ))}
+              {route.cc.length > 0 && (
+                <p className="route-preview-cc"><Icon.users /> CC ອັດຕະໂນມັດ: {route.cc.map((c) => c.name).join(', ')}</p>
+              )}
+            </div>
+          )}
+          {dynamicMode && (
+            <p className="dtype-note free"><Icon.pen /> ເລືອກຜູ້ລົງນາມເອງ — ເພີ່ມຄົນທີ່ຫ້ອງ "ຜູ້ລົງນາມ &amp; ຮັບສຳເນົາ" ຂ້າງລຸ່ມ</p>
+          )}
+          {!currentSub.lockAll && baseRoute.chain.length === 0 && !dynamicMode && (
+            <p className="dtype-note free"><Icon.pen /> ປະເພດນີ້ບໍ່ມີເສັ້ນທາງມາດຕະຖານ — ເລືອກຜູ້ລົງນາມເອງທີ່ຫ້ອງ "ຜູ້ລົງນາມ &amp; ຮັບສຳເນົາ" ຂ້າງລຸ່ມ</p>
           )}
         </div>
 
@@ -410,7 +461,7 @@ export default function Step1Input({ store, me = 'A', docSubtypes, onNext, onBac
                         {!s.locked && <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>}
                       </div>
                       {s.locked ? (
-                        <div className="sig-row2"><span className="sig-locktag"><Icon.lock /> ຂັ້ນບັງຄັບ — {isApprover ? 'ຜູ້ກວດ/ອະນຸມັດ' : 'ຜູ້ເຊັນປາຍທາງ'} ຕາມປະເພດ "{docType}"</span></div>
+                        <div className="sig-row2"><span className="sig-locktag"><Icon.lock /> ຂັ້ນບັງຄັບ — {isApprover ? 'ຜູ້ກວດ/ອະນຸມັດ' : 'ຜູ້ເຊັນປາຍທາງ'} ຕາມປະເພດ "{currentSub.name}"</span></div>
                       ) : (
                         <div className="sig-row2">
                           <RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} />

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-sans-lao": "^5.2.8",
     "pdfjs-dist": "^4.7.76",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",

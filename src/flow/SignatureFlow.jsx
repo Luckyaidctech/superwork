@@ -12,14 +12,18 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A', docSubtypes 
   const [title, setTitle] = useState('')
   const [docType, setDocType] = useState('ເອກະສານທົ່ວໄປ') // Q5: ປະເພດກຳນົດເສັ້ນທາງ (legacy — ໃຊ້ຮ່ວມ E11/E15/filter)
   const [docSubtype, setDocSubtype] = useState('gen') // E7/E8/E10: ເອກະສານຍ່ອຍ (2-layer catalog)
+  const [otherTypeName, setOtherTypeName] = useState('') // E10 "ອື່ນໆ": ຊື່ປະເພດທີ່ຜູ້ໃຊ້ພິມເອງ
   const [pdfs, setPdfs] = useState([])
   const [attachments, setAttachments] = useState([])
   const [signers, setSigners] = useState([])   // {id,name,email,role:'signer'|'cc',step,locked?}
   const [placements, setPlacements] = useState([])
 
+  // prefix ເລກທີເອກະສານ ຈາກ subtypes ສົດ (Tab 6 ອາດແກ້/ເພີ່ມ) — ຫ້າມອ່ານ DEFAULT ຕອນສ້າງຈິງ ບໍ່ດັ່ງນັ້ນ preview ກັບເລກຈິງບໍ່ກົງກັນ
+  const docPrefix = docSubtype === 'other' ? 'OTH' : ((docSubtypes || []).find((s) => s.key === docSubtype)?.prefix || 'GEN')
+
   const store = {
-    title, setTitle, docType, setDocType, docSubtype, setDocSubtype, pdfs, setPdfs, attachments, setAttachments,
-    signers, setSigners, placements, setPlacements,
+    title, setTitle, docType, setDocType, docSubtype, setDocSubtype, otherTypeName, setOtherTypeName, docPrefix,
+    pdfs, setPdfs, attachments, setAttachments, signers, setSigners, placements, setPlacements,
   }
 
   const goTo = (n) => setScreen(n)
@@ -31,6 +35,8 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A', docSubtypes 
       title: title.trim() || 'ເອກະສານໃໝ່',
       docType, // ປະເພດເອກະສານ (Q5, legacy) → ໂຊເທິງການ໌ດ/detail + filter ໄດ້
       docSubtype, // ເອກະສານຍ່ອຍ (E7/E8/E10) → docNo prefix ລະອຽດ + Flow Setting
+      docPrefix, // prefix ຈິງ ຈາກ subtypes ສົດ (ຮອງຮັບ subtype ທີ່ແກ້/ສ້າງໃໝ່ໃນ Tab 6 + "ອື່ນໆ")
+      otherTypeName: docSubtype === 'other' ? (otherTypeName.trim() || 'ອື່ນໆ') : undefined, // E10: ຊື່ປະເພດທີ່ພິມເອງ → ໂຊແທນຊື່ປະເພດໃນ detail
       creatorId: me,
       // realtime: ວັນທີສ້າງ = ມື້ນີ້ຈິງ (Lucky ສັ່ງ 17/07) · ts = ວັນຂອງເດືອນ ໃຊ້ filter ໄລຍະເວລາ
       date: nowDate(),
@@ -45,7 +51,7 @@ export default function SignatureFlow({ onExit, onCreate, me = 'A', docSubtypes 
     setDone(true)
   }
   const resetAll = () => {
-    setScreen(1); setDone(false); setTitle(''); setDocType('ເອກະສານທົ່ວໄປ'); setDocSubtype('gen'); setPdfs([]); setAttachments([])
+    setScreen(1); setDone(false); setTitle(''); setDocType('ເອກະສານທົ່ວໄປ'); setDocSubtype('gen'); setOtherTypeName(''); setPdfs([]); setAttachments([])
     setSigners([]); setPlacements([])
   }
 

@@ -2,6 +2,11 @@ import { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import VerifyScreen from './flow/VerifyScreen.jsx'
+// Noto Sans Lao ຝັງໃນ bundle (ບໍ່ອີງ font ເຄື່ອງຜູ້ໃຊ້) — ທຸກເຄື່ອງເຫັນໂຕໜັງສືຄືກັນ
+import '@fontsource/noto-sans-lao/400.css'
+import '@fontsource/noto-sans-lao/600.css'
+import '@fontsource/noto-sans-lao/700.css'
+import '@fontsource/noto-sans-lao/800.css'
 import './styles.css'
 
 // iPhone 17 Pro Max device frame + status bar

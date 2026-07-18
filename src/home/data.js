@@ -11,6 +11,8 @@ export const USERS = [
   { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · IT Department', avatarUrl: PHOTO_A },
   { id: 'B', name: 'Decha Ning Kenthaworn', role: 'ຫົວໜ້າ IT Department' },
   { id: 'C', name: 'Pheutsapha Phoummasak', role: 'ຜູ້ອຳນວຍການ' },
+  // Adul = deputy (VP) — ຕ້ອງຢູ່ switcher ເພື່ອທົດສອບສິດ Tab 6 (Flow Setting) ຝັ່ງ deputy (Lucky ຂໍ 18/07)
+  { id: 'u3', name: 'Adul Chaiprom', role: 'ຮອງຜູ້ອຳນວຍການ' },
   // Pimlada = ຜູ້ອະນຸມັດຂັ້ນ 2 (HR) ຂອງທຸກຄຳຂໍ — ຕ້ອງຢູ່ demo switcher ຈຶ່ງທົດສອບ/demo ຄົບສາຍ
   { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', role: 'ຫົວໜ້າ HR and Admin' },
   { id: 'F', name: 'Chanon Leng Chamnandechakun', role: 'ຫົວໜ້າ Business Development' },
@@ -158,6 +160,8 @@ export const DOC_TYPE_PREFIX = {
 export const docPrefixOf = (type) => DOC_TYPE_PREFIX[type] || 'GEN'
 // ເອກະສານທີ່ມີ docSubtype (E7/E8/E10, ຍ່ອຍກວ່າ) → ໃຊ້ prefix ຂອງຍ່ອຍນັ້ນ · ບໍ່ມີ (seed ເກົ່າ) → fallback prefix legacy 11-ประเภท
 export const docPrefixOfDoc = (d) => {
+  // docPrefix ຖືກຕັ້ງໃສ່ doc ຕອນສ້າງ (SignatureFlow) — ຈຳເປັນສຳລັບ subtype ທີ່ຖືກແກ້/ສ້າງໃໝ່ໃນ Tab 6 ແລະ "ອື່ນໆ" ທີ່ບໍ່ຢູ່ໃນ DEFAULT
+  if (d.docPrefix) return d.docPrefix
   const sub = d.docSubtype && DEFAULT_DOC_SUBTYPES.find((s) => s.key === d.docSubtype)
   return sub ? sub.prefix : docPrefixOf(docTypeOf(d))
 }
@@ -367,6 +371,9 @@ export function subtypeRoute(subtypeKey, meId, subtypes = DEFAULT_DOC_SUBTYPES) 
 }
 // ปะเภทเอกสาร (11 ประเภทเดิม) ที่หมวดของเอกสารย่อยนี้ควร map เป็น — ใช้คง E11/E15/filter เดิมไว้
 export const legacyTypeOfCategory = (category) => CATEGORY_TO_LEGACY_TYPE[category] || 'ເອກະສານທົ່ວໄປ'
+// ⚠ ເອກະສານລັບ (lockAll) ຕ້ອງ map ເປັນ "ເອກະສານລັບ" ສະເໝີ ບໍ່ວ່າຢູ່ໝວດໃດ — canSeeDoc/@mention/ສີ/filter ທັງໝົດ key ໃສ່ docType ນີ້
+// (ຖ້າ map ຕາມໝວດຢ່າງດຽວ subtype cfd ໃນໝວດ general ຈະກາຍເປັນ "ທົ່ວໄປ" → ຄວາມລັບຮົ່ວ)
+export const legacyTypeOfSubtype = (sub) => (sub?.lockAll ? 'ເອກະສານລັບ' : legacyTypeOfCategory(sub?.category))
 // rank ที่เข้า Tab 6 (Flow Signature Approval Setting) ได้ — VP(deputy) + Super Admin(director) (E8)
 export const canManageFlowSettings = (meId) => {
   const rec = DIRECTORY.find((p) => p.id === meId)
@@ -388,10 +395,10 @@ export function initialDocs() {
       signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 09:00', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver' }, { id: 'F', step: 3, status: 'pending', role: 'signer' }, { id: 'C', step: 4, status: 'pending', role: 'approver' }],
       comments: [], status: 'progress' },
 
-    // [tab1] PARALLEL (Decha+Chanon ພ້ອມກັນ ຂັ້ນ 2)
+    // [tab1] PARALLEL (Decha+Chanon ພ້ອມກັນ ຂັ້ນ 2) — Decha ມອບໝາຍໃຫ້ Pimlada ອະນຸມັດແທນ (seed demo E3/E12: B ເຫັນ "ມອບໄປ", u1 ເຫັນ "ໄດ້ຮັບມອບ")
     { id: 'd14', title: 'ໃບສະເໜີແຜນງົບປະມານ ປີ 2027', creatorId: 'A', date: '13/07/2026', ts: 13,
       files: [{ name: 'budget_2027.pdf', pages: 6, summary: 'ແຜນງົບປະມານປະຈຳປີ 2027 ແຍກຕາມພະແນກ ພ້ອມເປົ້າໝາຍການໃຊ້ຈ່າຍ.' }], attachments: [], cc: [],
-      signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 08:30', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver' }, { id: 'F', step: 2, status: 'pending', role: 'signer' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 08:30', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver', assignedTo: 'u1' }, { id: 'F', step: 2, status: 'pending', role: 'signer' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
       comments: [], status: 'progress' },
 
     // [tab1] A ຍົກເລີກເອງ — CARD ຍົກເລີກ

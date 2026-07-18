@@ -274,7 +274,8 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
             </div>
           </div>
           <div className="dd-meta-list">
-            <div className="dd-meta-row"><span><Icon.layers /> ປະເພດເອກະສານ</span><b style={{ color: dsty.main }}>{docTypeOf(d)}</b></div>
+            {/* E10: ປະເພດ "ອື່ນໆ" ໂຊຊື່ທີ່ຜູ້ໃຊ້ພິມເອງ ແທນຊື່ legacy */}
+            <div className="dd-meta-row"><span><Icon.layers /> ປະເພດເອກະສານ</span><b style={{ color: dsty.main }}>{d.otherTypeName ? `${d.otherTypeName} (ອື່ນໆ)` : docTypeOf(d)}</b></div>
             {d.docNo && <div className="dd-meta-row"><span><Icon.doc /> ເລກທີເອກະສານ</span><b>{d.docNo}</b></div>}
             <div className="dd-meta-row"><span><Icon.clock /> ສ້າງເມື່ອ</span><b>{ctime}</b></div>
             <div className="dd-meta-row"><span><Icon.pen /> ຜູ້ລົງນາມ</span><b>{d.signers.filter((s) => s.role !== 'approver').length} ຄົນ</b></div>

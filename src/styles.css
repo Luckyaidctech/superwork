@@ -2186,3 +2186,34 @@ button.ac-card:active { transform: scale(.99); }
 .verify-file { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px; color: var(--text); }
 .verify-file svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
 .verify-flash { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+/* ═══ Step1: ໂຊນປະເພດ+ເສັ້ນທາງ ຢູ່ບ່ອນດຽວກັນ (Lucky 18/07) ═══ */
+.dtype-btn-ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; }
+.dtype-btn-ic svg { width: 18px; height: 18px; }
+.other-type-input { width: 100%; margin-top: 8px; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 12px;
+  font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink); outline: none; background: #fff; }
+.other-type-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,63,181,.12); }
+.dtype-note.free { color: var(--muted); }
+/* preview ເສັ້ນທາງມາດຕະຖານ — ເຫັນຜົນທັນທີໃຕ້ toggle ບໍ່ຕ້ອງເລື່ອນລົງ */
+.route-preview { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #f8fafc;
+  display: flex; flex-direction: column; gap: 7px; }
+.route-preview-head { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 11.5px; font-weight: 700; color: #b45309; }
+.route-preview-head svg { width: 13px; height: 13px; flex-shrink: 0; }
+.route-step { display: flex; align-items: center; gap: 9px; }
+.route-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0; }
+.route-step b { flex: 1; min-width: 0; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-step-role { flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--blue); background: var(--blue-soft); padding: 3px 8px; border-radius: 20px; }
+.route-preview-cc { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 11.5px; color: var(--muted); }
+.route-preview-cc svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ═══ Tab 6: ຢືນຢັນກ່ອນລຶບປະເພດເອກະສານ ═══ */
+.confirm-overlay { display: grid; place-items: center; }
+.confirm-box { width: min(320px, 88%); background: #fff; border-radius: 16px; padding: 20px 18px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 12px 40px rgba(0,0,0,.22); }
+.confirm-ic { width: 44px; height: 44px; border-radius: 50%; background: var(--danger-soft); color: var(--danger); display: grid; place-items: center; }
+.confirm-ic svg { width: 22px; height: 22px; }
+.confirm-box b { font-size: 15px; color: var(--ink); }
+.confirm-box p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.confirm-btns { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+.confirm-btns .btn { flex: 1; }

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Icon, Header, Stepper, SectionHead, fmtSize, signerColor, initials, groupSignatories, isOrdered } from './shared.jsx'
-import { DEFAULT_DOC_SUBTYPES, docPrefixOf } from '../home/data.js'
 import PdfViewer from './PdfViewer.jsx'
 import FilePreviewModal from './FilePreviewModal.jsx'
 
 export default function Step3Send({ store, onBack, onSubmit }) {
-  const { title, docType, docSubtype, pdfs, attachments, signers, placements } = store
-  const prefix = (DEFAULT_DOC_SUBTYPES.find((s) => s.key === docSubtype) || {}).prefix || docPrefixOf(docType)
+  const { title, docPrefix, otherTypeName, docSubtype, pdfs, attachments, signers, placements } = store
+  // prefix ສົດຈາກ SignatureFlow (ຄິດຈາກ subtypes ທີ່ Tab 6 ແກ້ໄດ້ + "ອື່ນໆ") — ໃຫ້ preview ກົງກັບເລກຈິງສະເໝີ
+  const prefix = docPrefix || 'GEN'
   const ordered = signers.filter((s) => isOrdered(s.role)) // ຜູ້ລົງນາມ + ຜູ້ອະນຸມັດ
   const docSigners = signers.filter((s) => s.role === 'signer') // ໂຊລາຍເຊັນ
   const approvers = signers.filter((s) => s.role === 'approver')
@@ -32,6 +32,8 @@ export default function Step3Send({ store, onBack, onSubmit }) {
         <div className="card">
           <SectionHead icon={<Icon.doc />} title="ສະຫຼຸບເອກະສານ" />
           <div className="sum-row"><span>ຫົວຂໍ້</span><b>{title}</b></div>
+          {/* E10: ປະເພດ "ອື່ນໆ" ໂຊຊື່ທີ່ຜູ້ໃຊ້ພິມເອງ */}
+          {otherTypeName && <div className="sum-row"><span>ປະເພດເອກະສານ</span><b>{otherTypeName} (ອື່ນໆ)</b></div>}
           <div className="sum-row"><span>ເລກທີເອກະສານ</span><b>{prefix}-{new Date().getFullYear()}/xxx</b></div>
           <div className="sum-row"><span>ໄຟລ໌ເຊັນ</span><b>{pdfs.length} ໄຟລ໌ (PDF)</b></div>
           <div className="sum-row"><span>ເອກະສານແນບ</span><b>{attachments.length} ໄຟລ໌</b></div>

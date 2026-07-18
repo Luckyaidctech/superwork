@@ -90,6 +90,7 @@ function SubtypeEditSheet({ sub, isNew, defaultSub, onUpdate, onAdd, onDelete, o
   const [kindPickIdx, setKindPickIdx] = useState(null)
   const [deptPickIdx, setDeptPickIdx] = useState(null)
   const [personPickIdx, setPersonPickIdx] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false) // ກັນລຶບພາດ — ຕ້ອງຢືນຢັນກ່ອນສະເໝີ
   if (!sub) return null
 
   const cur = isNew ? draft : sub
@@ -183,12 +184,26 @@ function SubtypeEditSheet({ sub, isNew, defaultSub, onUpdate, onAdd, onDelete, o
         ) : (
           <>
             {edited && <button className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => onReset(sub.key)}><Icon.trash /> ຄືນຄ່າເລີ່ມຕົ້ນທັງໝົດ</button>}
-            <button className="btn danger-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => { onDelete(sub.key); onClose() }}>
+            <button className="btn danger-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setConfirmDelete(true)}>
               <Icon.trash /> ລຶບປະເພດເອກະສານນີ້
             </button>
           </>
         )}
       </div>
+      {/* ຢືນຢັນກ່ອນລຶບ — ລຶບແລ້ວປະເພດຈະຫາຍຈາກໜ້າສ້າງເອກະສານທັນທີ */}
+      {confirmDelete && (
+        <div className="modal-overlay confirm-overlay" onClick={() => setConfirmDelete(false)}>
+          <div className="confirm-box" onClick={(e) => e.stopPropagation()}>
+            <span className="confirm-ic"><Icon.warn /></span>
+            <b>ລຶບ "{cur.name}" ?</b>
+            <p>ປະເພດນີ້ຈະຫາຍຈາກລາຍການ ແລະ ໜ້າສ້າງເອກະສານທັນທີ — ເອກະສານເກົ່າທີ່ສ້າງໄປແລ້ວບໍ່ຖືກກະທົບ</p>
+            <div className="confirm-btns">
+              <button className="btn ghost" onClick={() => setConfirmDelete(false)}>ຍົກເລີກ</button>
+              <button className="btn danger" onClick={() => { setConfirmDelete(false); onDelete(sub.key); onClose() }}><Icon.trash /> ລຶບ</button>
+            </div>
+          </div>
+        </div>
+      )}
       <CategoryPickSheet open={catPickOpen} onPick={(k) => { commit({ category: k }); setCatPickOpen(false) }} onClose={() => setCatPickOpen(false)} />
       <KindPickSheet open={kindPickIdx !== null} onPick={(k) => pickKind(kindPickIdx, k)} onClose={() => setKindPickIdx(null)} />
       <DeptPickSheet open={deptPickIdx !== null} onPick={pickDept} onClose={() => setDeptPickIdx(null)} />
