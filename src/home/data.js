@@ -440,6 +440,18 @@ export function initialDocs() {
       signers: [{ id: 'B', step: 1, status: 'signed', time: '05/07 · 09:00', role: 'approver' }, { id: 'C', step: 2, status: 'signed', time: '05/07 · 14:00', role: 'approver' }],
       comments: [], status: 'done' },
 
+    // ═══ seed ມອບໝາຍ ຂອງ A (user ເລີ່ມຕົ້ນ — ຕ້ອງເຫັນຕົວຢ່າງທັນທີ ບໍ່ຕ້ອງສະຫຼັບ user, Lucky ຕິ 18/07) ═══
+    // [ມອບໝາຍ·A out ຍັງບໍ່ເຮັດ] A ຖືກໃສ່ເປັນຜູ້ອະນຸມັດ ແຕ່ມອບໃຫ້ Take(G) ອະນຸມັດແທນ — G ຍັງບໍ່ໄດ້ເຮັດ
+    { id: 'd31', title: 'ໃບຂໍອະນຸມັດ ຄ່າໂຄສະນາ Facebook', creatorId: 'D', date: '15/07/2026', ts: 15,
+      files: [{ name: 'fb_ads.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'D', step: 1, status: 'signed', time: '15/07 · 09:30', role: 'signer' }, { id: 'A', step: 2, status: 'pending', role: 'approver', assignedTo: 'G' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+    // [ມອບໝາຍ·A out ເຮັດແລ້ວ] A ມອບໃຫ້ Chanon(F) ອະນຸມັດແທນ ແລະ F ອະນຸມັດແລ້ວ
+    { id: 'd32', title: 'ໃບເບີກຄ່ານ້ຳມັນ ພາຫະນະສ່ວນກາງ', creatorId: 'E', date: '14/07/2026', ts: 14, docType: 'ການເງິນ-ເບີກຈ່າຍ',
+      files: [{ name: 'fuel_claim.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'E', step: 1, status: 'signed', time: '14/07 · 08:45', role: 'signer' }, { id: 'A', step: 2, status: 'signed', time: '14/07 · 11:20', role: 'approver', assignedTo: 'F' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
     // ════════ B (Decha · ຫົວໜ້า Tech) ສ້າງ ════════
     // [tab1·B] · [tab2·A] CARD: ຍັງບໍ່ครบ ແต่ A ເຊັນแล้ว (partial)
     { id: 'd3', title: 'ໃບເບີກຄ່າໃຊ້ຈ່າຍ ເດີນທາງ', creatorId: 'B', date: '14/07/2026', ts: 14,

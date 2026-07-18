@@ -772,16 +772,19 @@ function AssignedTab({ docs, me, onOpen }) {
     })
   })
   const byDir = (k) => (k === 'all' ? entries : entries.filter((e) => e.dir === k))
+  // ຮຽງແບບດຽວກັບ list ອື່ນທັງແອັບ: ຄ້າງກ່ອນ + ໃໝ່ສຸດຂຶ້ນກ່ອນ
   const list = byDir(filter).filter((e) => stFilter === 'all' || seatStatusKey(e.seat) === stFilter)
+    .sort((a, b) => ((seatStatusKey(a.seat) === 'wait' ? 0 : 1) - (seatStatusKey(b.seat) === 'wait' ? 0 : 1)) || (b.d.ts - a.d.ts))
   const stCount = (k) => byDir(filter).filter((e) => k === 'all' || seatStatusKey(e.seat) === k).length
   return (
     <>
-      <div className="req-sf">
+      {/* wrap: ຕົວກອງ 2 ແຖວຕ້ອງເຫັນຄົບທຸກປຸ່ມ ບໍ່ຕ້ອງເລື່ອນຂ້າງ (Lucky ຕິ 18/07 ປຸ່ມສະຖານະຖືກຕັດ) */}
+      <div className="req-sf wrap">
         {ASSIGN_FILTERS.map((f) => (
           <button key={f.k} className={`req-sf-chip ${filter === f.k ? 'on' : ''}`} onClick={() => setFilter(f.k)}>{f.t} ({byDir(f.k).length})</button>
         ))}
       </div>
-      <div className="req-sf">
+      <div className="req-sf wrap">
         {ASSIGN_STATUS.map((f) => (
           <button key={f.k} className={`req-sf-chip ${stFilter === f.k ? 'on' : ''}`} onClick={() => setStFilter(f.k)}>{f.t} ({stCount(f.k)})</button>
         ))}

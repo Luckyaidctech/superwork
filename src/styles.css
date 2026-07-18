@@ -2217,3 +2217,6 @@ button.ac-card:active { transform: scale(.99); }
 .confirm-box p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 .confirm-btns { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
 .confirm-btns .btn { flex: 1; }
+
+/* ຕົວກອງແທັບ ມອບໝາຍ — wrap ລົງແຖວໃໝ່ ບໍ່ scroll ຂ້າງ ໃຫ້ເຫັນທຸກປຸ່ມ */
+.req-sf.wrap { flex-wrap: wrap; overflow-x: visible; row-gap: 6px; margin-bottom: 4px; }
