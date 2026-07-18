@@ -237,16 +237,18 @@ export default function App() {
     notifyAfterSign(d, docId)
     setView('home')
   }
-  // ── E2/E13: ລາຍເຊັນຕົ້ນສະບັບ (พิมพ์→เซ็นมือ→สแกน→อัปโหลด) — แทนที่ไฟล์แรกด้วยไฟล์ที่อัปโหลด, ไม่มี watermark, ไม่มี sign box (ทั้งหน้าคือสแกนจริง) ──
+  // ── E2/E13 (redesign Lucky 19/07): ລາຍເຊັນຕົ້ນສະບັບ — ຕົ້ນສະບັບຄົງເດີມ, ໄຟລ໌ສະແກນເກັບເປັນ "ສະບັບເຊັນມື" ແຍກກ່ອງ
+  //    (ເບິ່ງທຽບ ຕົ້ນສະບັບ vs ສະບັບເຊັນ ໄດ້ — ແລະ ຄົນຕໍ່ໄປເຮັດວຽກເທິງສະບັບຫຼ້າສຸດ) ──
   const onOriginalSign = (docId, filesByIndex) => {
     setDocs((ds) => ds.map((d) => {
       if (d.id !== docId) return d
-      // ອັບໂຫລດແທນທີ່ຄົบทุกไฟล์ (filesByIndex = { [fileIndex]: File } — ครบทุกไฟล์เพราะ SignScreen บังคับอัปโหลดครบก่อนถึงจะกด OTP ได้)
-      const files = d.files.map((f, i) => (filesByIndex[i] ? { ...f, file: filesByIndex[i], original: true } : f))
+      // filesByIndex = { [fileIndex]: File } — ຄົບທຸກໄຟລ໌ (SignScreen ບັງຄັບຄົບກ່ອນກົດ OTP) · ຊື່ = ຊື່ໄຟລ໌ສະແກນຈິງ
+      const verFiles = d.files.map((f, i) => ({ name: filesByIndex[i]?.name || f.name, file: filesByIndex[i], original: true }))
+      const signedVersions = [...(d.signedVersions || []), { files: verFiles, byId: me, time: 'ຕອນນີ້' }]
       const seatId = d.signers.find((s) => actingId(s) === me)?.id || me // placement ผูกกับ id ที่นั่งเดิม ไม่ใช่ me เสมอไป (E3/E12 delegation)
       const signers = d.signers.map((s) => (actingId(s) === me ? { ...s, status: 'signed', time: 'ຕອນນີ້', sigType: 'original' } : s))
       const placements = (d.placements || []).filter((p) => p.signerId !== seatId) // ຊ່ອງເຊັນຂອງທີ່ນັ່ງນີ້ບໍ່ຈຳເປັນແລ້ວ (ໜ້າສະແກນມີລາຍເຊັນຈິງຢູ່ແລ້ວ)
-      return { ...d, files, signers, placements, status: signers.every((s) => s.status === 'signed') ? 'done' : 'progress' }
+      return { ...d, signedVersions, signers, placements, status: signers.every((s) => s.status === 'signed') ? 'done' : 'progress' }
     }))
     const d = docs.find((x) => x.id === docId)
     if (!d) { setView('home'); return }

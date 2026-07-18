@@ -512,7 +512,7 @@ export default function Step1Input({ store, me = 'A', docSubtypes, docCategories
         </button>
       </div>
 
-      <DirectoryPicker open={pickerOpen && !lockAll && !chainLocked} onClose={() => setPickerOpen(false)} signers={signers} onAdd={addFromDirectory} me={me} />
+      <DirectoryPicker open={pickerOpen && !lockAll} onClose={() => setPickerOpen(false)} signers={signers} onAdd={addFromDirectory} me={me} />
       <DocTypeSheet open={typeOpen} value={docSubtype} subtypes={subtypes} categories={cats} onPick={applySubtype} onClose={() => setTypeOpen(false)} />
       <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>

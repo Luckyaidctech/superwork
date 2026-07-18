@@ -290,13 +290,33 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
 
         {/* documents — ຄລິກໄຟລ໌ເພື່ອເປີດเบิ่ง PDF ຈິງ · download/share ລາຍໄຟລ໌ */}
         <div className="card">
-          <p className="dd-section">ໄຟລ໌ເຊັນ ({d.files.length})</p>
+          <p className="dd-section">ໄຟລ໌ເຊັນ{d.signedVersions?.length ? ' — ຕົ້ນສະບັບ' : ''} ({d.files.length})</p>
           {d.files.map((f, i) => <FileRow key={i} file={f} sub={`${f.pages} ໜ້າ`} idx={i} />)}
           {d.attachments.length > 0 && (<>
             <p className="dd-section sub">ໄຟລ໌ແນບ ({d.attachments.length})</p>
             {d.attachments.map((a, i) => <FileRow key={i} file={a} sub="ໄຟລ໌ປະກອບ" alt idx={d.files.length + i} />)}
           </>)}
         </div>
+
+        {/* E2/E13 (Lucky 19/07): ກ່ອງ "ສະບັບເຊັນມື" ແຍກຈາກຕົ້ນສະບັບ — ເບິ່ງທຽບໄດ້ວ່າ ຕົ້ນສະບັບເປັນແບບນີ້ · ເຊັນແລ້ວເປັນແບບນີ້ */}
+        {d.signedVersions?.length > 0 && (
+          <div className="card signed-ver-card">
+            <p className="dd-section"><Icon.printer /> ສະບັບເຊັນຕົ້ນສະບັບ (ເຊັນມືແລ້ວ)</p>
+            {d.signedVersions.map((v, vi) => (
+              <div key={vi} className="signed-ver">
+                <p className="signed-ver-by"><Icon.checkCircle /> ເຊັນໂດຍ {nameOf(v.byId)} · {v.time}</p>
+                {/* FilePreviewModal ຈັດການເອງ: pdf → PdfViewer · ຮູບ → <img> (NonPdfPreview) */}
+                {v.files.map((f, i) => (
+                  <div className="sum-file as-row dd-fileclick" key={i} onClick={() => setPreview({ name: f.name, file: f.file })}>
+                    <span className="file-badge sm ok"><Icon.printer /></span>
+                    <div className="dd-file-meta"><b title={f.name}>{f.name}</b><span>ໄຟລ໌ເຊັນມື — ບໍ່ມີລາຍນ້ຳ</span></div>
+                    <button className="icon-mini" title="ດາວໂຫລດ" onClick={(e) => { e.stopPropagation(); act(`ດາວໂຫລດ ${f.name}`) }}><Icon.download /></button>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* AI summary — ຕໍ່ໄຟລ໌ (ຫຼາຍไฟล์ = ຫຼາຍສະຫຼຸບ) */}
         <div className="card ai-card">
