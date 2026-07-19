@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Icon, initials, Header, ResultPopup, ReasonModal, ScreenPortal } from '../flow/shared.jsx'
+import { Icon, initials, Header, ResultPopup, ReasonModal, ScreenPortal, DIRECTORY } from '../flow/shared.jsx'
 import RequestScreen, { REQ_KINDS, KIND_META, ReqCard, RequestDetailBody } from './RequestScreen.jsx'
 import KnowledgeScreen, { KnowledgeDetailBody } from './KnowledgeScreen.jsx'
 import FilePreviewModal from '../flow/FilePreviewModal.jsx'
@@ -880,10 +880,104 @@ function AssignedTab({ docs, me, onOpen }) {
   )
 }
 
+// ─────────── Dashboard (tab หลัก — Lucky 19/07: shell ใหม่ 4 tabs, อิง visual แอป Superwork จริง) ───────────
+// tile น้ำเงินเดียว (#1f3fb5) + ไอคอนขาว + badge แดงนับงานค้าง — แบบแอปจริง แต่มีแค่ 4 module ตามสั่ง
+const DASH_MODULES = [
+  { key: 'approve', label: 'Approvals', icon: Icon.checkCircle },
+  { key: 'sign', label: 'My e-Signature', icon: Icon.pen },
+  { key: 'request', label: 'Requests', icon: Icon.reqDoc },
+  { key: 'knowledge', label: 'Knowledge', icon: Icon.bulb },
+]
+
+function DashboardTab({ me, counts, onOpenModule }) {
+  const totalWait = counts.approve // ລວມທຸກຢ່າງທີ່ລໍຖ້າ me ຢູ່ແລ້ວ (esign ຮອບຂ້ອຍ + ຄຳຂໍທີ່ຂ້ອຍເປັນຜູ້ອະນຸມັດ)
+  return (
+    <div className="dash">
+      {/* hero ນ້ຳເງິນເຂັ້ມ ແບບແອບຈິງ: logo + Welcome + avatar */}
+      <div className="dash-hero">
+        <div className="dash-hero-top">
+          <b className="dash-hero-brand">Superwork</b>
+          <span className="dash-hero-av" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
+        </div>
+        <h2 className="dash-hero-welcome">Welcome to AIDC</h2>
+        <p className="dash-hero-name">{nameOf(me)}</p>
+      </div>
+      {/* strip ງານຄ້າງ — ແບບ strip Attendance ຂອງແອບຈິງ */}
+      {totalWait > 0 && (
+        <button className="dash-alert" onClick={() => onOpenModule('approve')}>
+          <span className="dash-alert-ic"><Icon.clock /></span>
+          <div className="dash-alert-txt"><b>ລໍຖ້າທ່ານດຳເນີນການ</b><span>ມີ {totalWait} ລາຍການ ແຕະເພື່ອເປີດ Approvals</span></div>
+          <Icon.chevron />
+        </button>
+      )}
+      {/* module grid — icon tile ແບບແອບຈິງ (ແຖວດຽວ 4 ອັນ) */}
+      <div className="card dash-card">
+        <div className="dash-grid">
+          {DASH_MODULES.map((m) => (
+            <button key={m.key} className="dash-mod" onClick={() => onOpenModule(m.key)}>
+              <span className="dash-mod-ic">
+                {m.icon()}
+                {counts[m.key] > 0 && <span className="dash-mod-badge">{counts[m.key]}</span>}
+              </span>
+              <span className="dash-mod-lbl">{m.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Chat: placeholder — Lucky 19/07 "khong can lam gi" (ຍັງບໍ່ເຮັດຫຍັງ ພຽງມີ tab ໄວ້)
+function ChatTab() {
+  return (
+    <div className="chat-empty">
+      <span className="chat-empty-ic"><Icon.chat /></span>
+      <b>Chat</b>
+      <p>ສົນທະນາພາຍໃນທີມ — ກຳລັງພັດທະນາ</p>
+    </div>
+  )
+}
+
+function ProfileTab({ me, setMe, onOpenSettings }) {
+  const u = USERS.find((x) => x.id === me)
+  const rec = DIRECTORY.find((p) => p.id === me)
+  return (
+    <div className="profile-tab">
+      <div className="card prof-card">
+        <span className="user-opt-av xl" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
+        <b>{nameOf(me)}</b>
+        <span className="prof-role">{u?.role}</span>
+        {rec?.email && <span className="prof-email"><Icon.mail /> {rec.email}</span>}
+      </div>
+      <div className="card prof-menu">
+        <button className="prof-row" onClick={onOpenSettings}>
+          <span className="prof-row-ic"><Icon.gear /></span>
+          <div><b>ຕັ້ງຄ່າ</b><span>ລາຍເຊັນ · ຄວາມປອດໄພ · ສາຍອະນຸມັດ</span></div>
+          <Icon.chevron />
+        </button>
+      </div>
+      <div className="card prof-menu">
+        <p className="dd-section"><Icon.swap /> ສະຫຼັບຜູ້ໃຊ້ (demo)</p>
+        {USERS.map((x) => (
+          <button key={x.id} className={`user-opt ${me === x.id ? 'on' : ''}`} onClick={() => setMe(x.id)}>
+            <span className="user-opt-av" style={avBg(x.id)}>{!avatarOf(x.id) && initials(x.name)}</span>
+            <span className="user-opt-info"><b>{x.name}</b><em>{x.role}</em></span>
+            {me === x.id && <Icon.check />}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const MODULE_NAVS = ['approve', 'sign', 'request', 'knowledge'] // module ເປີດຈາກ Dashboard — bottom nav ຄ້າງທີ່ Dashboard
+
 export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment,
   onCreateKn, onSubmitKn, onKnLike, onKnView, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
   const [tab, setTab] = useState('tosign')
-  const [nav, setNav] = useState('sign')
+  // shell ใหม่ (Lucky 19/07): 4 tabs หลัก chat/dash/noti/profile — module เดิม 4 ตัวเปิดจาก Dashboard
+  const [nav, setNav] = useState('dash')
   const [userMenu, setUserMenu] = useState(false)
   const [fabMenu, setFabMenu] = useState(false)
   const [pointsForm, setPointsForm] = useState(false)
@@ -913,17 +1007,27 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
   const reqPending = REQ_KINDS.reduce((n, k) => n + (reqs[k.key] || []).filter((r) => r.byId === me && r.status === 'progress').length, 0)
   // badge ຄວາມຮູ້ = ຮ່າງ + ທີ່ຍັງລໍຖ້າກວດສອບ ຂອງຂ້ອຍ (ສິ່ງທີ່ຂ້ອຍຕ້ອງຕາມ)
   const knPending = (reqs.knowledge || []).filter((p) => p.byId === me && (p.status === 'draft' || p.status === 'progress')).length
+  // Dashboard: ຈຳນວນຄ້າງຕໍ່ module — approve ນັບແບບດຽວກັບ pendingOf('all') ໃນ ApprovalCenter (ຕ້ອງກົງກັນ)
+  const approvalPending = docs.filter((d) => isMyTurn(d, me)).length
+    + pointsReqs.filter((r) => r.status === 'progress' && r.by !== me).length
+    + Object.keys(reqs).reduce((n, k) => n + (reqs[k] || []).filter((r) => r.byId !== me && r.status === 'progress').length, 0)
+  const dashCounts = { approve: approvalPending, sign: toSign.length, request: reqPending, knowledge: knPending }
+  const inModule = MODULE_NAVS.includes(nav) // ຢູ່ໃນ module → header ມີປຸ່ມກັບ Dashboard
+  const TITLE = { chat: 'Chat', dash: 'Dashboard', noti: 'ການແຈ້ງເຕືອນ', profile: 'ໂປຣໄຟລ໌', approve: 'ການອະນຸມັດ', sign: 'My e-Signature', request: 'ຄຳຂໍ', knowledge: 'ຄວາມຮູ້' }
 
   return (
     <div className="app home">
+      {/* Dashboard ມີ hero ຂອງຕົນເອງ → ເຊື່ອງ header ປົກກະຕິ */}
+      {nav !== 'dash' && (
       <div className="home-header">
         <div className="home-title-row">
-          <h1>{nav === 'approve' ? 'ການອະນຸມັດ' : nav === 'request' ? 'ຄຳຂໍ' : nav === 'knowledge' ? 'ຄວາມຮູ້' : 'My e-Signature'}</h1>
+          <h1>{TITLE[nav] || 'My e-Signature'}</h1>
           {/* user pill ຢູ່ຊ້າຍ (Lucky ສັ່ງ) — ລາຍງານ ກາຍເປັນ tab 5 ແລ້ວ ເຫຼືອປຸ່ມ ຕັ້ງຄ່າ */}
           <div className="home-actions right">
             {nav === 'sign' && <button className="home-iconbtn" onClick={onOpenSettings} title="ຕັ້ງຄ່າ"><Icon.gear /></button>}
           </div>
           <div className="home-actions left">
+            {inModule && <button className="home-iconbtn" onClick={() => setNav('dash')} title="ກັບ Dashboard"><Icon.back /></button>}
             <div className="user-wrap">
               <button className="user-pill" onClick={() => setUserMenu((o) => !o)}>
                 <span className="user-pill-av" style={avBg(me)}>{!avatarOf(me) && initials(nameOf(me))}</span>
@@ -968,9 +1072,16 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
           </div>
         )}
       </div>
+      )}
 
       <div className="scroll home-scroll">
-        {nav === 'approve' ? (
+        {nav === 'dash' ? (
+          <DashboardTab me={me} counts={dashCounts} onOpenModule={(k) => setNav(k)} />
+        ) : nav === 'chat' ? (
+          <ChatTab />
+        ) : nav === 'profile' ? (
+          <ProfileTab me={me} setMe={setMe} onOpenSettings={onOpenSettings} />
+        ) : nav === 'approve' ? (
           <ApprovalCenter docs={docs} me={me} onOpen={onOpenDoc} pointsReqs={pointsReqs} director={director} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction} reqs={reqs} onReqAction={onReqAction} onCancelReq={onCancelReq}
             onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}
             openReqId={openReqId} onConsumeOpen={() => setOpenReqId(null)}
@@ -1007,9 +1118,9 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
                   : <Overview docs={visibleDocs(docs, me)} me={me} onOpen={onOpenDoc} />}
       </div>
 
-      {/* ໂມດູນທີ່ມີ FAB ຂອງຕົນເອງ (ສ້າງຕາມ tab ທີ່ເປີດຢູ່) → ບໍ່ໂຊ FAB ກາງ ບໍ່ດັ່ງນັ້ນຈະຊ້ອນກັນ 2 ປຸ່ມ
-          ເພີ່ມໂມດູນໃໝ່ທີ່ມີ FAB ເອງ → ຕ້ອງເພີ່ມຊື່ໃສ່ນີ້ນຳ */}
-      {!['request', 'knowledge'].includes(nav) && (
+      {/* FAB: e-Sign → ສ້າງເອກະສານ · Dashboard/Approval → ເມນູສ້າງຄຳຂໍ — tab ອື่น (chat/noti/profile) ບໍ່ມີ FAB
+          ໂມດູນທີ່ມີ FAB ຂອງຕົນເອງ (request/knowledge) ບໍ່ໂຊ FAB ກາງ ບໍ່ດັ່ງນັ້ນຈະຊ້ອນກັນ 2 ປຸ່ມ */}
+      {['sign', 'approve', 'dash'].includes(nav) && (
         <button className="fab fab-float" onClick={() => (nav === 'sign' ? onNew() : setFabMenu(true))}><Icon.plus /></button>
       )}
       {fabMenu && (
@@ -1037,15 +1148,13 @@ export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], di
 
       <div className="home-bottomnav">
         {[
-          // label ອັງກິດ (Lucky ຂໍ) — ຫົວຂໍ້ຂ້າງໃນ ຍັງເປັນລາວ
-          { key: 'approve', label: 'Approval', icon: Icon.checkCircle },
-          { key: 'sign', label: 'e-Sign', icon: Icon.pen },
-          { key: 'request', label: 'Request', icon: Icon.reqDoc, badge: reqPending },
-          // ໂປຣໄຟລ໌ ຍ້າຍໄປຢູ່ user-pill ເທິງຫົວ (ມີສະຫຼັບຜູ້ໃຊ້ຢູ່ແລ້ວ) → ໄດ້ slot ໃຫ້ "ຄວາມຮູ້"
-          { key: 'knowledge', label: 'Knowledge', icon: Icon.bulb, badge: knPending },
-          { key: 'noti', label: 'Alerts', icon: Icon.bell, badge: unread },
+          // shell ใหม่ (Lucky 19/07): 4 tabs — Chat / Dashboard / Noti / Profile · module 4 ตัวย้ายเข้า Dashboard
+          { key: 'chat', label: 'Chat', icon: Icon.chat },
+          { key: 'dash', label: 'Dashboard', icon: Icon.grid },
+          { key: 'noti', label: 'Noti', icon: Icon.bell, badge: unread },
+          { key: 'profile', label: 'Profile', icon: Icon.user },
         ].map((b) => (
-          <button key={b.key} className={`bnav ${nav === b.key ? 'active' : ''}`} onClick={() => { setNav(b.key); if (b.key === 'noti') onMarkRead() }}>
+          <button key={b.key} className={`bnav ${nav === b.key || (b.key === 'dash' && inModule) ? 'active' : ''}`} onClick={() => { setNav(b.key); if (b.key === 'noti') onMarkRead() }}>
             <span className="bnav-ic">{b.icon()}{b.badge > 0 && <span className="bnav-badge">{b.badge}</span>}</span>
             <span>{b.label}</span>
           </button>

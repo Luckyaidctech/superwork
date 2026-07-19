@@ -8,17 +8,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
 const RENDER_W = 820 // internal canvas resolution; CSS scales to 100%
 
-// footer ທ້າຍໜ້າ: QR ກວດສອບເອກະສານ (E5) — ສະແກນ → ເປີດໜ້າ verify (docNo/ສະຖານະ/ຜູ້ເຊັນ) + ວັນທີເຊັນລ່າສຸດ
-function PageFooter({ footer, page }) {
+// footer ທ້າຍໜ້າ (spec Lucky 19/07): ຊ້າຍຢ່າງດຽວ — QR + ວັນທີເຊັນຫຼ້າສຸດໃຕ້ QR, ບໍ່ມີ text ອື່ນ
+function PageFooter({ footer }) {
   if (!footer) return null
   const url = footer.url || (typeof window !== 'undefined' ? window.location.origin : '')
   return (
     <div className="pdf-page-foot">
       <div className="pdf-foot-qr">
         <span className="qr-svg"><QRCodeSVG value={url} size={40} level="M" bgColor="#ffffff" fgColor="#1a2a5e" /></span>
-        <div><b>ສະແກນກວດສອບເອກະສານ</b><span>ໜ້າ {page}</span></div>
+        <span className="pdf-foot-qrdate">{footer.date || '—'}</span>
       </div>
-      <div className="pdf-foot-date"><span>ເຊັນລ່າສຸດ</span><b>{footer.date || '—'}</b></div>
     </div>
   )
 }
