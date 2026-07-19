@@ -609,7 +609,7 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
         <div className="app ac-detail-screen">
           <Header title="ລາຍລະອຽດຄຳຂໍ" onBack={() => { setAcDetail(null); setRejMode(false); setShowAcHistory(false) }}
             right={showHistoryBtn ? (
-              <button className="icon-mini" title="ປະຫວັດກິດຈະກຳ" onClick={() => setShowAcHistory(true)}>
+              <button className="header-help" title="ປະຫວັດກິດຈະກຳ" onClick={() => setShowAcHistory(true)}>
                 <Icon.info />
               </button>
             ) : undefined} />

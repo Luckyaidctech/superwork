@@ -299,7 +299,7 @@ export default function RequestScreen({ me, director, reqs, onReqAction, onCreat
           title="ລາຍລະອຽດຄຳຂໍ" 
           onBack={closeDetail} 
           right={
-            <button className="icon-mini" title="ປະຫວັດກິດຈະກຳ" onClick={() => setShowHistory(true)}>
+            <button className="header-help" title="ປະຫວັດກິດຈະກຳ" onClick={() => setShowHistory(true)}>
               <Icon.info />
             </button>
           }
