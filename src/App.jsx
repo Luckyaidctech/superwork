@@ -34,6 +34,10 @@ function buildInitialNotis(ds) {
 // ຮອງຮັບ 2 ຜູ້ใช้ (A ↔ B) + ລະບົບແຈ້ງເຕືອນ (noti)
 export default function App() {
   const [view, setView] = useState('home') // 'home' | 'create' | 'detail' | 'sign' | 'settings' | 'flowSettings'
+  // nav/tab ຂອງ HomeScreen ເກັບໄວ້ນີ້ — HomeScreen ຖືກ unmount ຕອນເປີດ detail/sign/settings
+  // ຖ້າເກັບໃນ HomeScreen ເອງ back ຈະເດັ້ງກັບ Dashboard ສະເໝີ ບໍ່ແມ່ນ module+tab ເດີມ (Lucky 19/07)
+  const [homeNav, setHomeNav] = useState('dash')
+  const [homeTab, setHomeTab] = useState('tosign')
   const [me, setMe] = useState('A')
   const [docs, setDocs] = useState(() => withDocNos(initialDocs()))
   const [notis, setNotis] = useState(() => buildInitialNotis(initialDocs())) // { id, forId, text, docId, time, read }
@@ -445,6 +449,7 @@ export default function App() {
       onReject={onReject} onSign={onStartSign} onApprove={(id) => markSigned(id)} onComment={onComment} onCancel={onCancel} onRemind={onRemind}
       onEditComment={onEditComment} onDeleteComment={onDeleteComment} />
   return <HomeScreen me={me} setMe={setMe} docs={docs} notis={notis}
+    nav={homeNav} setNav={setHomeNav} tab={homeTab} setTab={setHomeTab}
     pointsReqs={pointsReqs} director={DIRECTOR} onCreatePoints={onCreatePoints} onPointsComment={onPointsComment} onPointsEditComment={onPointsEditComment} onPointsDeleteComment={onPointsDeleteComment} onPointsAction={onPointsAction}
     reqs={reqs} onReqAction={onReqAction} onCreateReq={onCreateReq} onCancelReq={onCancelReq}
     onReqComment={onReqComment} onReqEditComment={onReqEditComment} onReqDeleteComment={onReqDeleteComment}

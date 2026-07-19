@@ -975,11 +975,10 @@ function ProfileTab({ me, setMe, onOpenSettings }) {
 
 const MODULE_NAVS = ['approve', 'sign', 'request', 'knowledge'] // module ເປີດຈາກ Dashboard — bottom nav ຄ້າງທີ່ Dashboard
 
-export default function HomeScreen({ me, setMe, docs, notis, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment,
+// shell ใหม่ (Lucky 19/07): 4 tabs หลัก chat/dash/noti/profile — module เดิม 4 ตัวเปิดจาก Dashboard
+// nav/tab ยกไปเก็บที่ App (props) — back จาก detail/sign/settings ต้องกลับ module+tab เดิม ไม่เด้งไป Dashboard
+export default function HomeScreen({ me, setMe, docs, notis, nav, setNav, tab, setTab, pointsReqs = [], director, onCreatePoints, onPointsComment, onPointsEditComment, onPointsDeleteComment, onPointsAction, reqs = {}, onReqAction, onCreateReq, onCancelReq, onReqComment, onReqEditComment, onReqDeleteComment,
   onCreateKn, onSubmitKn, onKnLike, onKnView, onMarkRead, onNew, onOpenDoc, onOpenFromNoti, onOpenSettings }) {
-  const [tab, setTab] = useState('tosign')
-  // shell ใหม่ (Lucky 19/07): 4 tabs หลัก chat/dash/noti/profile — module เดิม 4 ตัวเปิดจาก Dashboard
-  const [nav, setNav] = useState('dash')
   const [userMenu, setUserMenu] = useState(false)
   const [fabMenu, setFabMenu] = useState(false)
   const [pointsForm, setPointsForm] = useState(false)
