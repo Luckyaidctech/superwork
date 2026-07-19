@@ -987,13 +987,11 @@ export default function HomeScreen({ me, setMe, docs, notis, nav, setNav, tab, s
   const [openReqId, setOpenReqId] = useState(null) // เปิด detail ของ points req หลังสร้าง
   const [openReq, setOpenReq] = useState(null) // { kind, id } — ເປີດຄຳຂໍ ຈາກແຈ້ງເຕືອນ
 
-  // tab 1 ຕ້ອງການລາຍເຊັນຂ້ອຍ = ທຸກເອກະສານທີ່ຍັງລໍຂ້ອຍ ເຊັນ/ອະນຸມັດ (ຈາກຄົນອື່ນ ຫຼື ຂ້ອຍສ້າງເອງກໍນັບ)
-  //   ຮອດຮອບຂ້ອຍ ຂຶ້ນກ່ອນ — ເຊັນໄດ້ຈາກນີ້ ຫຼື ຈາກໂມດູນ Approval ກໍໄດ້ (2 ທາງເຂົ້າ ເອກະສານດຽວກັນ)
+  // tab 1 ຕ້ອງການລາຍເຊັນຂ້ອຍ = ສະເພາະໃບທີ່ "ຮອດຮອບຂ້ອຍແທ້" (Lucky 19/07: A→B→C ຕາມຄິວ —
+  //   B ຕ້ອງບໍ່ເຫັນກ່ອນ A ເຊັນ · ມອບໝາຍ A→D ກໍຄື D ເຊັນກ່ອນ ຄິວຈຶ່ງໄປ B) — isMyTurn ຮອງຮັບ delegation ຢູ່ແລ້ວ
   // tab 2 ລໍຖ້າຜູ້ອື່ນເຊັນ = request ທີ່ຂ້ອຍສ້າງ ແລະ ຍັງບໍ່ສຳເລັດ
   // tab 3 ລົງນາມແລ້ວ = ຄົນອື່ນສ້າງ+ຂ້ອຍເຊັນແລ້ວ  ຫຼື  ຂ້ອຍສ້າງ+ເຊັນຄົບແລ້ວ (ບໍ່ແຍກຕາມຜູ້ສ້າງ)
-  const toSign = docs
-    .filter((d) => d.status === 'progress' && d.signers.some((s) => actingId(s) === me && s.status !== 'signed' && s.status !== 'rejected'))
-    .sort((a, b) => (isMyTurn(b, me) ? 1 : 0) - (isMyTurn(a, me) ? 1 : 0))
+  const toSign = docs.filter((d) => isMyTurn(d, me))
   const created = docs.filter((d) => d.creatorId === me && d.status !== 'done')
   // tab ປະຫວັດທັງໝົດ = ໃບທີ່ຂ້ອຍກ່ຽວຂ້ອງ (ສ້າງ / ຢູ່ໃນສາຍເຊັນ / ໄດ້ CC) ທີ່ "ຈົບແລ້ວ"
   //   ໃບທີ່ຍັງຄ້າງ (progress) ບໍ່ນັບເປັນປະຫວັດ — ຢູ່ tab 1/2/3 ຢູ່ແລ້ວ (Lucky ສັ່ງ 17/07)

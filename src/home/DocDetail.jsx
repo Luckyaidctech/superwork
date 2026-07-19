@@ -31,6 +31,8 @@ const STATUS = {
 export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onApprove, onComment, onCancel, onRemind, onEditComment, onDeleteComment, onAssign, onRevokeAssign }) {
   const [rejectOpen, setRejectOpen] = useState(false)
   const [assignOpen, setAssignOpen] = useState(false) // E3/E12: มอบหมายให้คนอื่นเซ็น/อนุมัติแทน
+  const [assignConfirm, setAssignConfirm] = useState(null) // Lucky 19/07: แตะชื่อ → ยืนยันก่อน ไม่มอบทันที
+  const [assignPopup, setAssignPopup] = useState(null) // popup มอบหมายสำเร็จ (ชื่อผู้รับ)
   const [assignQ, setAssignQ] = useState('')
   const [approveOpen, setApproveOpen] = useState(false) // ຢືນຢັນອະນຸມັດ (role approver — ບໍ່ມີຊ່ອງເຊັນ)
   const [approvePopup, setApprovePopup] = useState(false)
@@ -361,13 +363,7 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
               )
             })}
           </div>
-          {/* E3/E12: มอบหมายให้คนอื่นเซ็น/อนุมัติแทน — เฉพาะที่นั่งของตัวเอง, ไม่ใช่เอกสารลับ */}
-          {/* ປຸ່ມມອບໝາຍ ຍ້າຍໄປແຖບປຸ່ມລຸ່ມ (Lucky ເຄາະ 19/07: 3 ປຸ່ມ ປະຕິເສດ·ມອບໝາຍ·ລົງນາມ/ອະນຸມັດ) — ບ່ອນນີ້ເຫຼືອສະເພາະປຸ່ມດຶງຄືນ */}
-          {canRevoke && (
-            <button className="assign-pill danger" onClick={() => onRevokeAssign(d.id, myOwnSeat.id)}>
-              <Icon.x /> ດຶງການມອບໝາຍຄືນຈາກ {nameOf(myOwnSeat.assignedTo)}
-            </button>
-          )}
+          {/* ປຸ່ມດຶງຄືນ ຍ້າຍໄປແຖບປຸ່ມລຸ່ມ (Lucky 19/07: ໃຫ້ຢູ່ບ່ອນດຽວກັບ ແບ່ງປັນ/ດາວໂຫລດ) */}
         </div>
 
         {/* CC — ຮັບສຳເນົາ */}
@@ -471,6 +467,13 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
           {mySig?.role === 'approver'
             ? <button className="btn primary" onClick={() => setApproveOpen(true)}><Icon.check /> ອະນຸມັດ</button>
             : <button className="btn primary" onClick={() => onSign(d.id)}><Icon.pen /> ລົງນາມ</button>}
+        </>) : canRevoke ? (<>
+          {/* ມອບໝາຍໄປແລ້ວ (ຍັງບໍ່ເຊັນ) → ດຶງຄືນ ຢູ່ແຖບປຸ່ມລຸ່ມ ບ່ອນດຽວກັບ ແບ່ງປັນ/ດາວໂຫລດ (Lucky 19/07) */}
+          <button className="btn danger" onClick={() => { onRevokeAssign(d.id, myOwnSeat.id); act(`ດຶງການມອບໝາຍຄືນຈາກ ${nameOf(myOwnSeat.assignedTo)} ແລ້ວ`) }}>
+            <Icon.x /> ດຶງການມອບໝາຍຄືນ</button>
+          {iCreated
+            ? <button className="btn primary" onClick={doRemind}><Icon.send /> ເຕືອນຜູ້ລົງນາມ</button>
+            : <button className="btn primary" onClick={() => act('ດາວໂຫລດເອກະສານທັງໝົດ')}><Icon.download /> ດາວໂຫລດທັງໝົດ</button>}
         </>) : iCreated ? (<>
           <button className="btn danger" onClick={() => setCancelOpen(true)}><Icon.x /> ຍົກເລີກຄຳຂໍ</button>
           <button className="btn primary" onClick={doRemind}><Icon.send /> ເຕືອນຜູ້ລົງນາມ</button>
@@ -556,8 +559,9 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
               {directorySections(me, assignQ, '').filter((sec) => sec.key !== 'me').map((sec) => (
                 <div key={sec.key}>
                   <p className="mention-sec-head">{sec.label}</p>
+                  {/* ແຕະຊື່ → ຢືນຢັນກ່ອນ (Lucky 19/07: ຫ້າມມອບທັນທີ) */}
                   {sec.people.map((p) => (
-                    <button key={p.id} className="mention-opt" onClick={() => { onAssign(d.id, myOwnSeat.id, p.id); setAssignOpen(false); setAssignQ(''); act(`ມອບໝາຍໃຫ້ ${p.name} ແລ້ວ`) }}>
+                    <button key={p.id} className="mention-opt" onClick={() => setAssignConfirm(p)}>
                       <span className="mention-av" style={avBg(p.id)}>{!avatarOf(p.id) && initials(p.name)}</span>{p.name}
                     </button>
                   ))}
@@ -566,6 +570,29 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
             </div>
           </div>
         </div>
+      )}
+
+      {/* ຢືນຢັນມອບໝາຍ (Lucky 19/07) — ແຕະຊື່ແລ້ວຕ້ອງ confirm ກ່ອນ ບໍ່ມອບທັນທີ */}
+      {assignConfirm && (
+        <div className="modal-overlay dim" onClick={() => setAssignConfirm(null)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head"><b><Icon.swap /> ຢືນຢັນມອບໝາຍ</b><button className="icon-mini" onClick={() => setAssignConfirm(null)}><Icon.x /></button></div>
+            <p className="dd-approve-note">ມອບໝາຍໃຫ້ <b>{assignConfirm.name}</b> {mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}ແທນທ່ານ — ລາວຈະໄດ້ຮັບການແຈ້ງເຕືອນ ແລະ ທ່ານດຶງຄືນໄດ້ຕາບໃດທີ່ຍັງບໍ່{mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}</p>
+            <div className="success-btns" style={{ maxWidth: 'none', padding: '0 16px 18px' }}>
+              <button className="btn ghost" onClick={() => setAssignConfirm(null)}>ຍັງກ່ອນ</button>
+              <button className="btn primary" onClick={() => {
+                onAssign(d.id, myOwnSeat.id, assignConfirm.id)
+                setAssignConfirm(null); setAssignOpen(false); setAssignQ('')
+                setAssignPopup(assignConfirm.name)
+              }}><Icon.check /> ຢືນຢັນມອບໝາຍ</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* popup ມອບໝາຍສຳເລັດ (Lucky 19/07) */}
+      {assignPopup && (
+        <ResultPopup title="ມອບໝາຍສຳເລັດ!" desc={`ລະບົບໄດ້ແຈ້ງເຕືອນ ${assignPopup} ແລ້ວ — ດຶງຄືນໄດ້ຈາກປຸ່ມລຸ່ມໜ້ານີ້`}
+          onOk={() => setAssignPopup(null)} />
       )}
     </div>
   )
