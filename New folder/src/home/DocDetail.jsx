@@ -33,8 +33,6 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
   const [assignOpen, setAssignOpen] = useState(false) // E3/E12: มอบหมายให้คนอื่นเซ็น/อนุมัติแทน
   const [assignConfirm, setAssignConfirm] = useState(null) // Lucky 19/07: แตะชื่อ → ยืนยันก่อน ไม่มอบทันที
   const [assignPopup, setAssignPopup] = useState(null) // popup มอบหมายสำเร็จ (ชื่อผู้รับ)
-  const [revokeOpen, setRevokeOpen] = useState(false) // Lucky 19/07 รอบ 2: ดึงคืนก็ต้อง confirm ก่อนเหมือนมอบหมาย
-  const [revokePopup, setRevokePopup] = useState(false) // popup ดึงคืนสำเร็จ
   const [assignQ, setAssignQ] = useState('')
   const [approveOpen, setApproveOpen] = useState(false) // ຢືນຢັນອະນຸມັດ (role approver — ບໍ່ມີຊ່ອງເຊັນ)
   const [approvePopup, setApprovePopup] = useState(false)
@@ -93,7 +91,6 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
   const iCreated = d.creatorId === me
   const mySig = d.signers.find((s) => actingId(s) === me) // E3/E12: ตำแหน่งที่ me ต้อง act จริง (รวมที่รับมอบหมายมา)
   const myOwnSeat = d.signers.find((s) => s.id === me) // ที่นั่งที่ me เป็นเจ้าของเดิม (ใช้ตัดสิน มอบหมาย/ดึงกลับ)
-  const roleWord = mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ' // ใช้ร่วม assign/revoke confirm — ป้องกันข้อความไม่ตรง role จริง
   const myTurn = isMyTurn(d, me)
   // E3/E12: เอกสารลับ ห้ามมอบหมายให้คนนอกสาย (ใช้กฎเดียวกับ E14 @tag) · มอบได้เฉพาะที่นั่งของตัวเอง (กันมอบซ้อน/delegate-of-delegate)
   const isConfidential = docTypeOf(d) === 'ເອກະສານລັບ'
@@ -471,8 +468,8 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
             ? <button className="btn primary" onClick={() => setApproveOpen(true)}><Icon.check /> ອະນຸມັດ</button>
             : <button className="btn primary" onClick={() => onSign(d.id)}><Icon.pen /> ລົງນາມ</button>}
         </>) : canRevoke ? (<>
-          {/* ມອບໝາຍໄປແລ້ວ (ຍັງບໍ່ເຊັນ) → ດຶງຄືນ ຢູ່ແຖບປຸ່ມລຸ່ມ ບ່ອນດຽວກັບ ແບ່ງປັນ/ດາວໂຫລດ (Lucky 19/07) — ຕ້ອງ confirm ກ່ອນ ຄືກັບມອບໝາຍ */}
-          <button className="btn danger" onClick={() => setRevokeOpen(true)}>
+          {/* ມອບໝາຍໄປແລ້ວ (ຍັງບໍ່ເຊັນ) → ດຶງຄືນ ຢູ່ແຖບປຸ່ມລຸ່ມ ບ່ອນດຽວກັບ ແບ່ງປັນ/ດາວໂຫລດ (Lucky 19/07) */}
+          <button className="btn danger" onClick={() => { onRevokeAssign(d.id, myOwnSeat.id); act(`ດຶງການມອບໝາຍຄືນຈາກ ${nameOf(myOwnSeat.assignedTo)} ແລ້ວ`) }}>
             <Icon.x /> ດຶງການມອບໝາຍຄືນ</button>
           {iCreated
             ? <button className="btn primary" onClick={doRemind}><Icon.send /> ເຕືອນຜູ້ລົງນາມ</button>
@@ -575,18 +572,12 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
         </div>
       )}
 
-      {/* ຢືນຢັນມອບໝາຍ (Lucky 19/07) — ແຕະຊື່ແລ້ວຕ້ອງ confirm ກ່ອນ ບໍ່ມອບທັນທີ · ຂໍ້ຄວາມແບບ enterprise esign ຈິງ (Lucky 21/07: ອັນເກົ່າບໍ່ "chuyên gia") */}
+      {/* ຢືນຢັນມອບໝາຍ (Lucky 19/07) — ແຕະຊື່ແລ້ວຕ້ອງ confirm ກ່ອນ ບໍ່ມອບທັນທີ */}
       {assignConfirm && (
         <div className="modal-overlay dim" onClick={() => setAssignConfirm(null)}>
           <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head"><b><Icon.swap /> ຢືນຢັນການມອບໝາຍ</b><button className="icon-mini" onClick={() => setAssignConfirm(null)}><Icon.x /></button></div>
-            <p className="dd-approve-note">
-              ທ່ານກຳລັງມອບສິດ{roleWord} "{d.title}" ໃຫ້ <b>{assignConfirm.name}</b> ດຳເນີນການແທນ
-              <br /><br />
-              • {assignConfirm.name} ຈະໄດ້ຮັບການແຈ້ງເຕືອນທັນທີ ແລະ ຕ້ອງ{roleWord}ແທນທ່ານ
-              <br />
-              • ທ່ານດຶງສິດຄືນໄດ້ ຕາບໃດທີ່ {assignConfirm.name} ຍັງບໍ່ໄດ້{roleWord}
-            </p>
+            <div className="modal-head"><b><Icon.swap /> ຢືນຢັນມອບໝາຍ</b><button className="icon-mini" onClick={() => setAssignConfirm(null)}><Icon.x /></button></div>
+            <p className="dd-approve-note">ມອບໝາຍໃຫ້ <b>{assignConfirm.name}</b> {mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}ແທນທ່ານ — ລາວຈະໄດ້ຮັບການແຈ້ງເຕືອນ ແລະ ທ່ານດຶງຄືນໄດ້ຕາບໃດທີ່ຍັງບໍ່{mySig?.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}</p>
             <div className="success-btns" style={{ maxWidth: 'none', padding: '0 16px 18px' }}>
               <button className="btn ghost" onClick={() => setAssignConfirm(null)}>ຍັງກ່ອນ</button>
               <button className="btn primary" onClick={() => {
@@ -598,36 +589,10 @@ export default function DocDetail({ doc: d, me, onBack, onReject, onSign, onAppr
           </div>
         </div>
       )}
-      {/* popup ມອບໝາຍສຳເລັດ */}
+      {/* popup ມອບໝາຍສຳເລັດ (Lucky 19/07) */}
       {assignPopup && (
-        <ResultPopup title="ມອບໝາຍສຳເລັດ!" desc={`ລະບົບໄດ້ບັນທຶກ ແລະ ແຈ້ງເຕືອນ ${assignPopup} ແລ້ວ`}
+        <ResultPopup title="ມອບໝາຍສຳເລັດ!" desc={`ລະບົບໄດ້ແຈ້ງເຕືອນ ${assignPopup} ແລ້ວ — ດຶງຄືນໄດ້ຈາກປຸ່ມລຸ່ມໜ້ານີ້`}
           onOk={() => setAssignPopup(null)} />
-      )}
-
-      {/* ຢືນຢັນດຶງຄືນ (Lucky 21/07: ຕ້ອງ confirm ຄືກັບມອບໝາຍ ບໍ່ແມ່ນກົດແລ້ວດຶງທັນທີ) */}
-      {revokeOpen && (
-        <div className="modal-overlay dim" onClick={() => setRevokeOpen(false)}>
-          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head"><b><Icon.swap /> ຢືນຢັນດຶງການມອບໝາຍຄືນ</b><button className="icon-mini" onClick={() => setRevokeOpen(false)}><Icon.x /></button></div>
-            <p className="dd-approve-note">
-              ດຶງສິດ{roleWord} "{d.title}" ຄືນຈາກ <b>{nameOf(myOwnSeat?.assignedTo)}</b>
-              <br /><br />
-              • ສິດ{roleWord}ຈະກັບມາເປັນຂອງທ່ານທັນທີ
-              <br />
-              • {nameOf(myOwnSeat?.assignedTo)} ຈະບໍ່ສາມາດ{roleWord}ເອກະສານນີ້ໄດ້ອີກ
-            </p>
-            <div className="success-btns" style={{ maxWidth: 'none', padding: '0 16px 18px' }}>
-              <button className="btn ghost" onClick={() => setRevokeOpen(false)}>ຍັງກ່ອນ</button>
-              <button className="btn danger" onClick={() => { onRevokeAssign(d.id, myOwnSeat.id); setRevokeOpen(false); setRevokePopup(true) }}>
-                <Icon.x /> ຢືນຢັນດຶງຄືນ</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* popup ດຶງຄືນສຳເລັດ */}
-      {revokePopup && (
-        <ResultPopup danger title="ດຶງຄືນສຳເລັດ!" desc={`ສິດ${roleWord}ກັບຄືນມາເປັນຂອງທ່ານແລ້ວ`}
-          onOk={() => setRevokePopup(false)} />
       )}
     </div>
   )

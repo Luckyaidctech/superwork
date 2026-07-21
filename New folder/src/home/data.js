@@ -1,0 +1,683 @@
+import { DIRECTORY, DEPTS } from '../flow/shared.jsx'
+
+// ຮູບໂປຣໄຟລ໌ demo (data URI SVG) — ຄົນທີ່ບໍ່ມີ avatarUrl ຈະໃຊ້ initials
+const PHOTO_A = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%232563eb'/%3E%3Ccircle cx='20' cy='15.5' r='7' fill='%23dbeafe'/%3E%3Cpath d='M7 37c0-7.5 5.5-11.5 13-11.5S33 29.5 33 37z' fill='%23dbeafe'/%3E%3C/svg%3E"
+
+// ຮູບຕົວຢ່າງ (ໃບຮັບເງິນ) — ໃຫ້ເຫັນວ່າ ໄຟລ໌ຮູບທີ່ຜູ້ໃຊ້ອັບໂຫລດ ຈະໂຊແບບໃດ
+export const SAMPLE_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect width='300' height='400' fill='%23ffffff'/%3E%3Crect x='16' y='16' width='268' height='368' rx='6' fill='none' stroke='%23cbd5e1' stroke-width='2'/%3E%3Crect x='40' y='44' width='140' height='13' rx='3' fill='%231f3fb5'/%3E%3Crect x='40' y='68' width='90' height='8' rx='3' fill='%2394a3b8'/%3E%3Cline x1='40' y1='96' x2='260' y2='96' stroke='%23e2e8f0' stroke-width='2'/%3E%3Crect x='40' y='116' width='110' height='8' rx='3' fill='%2364748b'/%3E%3Crect x='196' y='116' width='64' height='8' rx='3' fill='%2364748b'/%3E%3Crect x='40' y='142' width='130' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='210' y='142' width='50' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='40' y='168' width='96' height='8' rx='3' fill='%2394a3b8'/%3E%3Crect x='214' y='168' width='46' height='8' rx='3' fill='%2394a3b8'/%3E%3Cline x1='40' y1='196' x2='260' y2='196' stroke='%23e2e8f0' stroke-width='2'/%3E%3Crect x='40' y='214' width='60' height='11' rx='3' fill='%231f3fb5'/%3E%3Crect x='196' y='214' width='64' height='11' rx='3' fill='%231f3fb5'/%3E%3Ccircle cx='214' cy='300' r='34' fill='none' stroke='%23dc2626' stroke-width='2'/%3E%3Ctext x='214' y='296' font-family='sans-serif' font-size='9' fill='%23dc2626' text-anchor='middle'%3EPAID%3C/text%3E%3Ctext x='214' y='309' font-family='sans-serif' font-size='6' fill='%23dc2626' text-anchor='middle'%3E10/07/2026%3C/text%3E%3Crect x='40' y='340' width='120' height='7' rx='3' fill='%23cbd5e1'/%3E%3C/svg%3E"
+
+// ── ຜູ້ใช้ demo (ສະຫຼັບໄດ້) — Tech + BD + ຜู้บริหาร ──
+export const USERS = [
+  { id: 'A', name: 'Anoulack Phengphaxaichanh', role: 'ພະນັກງານ · IT Department', avatarUrl: PHOTO_A },
+  { id: 'B', name: 'Decha Ning Kenthaworn', role: 'ຫົວໜ້າ IT Department' },
+  { id: 'C', name: 'Pheutsapha Phoummasak', role: 'ຜູ້ອຳນວຍການ' },
+  // Adul = deputy (VP) — ຕ້ອງຢູ່ switcher ເພື່ອທົດສອບສິດ Tab 6 (Flow Setting) ຝັ່ງ deputy (Lucky ຂໍ 18/07)
+  { id: 'u3', name: 'Adul Chaiprom', role: 'ຮອງຜູ້ອຳນວຍການ' },
+  // Pimlada = ຜູ້ອະນຸມັດຂັ້ນ 2 (HR) ຂອງທຸກຄຳຂໍ — ຕ້ອງຢູ່ demo switcher ຈຶ່ງທົດສອບ/demo ຄົບສາຍ
+  { id: 'u1', name: 'Pimlada Yui Akkarapiriyakulthorn', role: 'ຫົວໜ້າ HR and Admin' },
+  { id: 'F', name: 'Chanon Leng Chamnandechakun', role: 'ຫົວໜ້າ Business Development' },
+  { id: 'G', name: 'Take Khounphaxay', role: 'ພະນັກງານ · Business Development' },
+]
+const OTHERS = { D: 'ວິໄລ ຈັນທະລາ', E: 'ບຸນມີ ສີສະຫວາດ' }
+// nameOf ຮອງຮັບ id ຈາກ DIRECTORY ນຳ (ສຳລັບ request ໃໝ່ທີ່ເລືອກຄົນຈາກ picker)
+export const nameOf = (id) => USERS.find((u) => u.id === id)?.name || OTHERS[id] || DIRECTORY.find((p) => p.id === id)?.name || id
+export const avatarOf = (id) => USERS.find((u) => u.id === id)?.avatarUrl || DIRECTORY.find((p) => p.id === id)?.avatarUrl || null
+const CMAP = { A: '#2563eb', B: '#e07b1f', C: '#7c3aed', D: '#0891b2', E: '#16a34a', F: '#0d9488', G: '#db2777' }
+const CPAL = ['#2563eb', '#e07b1f', '#7c3aed', '#0891b2', '#16a34a', '#dc2626', '#d97706', '#0d9488']
+export const colorOf = (id) => CMAP[id] || CPAL[((id || 'x').charCodeAt((id || 'x').length - 1) || 0) % CPAL.length]
+
+let _id = 100
+export const uid = () => `x${++_id}`
+
+// ── ຄຳຂໍທົ່ວໄປ (ບໍ່ແມ່ນ e-Signature) — ໃຊ້ຮ່ວມກັນ 2 ໂມດູນ: ໂມດູນ "ຄຳຂໍ" (ຝ່າຍຜູ້ຂໍ) ແລະ "ການອະນຸມັດ" (ຝ່າຍຜູ້ອະນຸມັດ)
+// req: { id, title, byId, note, date, from?, to?, hours?, status:'progress'|'approved'|'rejected'|'cancelled', reason? }
+export function initialReqs() {
+  return {
+    leave: [
+      { id: 'lv1', title: 'ລາປ່ວຍ', byId: 'G', note: 'ບໍ່ສະບາຍ ເປັນໄຂ້', date: '09/08/2026', from: '08:30', to: '17:30', status: 'approved' },
+      { id: 'lv2', title: 'ລາກິດ', byId: 'G', note: 'ວຽກສ່ວນຕົວ', date: '04/08/2026', from: '08:30', to: '17:30', status: 'progress' },
+      { id: 'lv3', title: 'ລາພັກປະຈຳປີ', byId: 'F', note: 'ພັກຜ່ອນ', date: '20/08/2026', from: '08:30', to: '17:30', status: 'rejected', reason: 'ຊ່ວງນີ້ວຽກດ່ວນຫຼາຍ' },
+      // ── ຂອງ A (ຜູ້ໃຊ້ demo) — ຄົບ 4 ສະຖານະ ໃຫ້ປຸ່ມກອງທຸກປຸ່ມມີຂໍ້ມູນ ──
+      { id: 'lv4', title: 'ລາກິດ', byId: 'A', note: 'ວຽກສ່ວນຕົວ', date: '15/07/2026', from: '08:30', to: '17:30', status: 'progress' },
+      { id: 'lv6', title: 'ລາພັກປະຈຳປີ', byId: 'A', note: 'ພັກຜ່ອນ ກັບຄອບຄົວ', date: '03/08/2026', dateTo: '07/08/2026', from: '08:30', to: '17:30', status: 'rejected', reason: 'ຊ່ວງນັ້ນມີ demo ໃຫ້ລູກຄ້າ ຂໍເລື່ອນເປັນອາທິດຖັດໄປ' },
+      { id: 'lv7', title: 'ລາເບິ່ງແຍງຄອບຄົວ', byId: 'A', note: 'ພາແມ່ໄປໂຮງໝໍ', date: '20/07/2026', from: '08:30', to: '12:00', status: 'cancelled', reason: 'ປ່ຽນເປັນວັນເສົາ ບໍ່ຕ້ອງລາແລ້ວ' },
+      // ມີໄຟລ໌ແນບ (ໃບຢັ້ງຢືນແພດ) — ໄຟລ໌ຈິງຖືກຕິດໃສ່ຕອນເປີດແອັບ (App.jsx enrich)
+      { id: 'lv5', title: 'ລາປ່ວຍ', byId: 'A', note: 'ໄປພົບແພດ ໂຮງໝໍມິດຕະພາບ', date: '10/07/2026', from: '08:30', to: '17:30', status: 'approved', needFile: 'ໃບຢັ້ງຢືນແພດ.pdf', needImg: 'ຮູບໃບຮັບເງິນ.svg' },
+    ],
+    offsite: [
+      { id: 'of1', title: 'ພົບລູກຄ້າ ທະນາຄານ BCEL', byId: 'G', note: 'ນະຄອນຫຼວງວຽງຈັນ', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
+      { id: 'of2', title: 'ຕິດຕັ້ງລະບົບ ໜ້າງານ HAIXIN', byId: 'F', note: 'ໂຮງງານ ນອກເມືອງ', date: '13/07/2026', from: '08:00', to: '17:00', status: 'approved' },
+      { id: 'of3', title: 'ອົບຮົມ ທີມງານ ສາຂາ ປາກເຊ', byId: 'B', note: 'ແຂວງ ຈຳປາສັກ', date: '10/07/2026', from: '08:00', to: '17:00', status: 'progress' },
+      // ── ຂອງ A — ຄົບ 4 ສະຖານະ ──
+      { id: 'of4', title: 'ທົດສອບລະບົບ ໜ້າງານ', byId: 'A', note: 'BOL', date: '15/07/2026', from: '08:00', to: '21:00', status: 'progress' },
+      { id: 'of5', title: 'ພົບລູກຄ້າ', byId: 'A', note: 'ທະນາຄານ BCEL', detail: 'ນຳສະເໜີ ລະບົບ e-Signature', date: '08/07/2026', from: '09:00', to: '12:00', status: 'approved' },
+      { id: 'of6', title: 'ອົບຮົມ ນອກສະຖານທີ', byId: 'A', note: 'ແຂວງ ຈຳປາສັກ', detail: 'ອົບຮົມ ທີມງານ ສາຂາ', date: '25/07/2026', dateTo: '26/07/2026', from: '08:00', to: '17:00', status: 'rejected', reason: 'ງົບເດີນທາງ ໄຕມາດນີ້ໝົດແລ້ວ' },
+      { id: 'of7', title: 'ສຳຫຼວດ ໜ້າງານ', byId: 'A', note: 'ໂຮງງານ HAIXIN', detail: 'ສຳຫຼວດ ບ່ອນຕິດຕັ້ງ', date: '12/07/2026', from: '08:00', to: '17:00', status: 'cancelled', reason: 'ລູກຄ້າ ຂໍເລື່ອນນັດ' },
+    ],
+    ot: [
+      { id: 'ot1', title: 'AIDC work', byId: 'G', note: 'ວຽກດ່ວນ ໃກ້ກຳນົດສົ່ງ', date: '14/07/2026', from: '17:30', to: '20:30', hours: '3h 0m', status: 'approved' },
+      { id: 'ot2', title: 'AIDC work', byId: 'G', note: 'ລູກຄ້າຮ້ອງຂໍ', date: '12/07/2026', from: '17:30', to: '21:30', hours: '4h 0m', status: 'progress' },
+      // ── ຂອງ A — ຄົບ 4 ສະຖານະ (ມີ ກິດຈະກຳ + ປະເພດວັນ ຄືກັບຟອມສ້າງ) ──
+      { id: 'ot3', title: 'Super Work', byId: 'A', activity: 'ລະບົບຄຳຂໍ', tasks: ['ຟອມໂອທີ', 'ສາຍອະນຸມັດ'], dayType: 'ວັນທຳມະດາ', note: 'ພັດທະນາ ລະບົບຄຳຂໍ', date: '15/07/2026', from: '18:00', to: '20:00', status: 'progress' },
+      { id: 'ot4', title: 'e-Signature App', byId: 'A', activity: 'PDF Viewer', tasks: ['Render PDF', 'QR ທ້າຍໜ້າ'], dayType: 'ວັນທຳມະດາ', note: 'ວຽກດ່ວນ ໃກ້ກຳນົດສົ່ງ', date: '09/07/2026', from: '18:00', to: '21:00', status: 'approved' },
+      { id: 'ot5', title: 'FDI / BOL System', byId: 'A', activity: 'UAT', tasks: ['ຮັນ UAT ຮອບ 1'], dayType: 'ວັນເສົາ-ອາທິດ', note: 'ທົດສອບ UAT ວັນເສົາ', date: '11/07/2026', from: '09:00', to: '17:00', status: 'rejected', reason: 'ໃຫ້ເຮັດໃນເວລາລາຊະການ ແທນ' },
+      { id: 'ot6', title: 'AIDC work', byId: 'A', activity: 'ບຳລຸງຮັກສາລະບົບ', tasks: ['ອັບເດດ server', 'ສຳຮອງຂໍ້ມູນ'], dayType: 'ວັນພັກລັດຖະການ', note: 'ອັບເດດ server', date: '07/07/2026', from: '18:00', to: '20:00', status: 'cancelled', reason: 'ເລື່ອນໄປອາທິດໜ້າ' },
+    ],
+    // ── ການຈອງ (ຫ້ອງ / ລົດ / ອຸປະກອນ) — ຄົບທຸກສະຖານະ ──
+    booking: [
+      { id: 'bk1', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'ນຳສະເໜີ ລູກຄ້າ BCEL', date: '17/07/2026', from: '09:00', to: '11:00', status: 'progress' },
+      { id: 'bk2', title: 'ລົດ Toyota HiAce', byId: 'G', note: 'ຮັບ-ສົ່ງ ລູກຄ້າ ສະໜາມບິນ', date: '18/07/2026', from: '08:00', to: '17:00', status: 'progress' },
+      { id: 'bk3', title: 'ຫ້ອງປະຊຸມໃຫຍ່', byId: 'B', note: 'ປະຊຸມທີມ ໄຕມາດ 3', date: '20/07/2026', from: '13:00', to: '16:00', status: 'progress' },
+      { id: 'bk4', title: 'ໂປຣເຈັກເຕີ', byId: 'G', note: 'ອົບຮົມ ພະນັກງານໃໝ່', date: '16/07/2026', from: '09:00', to: '12:00', status: 'progress' },
+      { id: 'bk5', title: 'ຫ້ອງປະຊຸມ B', byId: 'F', note: 'ສຳພາດ ຜູ້ສະໝັກ', date: '14/07/2026', from: '10:00', to: '11:30', status: 'approved' },
+      { id: 'bk6', title: 'ລົດ Vigo', byId: 'B', note: 'ຕິດຕັ້ງ ໜ້າງານ HAIXIN', date: '13/07/2026', from: '08:00', to: '18:00', status: 'approved' },
+      { id: 'bk7', title: 'ກ້ອງຖ່າຍຮູບ', byId: 'G', note: 'ຖ່າຍງານ ບໍລິສັດ', date: '12/07/2026', from: '13:00', to: '17:00', status: 'approved' },
+      { id: 'bk8', title: 'ຫ້ອງ Studio', byId: 'F', note: 'ຖ່າຍວິດີໂອ ແນະນຳລະບົບ', date: '10/07/2026', from: '09:00', to: '17:00', status: 'rejected', reason: 'Studio ຖືກຈອງແລ້ວ ໂດຍທີມ Marketing' },
+      { id: 'bk9', title: 'ລົດ Toyota HiAce', byId: 'B', note: 'ໄປແຂວງ ຫຼວງພະບາງ', date: '08/07/2026', from: '06:00', to: '20:00', status: 'rejected', reason: 'ລົດເຂົ້າສ້ອມແປງ ຊ່ວງນັ້ນ' },
+      { id: 'bk10', title: 'ຫ້ອງປະຊຸມ A', byId: 'F', note: 'ປະຊຸມ ຍົກເລີກແລ້ວ', date: '02/07/2026', from: '09:00', to: '11:00', status: 'cancelled', reason: 'ລູກຄ້າ ຂໍເລື່ອນນັດ' },
+      { id: 'bk11', title: 'ໂປຣເຈັກເຕີ', byId: 'A', note: 'ນຳສະເໜີ ພາຍໃນທີມ', date: '19/07/2026', from: '14:00', to: '16:00', status: 'progress' },
+      { id: 'bk12', title: 'ຫ້ອງປະຊຸມ B', byId: 'A', note: 'ທົບທວນ Test Cases', date: '09/07/2026', from: '10:00', to: '12:00', status: 'approved' },
+    ],
+    // ── ຄວາມຮູ້ (Knowledge Sharing) — store ດຽວກັບ Approval ໝວດ "ຄວາມຮູ້" ──
+    // type: text | youtube | pdf · status: draft | progress | rejected | approved(=ເຜີຍແຜ່ແລ້ວ)
+    knowledge: [
+      { id: 'kn1', byId: 'G', type: 'text', title: 'Run for our forest', note: 'ສະຫຼຸບກິດຈະກຳ ແລ່ນເພື່ອປ່າໄມ້ ຂອງ AIDC',
+        content: 'ກິດຈະກຳ Run for our forest ຈັດຂຶ້ນເພື່ອລະດົມທຶນປູກປ່າ. ພະນັກງານເຂົ້າຮ່ວມ 120 ຄົນ ໄດ້ທຶນທັງໝົດ 45 ລ້ານກີບ ນຳໄປປູກຕົ້ນໄມ້ 3,000 ຕົ້ນ ທີ່ແຂວງ ວຽງຈັນ.',
+        cats: ['Compliance', 'General'], teams: ['ທັງໝົດ'], date: '23/06/2026', status: 'approved', views: 128, likes: ['A', 'B'], comments: [] },
+      { id: 'kn2', byId: 'B', type: 'text', title: 'ເລືອກ Claude Model ໃຫ້ເໝາະກັບງານຂຽນໂຄດ', note: 'ສະຫຼຸບຄວາມຕ່າງຂອງແຕ່ລະໂມເດວ ແລະ ວິທີເລືອກໃຫ້ຄຸ້ມ',
+        content: 'Opus 4.8 — ວຽກໃຫຍ່ ຊັບຊ້ອນ, refactor ຫຼາຍໄຟລ໌, migration.\nSonnet 5 — ວຽກປະຈຳວັນ ສະເໝີພາບ ຄວາມໄວ/ຄຸນນະພາບ.\nHaiku 4.5 — ວຽກໄວ ປະລິມານຫຼາຍ.\nເຄັດລັບ: ໃຊ້ Sonnet ເປັນຫຼັກ ແລ້ວຍົກເປັນ Opus ສະເພາະຕອນຕິດບັນຫາຍາກ.',
+        cats: ['Technical Skills'], teams: ['Tech'], date: '14/07/2026', status: 'approved', views: 13, likes: ['A'], comments: [] },
+      { id: 'kn3', byId: 'F', type: 'youtube', title: 'ວິທີນຳສະເໜີ ໃຫ້ລູກຄ້າປະທັບໃຈ', note: 'ເຕັກນິກ present ໃນ 10 ນາທີ',
+        url: 'https://youtu.be/dQw4w9WgXcQ', cats: ['Soft Skills'], teams: ['BD'], date: '12/07/2026', status: 'approved', views: 46, likes: [], comments: [] },
+      // ຂອງ A (ຜູ້ໃຊ້ demo) — ຄົບ 4 ສະຖານະ ໃຫ້ປຸ່ມກອງທຸກປຸ່ມມີຂໍ້ມູນ
+      { id: 'kn4', byId: 'A', type: 'text', title: 'ວິທີໃຊ້ ລະບົບ e-Signature', note: 'ຄູ່ມືເລີ່ມຕົ້ນ ສຳລັບພະນັກງານໃໝ່',
+        content: 'ຂັ້ນຕອນ: ສ້າງຄຳຂໍ → ເລືອກຜູ້ລົງນາມ → ວາງຊ່ອງລາຍເຊັນ → ສົ່ງ. ຜູ້ລົງນາມຈະໄດ້ຮັບແຈ້ງເຕືອນ ແລະ ເຊັນຜ່ານມືຖືໄດ້ເລີຍ.',
+        cats: ['Technical Skills'], teams: ['ທັງໝົດ'], date: '15/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn5', byId: 'A', type: 'pdf', title: 'ສະຫຼຸບ Master Test Cases FDI', note: 'ເອກະສານ TC ທັງໝົດ 214 ລາຍການ',
+        needFile: 'master-test-cases.pdf', cats: ['Technical Skills'], teams: ['Tech'], date: '11/07/2026', status: 'draft', views: 0, likes: [], comments: [] },
+      { id: 'kn6', byId: 'A', type: 'text', title: 'ເຄັດລັບ ຈັດການເວລາ', note: 'ວິທີແບ່ງເວລາໃນມື້ວຽກຫຍຸ້ງ',
+        content: 'ຈັດວຽກສຳຄັນໄວ້ຕອນເຊົ້າ · ປິດແຈ້ງເຕືອນ 2 ຊົ່ວໂມງ · ພັກສາຍຕາທຸກ 45 ນາທີ',
+        cats: ['Soft Skills'], teams: ['ທັງໝົດ'], date: '08/07/2026', status: 'rejected', reason: 'ເນື້ອໃນສັ້ນເກີນໄປ ຂໍໃຫ້ເພີ່ມຕົວຢ່າງຈິງ', views: 0, likes: [], comments: [] },
+      { id: 'kn7', byId: 'A', type: 'text', title: 'ສະຫຼຸບ ການປະຊຸມທີມ Tech ໄຕມາດ 2', note: 'ຜົນງານ ແລະ ແຜນໄຕມາດ 3',
+        content: 'ໄຕມາດ 2 ສົ່ງມອບ 3 ໂຄງການ. ໄຕມາດ 3 ຈະເນັ້ນ Super Work ແລະ e-Signature.',
+        cats: ['General'], teams: ['Tech'], date: '05/07/2026', status: 'approved', views: 89, likes: ['B', 'C', 'F'], comments: [] },
+      // ── ຂອງຄົນອື່ນ ທີ່ລໍຖ້າກວດສອບ / ຖືກປະຕິເສດ → ໃຫ້ໂມດູນອະນຸມັດ ມີຂໍ້ມູນຄົບ ──
+      { id: 'kn8', byId: 'G', type: 'text', title: 'ວິທີຮັບມື ລູກຄ້າໂມໂຫ', note: 'ເຕັກນິກ 5 ຂັ້ນຕອນ ຫຼຸດຄວາມຕຶງຄຽດ',
+        content: '1. ຟັງໃຫ້ຈົບ ບໍ່ຂັດ\n2. ຂໍໂທດ ຢ່າງຈິງໃຈ\n3. ສະຫຼຸບບັນຫາ ໃຫ້ລູກຄ້າຢືນຢັນ\n4. ສະເໜີທາງອອກ 2 ທາງ\n5. ຕິດຕາມຜົນ ພາຍໃນ 24 ຊົ່ວໂມງ',
+        cats: ['Soft Skills'], teams: ['BD'], date: '16/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn9', byId: 'F', type: 'pdf', title: 'ຄູ່ມືການໃຊ້ ລະບົບ BOL', note: 'ເອກະສານ ສຳລັບພະນັກງານໃໝ່',
+        needFile: 'bol-manual.pdf', cats: ['Technical Skills', 'Compliance'], teams: ['ທັງໝົດ'], date: '15/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn10', byId: 'B', type: 'youtube', title: 'ແນະນຳ Git ສຳລັບທີມ', note: 'ພື້ນຖານ branch · merge · PR',
+        url: 'https://youtu.be/HkdAHXoRtos', cats: ['Technical Skills'], teams: ['Tech'], date: '13/07/2026', status: 'progress', views: 0, likes: [], comments: [] },
+      { id: 'kn11', byId: 'G', type: 'text', title: 'ເມນູອາຫານ ໃກ້ຫ້ອງການ', note: 'ລວມຮ້ານແຊບ ໃກ້ AIDC',
+        content: 'ຮ້ານເຝີ ຫລັກ 3 · ຂ້າວປຽກ ຂ້າງທະນາຄານ · ຮ້ານກາເຟ ຊັ້ນລຸ່ມ',
+        cats: ['General'], teams: ['ທັງໝົດ'], date: '02/07/2026', status: 'rejected', reason: 'ບໍ່ກ່ຽວຂ້ອງກັບວຽກ ຂໍໃຫ້ໂພສໃນກຸ່ມ chat ແທນ', views: 0, likes: [], comments: [] },
+      { id: 'kn12', byId: 'F', type: 'text', title: 'ສະຫຼຸບ ກອງປະຊຸມລູກຄ້າ HAIXIN', note: 'ຂໍ້ຕົກລົງ ແລະ ຂັ້ນຕອນຕໍ່ໄປ',
+        content: 'ລູກຄ້າ ຕົກລົງ scope ໄລຍະ 1 ແລ້ວ. ຈະເລີ່ມຕິດຕັ້ງ ຕົ້ນເດືອນໜ້າ. ຕ້ອງກຽມ ເອກະສານສັນຍາ ພາຍໃນອາທິດນີ້.',
+        cats: ['General', 'Compliance'], teams: ['BD'], date: '10/07/2026', status: 'approved', views: 34, likes: ['A', 'G'], comments: [] },
+    ],
+  }
+}
+// ໝວດ ແລະ ທີມ ຂອງໂພສຄວາມຮູ້
+export const KN_CATS = ['Compliance', 'General', 'Soft Skills', 'Technical Skills']
+export const KN_TEAMS = ['ທັງໝົດ', 'Tech', 'BD', 'HR']
+export const KN_TYPES = [
+  { v: 'text', label: 'ຂໍ້ຄວາມ', ic: 'doc' },
+  { v: 'youtube', label: 'YouTube', ic: 'video' },
+  { v: 'pdf', label: 'PDF', ic: 'pdf' },
+]
+export const KN_STATUS = {
+  draft: { t: 'ຮ່າງ', c: 'cancel' },
+  progress: { t: 'ລໍຖ້າອະນຸມັດ', c: 'wait' },
+  rejected: { t: 'ຖືກປະຕິເສດ', c: 'rej' },
+  approved: { t: 'ເຜີຍແຜ່ແລ້ວ', c: 'done' },
+}
+
+// doc: { id, title, creatorId, date, ts, files[{name,pages,summary?}], attachments[], cc[ids], signers[], comments[], status }
+// signer: { id, step, status:'pending'|'viewed'|'signed'|'rejected', role:'signer'|'approver', time?, reason? }
+// ── ປະເພດເອກະສານ 11 ປະເພດ (ຫົວໜ້າ confirm) — ໃຊ້ເປັນ filter ທຸກ tab ຂອງໂມດູນ Sign ──
+export const DOC_TYPES = [
+  'ເອກະສານທົ່ວໄປ', 'ເອກະສານລັບ', 'ເອກະສານບຸກຄະລາກອນ', 'ສັນຍາທຸລະກິດ / MOU', 'ເອກະສານໂຄງການກໍ່ສ້າງ',
+  'ການເງິນ-ເບີກຈ່າຍ', 'ງົບປະມານ', 'ຈັດຊື້ຈັດຈ້າງ', 'ເອກະສານກວດສອບພາຍໃນ', 'ໜັງສືອອກພາຍນອກ', 'ງານສື່ / ແບຣນດ໌',
+]
+// ປະເພດຂອງ seed ແຕ່ລະໃບ (ອີງຕາມຊື່ເລື່ອງ) — ໃບທີ່ບໍ່ລະບຸ = ເອກະສານທົ່ວໄປ
+const DOC_TYPE_BY_ID = {
+  d24: 'ເອກະສານທົ່ວໄປ', d13: 'ເອກະສານທົ່ວໄປ', d14: 'ງົບປະມານ', d15: 'ຈັດຊື້ຈັດຈ້າງ', d16: 'ການເງິນ-ເບີກຈ່າຍ',
+  d1: 'ສັນຍາທຸລະກິດ / MOU', d2: 'ງົບປະມານ', d4: 'ເອກະສານທົ່ວໄປ', d3: 'ການເງິນ-ເບີກຈ່າຍ', d6: 'ເອກະສານທົ່ວໄປ',
+  d19: 'ເອກະສານບຸກຄະລາກອນ', d7: 'ເອກະສານທົ່ວໄປ', d8: 'ເອກະສານທົ່ວໄປ', d9: 'ງານສື່ / ແບຣນດ໌', d18: 'ການເງິນ-ເບີກຈ່າຍ',
+  d10: 'ງົບປະມານ', d20: 'ງົບປະມານ', d5: 'ສັນຍາທຸລະກິດ / MOU', d11: 'ສັນຍາທຸລະກິດ / MOU', d12: 'ຈັດຊື້ຈັດຈ້າງ',
+  d17: 'ສັນຍາທຸລະກິດ / MOU', d21: 'ສັນຍາທຸລະກິດ / MOU', d22: 'ສັນຍາທຸລະກິດ / MOU', d23: 'ການເງິນ-ເບີກຈ່າຍ',
+}
+export const docTypeOf = (d) => d.docType || DOC_TYPE_BY_ID[d.id] || 'ເອກະສານທົ່ວໄປ'
+
+// ── ເລກທີເອກະສານ (E15) — [prefix]-[ปีค.ศ.]/[ลำดับ 3 หลัก] ເຊັ່ນ FIN-2026/001 ──
+// ⚠ ເປັນ field ໃໝ່ ແຍກຈາກ d.id (id ຫ້າມແຕະ — seed ອ້າງອยู่) · prefix = ค่าเริ่มต้น รอ Tab 6 (Super Admin/VP) ตั้งเองได้ในอนาคต
+export const DOC_TYPE_PREFIX = {
+  'ເອກະສານທົ່ວໄປ': 'GEN', 'ເອກະສານລັບ': 'CFD', 'ເອກະສານບຸກຄະລາກອນ': 'HR', 'ສັນຍາທຸລະກິດ / MOU': 'CTR',
+  'ເອກະສານໂຄງການກໍ່ສ້າງ': 'CON', 'ການເງິນ-ເບີກຈ່າຍ': 'FIN', 'ງົບປະມານ': 'BUD', 'ຈັດຊື້ຈັດຈ້າງ': 'PUR',
+  'ເອກະສານກວດສອບພາຍໃນ': 'AUD', 'ໜັງສືອອກພາຍນອກ': 'OUT', 'ງານສື່ / ແບຣນດ໌': 'MED',
+}
+export const docPrefixOf = (type) => DOC_TYPE_PREFIX[type] || 'GEN'
+// ເອກະສານທີ່ມີ docSubtype (E7/E8/E10, ຍ່ອຍກວ່າ) → ໃຊ້ prefix ຂອງຍ່ອຍນັ້ນ · ບໍ່ມີ (seed ເກົ່າ) → fallback prefix legacy 11-ประเภท
+export const docPrefixOfDoc = (d) => {
+  // docPrefix ຖືກຕັ້ງໃສ່ doc ຕອນສ້າງ (SignatureFlow) — ຈຳເປັນສຳລັບ subtype ທີ່ຖືກແກ້/ສ້າງໃໝ່ໃນ Tab 6 ແລະ "ອື່ນໆ" ທີ່ບໍ່ຢູ່ໃນ DEFAULT
+  if (d.docPrefix) return d.docPrefix
+  const sub = d.docSubtype && DEFAULT_DOC_SUBTYPES.find((s) => s.key === d.docSubtype)
+  return sub ? sub.prefix : docPrefixOf(docTypeOf(d))
+}
+const yearOf = (dateStr) => Number((dateStr || '').split('/')[2]) || new Date().getFullYear()
+// ຄິດເລກລຳดับตัวถัดไป — นับเฉพาะใบ prefix+ปีเดียวกัน, reset 001 ทุกปีใหม่
+export function nextDocNo(docs, doc, dateStr) {
+  const prefix = docPrefixOfDoc(doc)
+  const year = yearOf(dateStr)
+  const key = `${prefix}-${year}/`
+  const count = docs.filter((d) => d.docNo && d.docNo.startsWith(key)).length
+  return `${key}${String(count + 1).padStart(3, '0')}`
+}
+// ໃສ່ docNo ໃຫ້ seed docs ທຸກใบตอน init (ลำดับตามที่ปรากฏใน array — deterministic)
+export function withDocNos(list) {
+  const counters = {}
+  return list.map((d) => {
+    const prefix = docPrefixOfDoc(d)
+    const key = `${prefix}-${yearOf(d.date)}/`
+    counters[key] = (counters[key] || 0) + 1
+    return { ...d, docNo: `${key}${String(counters[key]).padStart(3, '0')}` }
+  })
+}
+// ── ເອກະສານລັບ: ເຫັນໄດ້ສະເພາະຜູ້ກ່ຽວຂ້ອງ (ຜູ້ສ້າງ / ຜູ້ເຊັນ / CC) — ຄົນອື່ນຫ້າມເຫັນແມ້ແຕ່ຊື່ເລື່ອງ ──
+// ໃຊ້ກັບທຸກ view ທີ່ເບິ່ງພາບລວມທັງລະບົບ (ເຊັ່ນ ລາຍງານ & ສະຖິຕິ)
+export const canSeeDoc = (d, me) => docTypeOf(d) !== 'ເອກະສານລັບ'
+  || d.creatorId === me || d.signers.some((s) => s.id === me) || (d.cc || []).includes(me)
+export const visibleDocs = (docs, me) => docs.filter((d) => canSeeDoc(d, me))
+
+// ── ສີ + ໄອຄອນ ຕໍ່ປະເພດເອກະສານ (E11) — ໃຫ້ການ໌ດຈຳແນກປະເພດໄດ້ດ້ວຍສາຍຕາ ──
+// icon = ຄີຂອງ Icon (shared.jsx) · main = ສີເຂັ້ມ (ໄອຄอน+chip text) · soft = ພື້ນອ່ອນ
+// ໝາຍເຫດ: key ຕ້ອງກົງກັບ DOC_TYPES ເປັ໊ະ — ປະເພດໃໝ່ໃນ Tab 6 (ອະນາຄົດ) fallback = ທົ່ວໄປ
+export const DOC_TYPE_STYLE = {
+  'ເອກະສານທົ່ວໄປ': { main: '#64748b', soft: '#f1f5f9', icon: 'doc' },
+  'ເອກະສານລັບ': { main: '#e23b4e', soft: '#fdeaec', icon: 'lock' }, // = var(--danger) ຂອງແອັບເປັ໊ະ ກັນປົນກັບ badge "ຖືກປະຕິເສດ"
+  'ເອກະສານບຸກຄະລາກອນ': { main: '#7c3aed', soft: '#efe9fe', icon: 'users' },
+  'ສັນຍາທຸລະກິດ / MOU': { main: '#0369a1', soft: '#e0f0fa', icon: 'shield' }, // sky ເຂັ້ມ ຫ່າງຈາກ --blue primary (ປຸ່ມ/header) ພໍປະມານ
+  'ເອກະສານໂຄງການກໍ່ສ້າງ': { main: '#ea580c', soft: '#ffedd5', icon: 'building' },
+  'ການເງິນ-ເບີກຈ່າຍ': { main: '#16a34a', soft: '#e7f6ec', icon: 'money' },
+  'ງົບປະມານ': { main: '#d97706', soft: '#fdf0dd', icon: 'chart' },
+  'ຈັດຊື້ຈັດຈ້າງ': { main: '#0d9488', soft: '#d9f2ef', icon: 'cart' },
+  'ເອກະສານກວດສອບພາຍໃນ': { main: '#0891b2', soft: '#e0f5fa', icon: 'checkCircle' },
+  'ໜັງສືອອກພາຍນອກ': { main: '#db2777', soft: '#fce7f2', icon: 'send' },
+  'ງານສື່ / ແບຣນດ໌': { main: '#a21caf', soft: '#fae8ff', icon: 'image' },
+}
+export const docTypeStyle = (d) => DOC_TYPE_STYLE[docTypeOf(d)] || DOC_TYPE_STYLE['ເອກະສານທົ່ວໄປ']
+
+// ── ຂໍ້ມູນປະເພດ + ເສັ້ນທາງບັງຄັບ (Q5: demo ເຕັມ 6 ປະເພດ · ອີກ 5 ເລືອກໄດ້ ແຕ່ຍັງບໍ່ເປີດເສັ້ນທາງ) ──
+export const DOC_TYPE_INFO = {
+  'ເອກະສານທົ່ວໄປ': { live: true, d: 'ສົ່ງກົງ — ເລືອກຜູ້ເຊັນ/ຜູ້ອະນຸມັດເອງ' },
+  'ເອກະສານລັບ': { live: true, d: 'ສົ່ງກົງຫາ ຜູ້ອຳນວຍການ ເຊັນຄົນດຽວ · ຫ້າມເພີ່ມຄົນອື່ນ · ຫ້າມ CC' },
+  'ເອກະສານບຸກຄະລາກອນ': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → HR and Admin → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ສັນຍາທຸລະກິດ / MOU': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → Legal → Business Development → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ການເງິນ-ເບີກຈ່າຍ': { live: true, d: 'ຫົວໜ້າຕົ້ນສັງກັດ → Finance → ຜູ້ອຳນວຍການ ເຊັນ · CC Accounting ອັດຕະໂນມັດ' },
+  'ງົບປະມານ': { live: true, d: 'Budgeting → Finance → ຜູ້ອຳນວຍການ ເຊັນ' },
+  'ເອກະສານໂຄງການກໍ່ສ້າງ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ຈັດຊື້ຈັດຈ້າງ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ເອກະສານກວດສອບພາຍໃນ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ໜັງສືອອກພາຍນອກ': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+  'ງານສື່ / ແບຣນດ໌': { live: false, d: 'ຍັງບໍ່ເປີດເສັ້ນທາງອັດຕະໂນມັດ — ເລືອກຜູ້ເຊັນເອງ' },
+}
+const headOf = (dept, exceptId) => DIRECTORY.find((p) => p.dept === dept && p.rank === 'head' && p.id !== exceptId)
+// ຄືນເສັ້ນທາງບັງຄັບຂອງປະເພດ: chain (approver ຕາມລຳດັບ + ຜູ້ເຊັນປາຍທາງ) · cc ອັດຕະໂນມັດ · lockAll (ຫ້າມເພີ່ມໃຜ)
+// ກົດ: ຂ້າມຕົນເອງ + ບໍ່ໃສ່ຄົນຊ້ຳ (ເຊັ່ນ ຫົວໜ້າ Finance ເບີກເງິນເອງ → ບໍ່ຕ້ອງກວດຕົນເອງ)
+export function docTypeRoute(type, meId) {
+  const rec = DIRECTORY.find((p) => p.id === meId)
+  const P = DIRECTORY.find((p) => p.id === 'C') // President
+  const mk = (p, role) => p && { id: p.id, name: p.name, email: p.email, hasSig: !!p.hasSig, role, locked: true }
+  const myHead = headOf(rec?.dept, meId)
+  let chain = [], cc = [], lockAll = false
+  if (type === 'ເອກະສານລັບ') { chain = [mk(P, 'signer')]; lockAll = true }
+  else if (type === 'ເອກະສານບຸກຄະລາກອນ') chain = [mk(myHead, 'approver'), mk(headOf('hr', meId), 'approver'), mk(P, 'signer')]
+  else if (type === 'ສັນຍາທຸລະກິດ / MOU') chain = [mk(myHead, 'approver'), mk(headOf('legal', meId), 'approver'), mk(headOf('bd', meId), 'approver'), mk(P, 'signer')]
+  else if (type === 'ການເງິນ-ເບີກຈ່າຍ') { chain = [mk(myHead, 'approver'), mk(headOf('finance', meId), 'approver'), mk(P, 'signer')]; cc = [mk(headOf('acct', meId), 'cc')] }
+  else if (type === 'ງົບປະມານ') chain = [mk(headOf('budget', meId), 'approver'), mk(headOf('finance', meId), 'approver'), mk(P, 'signer')]
+  else return { chain: [], cc: [], lockAll: false }
+  const seen = new Set([meId])
+  const uniq = chain.filter(Boolean).filter((p) => !seen.has(p.id) && seen.add(p.id))
+  if (!uniq.length) return { chain: [], cc: [], lockAll: false } // ເຊັ່ນ ຜູ້ອຳນວຍການ ສ້າງເອກະສານລັບເອງ
+  return {
+    chain: uniq.map((p, i) => ({ ...p, step: i + 1 })),
+    cc: cc.filter(Boolean).filter((p) => !seen.has(p.id)).map((p) => ({ ...p, step: null })),
+    lockAll,
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// E7/E8/E10: Catalog 2 ชั้น (หมวดตามแผนก → เอกสารย่อย 33 ชนิด) — ตาม DOC-TYPES-CATALOG.md (Lucky ล็อกแล้ว 18/07)
+// Tab 6 (Flow Signature Approval Setting) แก้ chain/cc ของแต่ละเอกสารย่อยได้ (rank ∈ {deputy, director})
+// ⚠ ไม่แตะ DOC_TYPES/docTypeRoute/DOC_TYPE_STYLE/DOC_TYPE_PREFIX เดิม (11 ประเภท) — ยังใช้เป็น "หมวดกว้าง" คู่ขนานสำหรับ filter/สี/prefix เดิมที่ทดสอบแล้ว
+//   เอกสารที่สร้างผ่านเอกสารย่อยใหม่ จะ map กลับเข้า docType (11 ประเภทเดิม) อัตโนมัติ ผ่าน CATEGORY_TO_LEGACY_TYPE — ของเดิมไม่พัง
+// ══════════════════════════════════════════════════════════════════════════
+export const DOC_CATEGORIES = {
+  general:      { label: 'ຂ້າມພະແນກ',              main: '#64748b', soft: '#f1f5f9', icon: 'doc' },
+  finance:      { label: 'Finance',                  main: '#16a34a', soft: '#e7f6ec', icon: 'money' },
+  acct:         { label: 'Accounting',               main: '#0d9488', soft: '#d9f2ef', icon: 'file' },
+  budget:       { label: 'Budgeting',                main: '#d97706', soft: '#fdf0dd', icon: 'chart' },
+  hr:           { label: 'HR and Admin',             main: '#7c3aed', soft: '#efe9fe', icon: 'users' },
+  legal:        { label: 'Legal',                    main: '#4f46e5', soft: '#e8e9fd', icon: 'shield' },
+  bd:           { label: 'Business Development',     main: '#2563eb', soft: '#eaeefb', icon: 'briefcase' },
+  construction: { label: 'Construction',             main: '#ea580c', soft: '#ffedd5', icon: 'building' },
+  audit:        { label: 'Internal Audit',           main: '#0891b2', soft: '#e0f5fa', icon: 'checkCircle' },
+  corp:         { label: 'Corporate Affairs',        main: '#db2777', soft: '#fce7f2', icon: 'send' },
+  studio:       { label: 'Digital Studio',           main: '#a21caf', soft: '#fae8ff', icon: 'image' },
+  it:           { label: 'IT / Infrastructure',      main: '#0284c7', soft: '#e0f2fe', icon: 'layers' },
+}
+// map หมวดใหม่ → docType เดิม (11 ประเภท) เพื่อคง E11/E15/filter เดิมไว้ทั้งหมด
+const CATEGORY_TO_LEGACY_TYPE = {
+  general: 'ເອກະສານທົ່ວໄປ', finance: 'ການເງິນ-ເບີກຈ່າຍ', acct: 'ການເງິນ-ເບີກຈ່າຍ', budget: 'ງົບປະມານ',
+  hr: 'ເອກະສານບຸກຄະລາກອນ', legal: 'ສັນຍາທຸລະກິດ / MOU', bd: 'ສັນຍາທຸລະກິດ / MOU', construction: 'ເອກະສານໂຄງການກໍ່ສ້າງ',
+  audit: 'ເອກະສານກວດສອບພາຍໃນ', corp: 'ໜັງສືອອກພາຍນອກ', studio: 'ງານສື່ / ແບຣນດ໌', it: 'ເອກະສານທົ່ວໄປ',
+}
+
+// ── stub ຄ່າ chain: 'president' | 'creatorHead' (ຫົວໜ້າຕົ້ນສັງກັດຜູ້ສ້າง) | { dept: 'xxx' } (ຫົວໜ້າພະແนกนั้น) ──
+const P_ = 'president', H_ = 'creatorHead'
+// ⚠ chain/cc ນີ້ = ຄ່າ default (No-Dynamic) ເທົ່ານັ້ນ — Super Admin/VP ແກ້ຜ່ານ Tab 6 ໄດ້ (setDocSubtypes state ໃນ App.jsx)
+export const DEFAULT_DOC_SUBTYPES = [
+  // ─ ຂ້າມພະແນກ ─
+  { key: 'gen', category: 'general', name: 'ເອກະສານທົ່ວໄປ', prefix: 'GEN', chain: [] },
+  { key: 'memo', category: 'general', name: 'ບົດບັນທຶກ', prefix: 'MEMO', chain: [] },
+  { key: 'mtg', category: 'general', name: 'ໜັງສືເຊີນປະຊຸມ', prefix: 'MTG', chain: [] },
+  { key: 'cfd', category: 'general', name: 'ເອກະສານລັບ', prefix: 'CFD', chain: [P_], lockAll: true },
+  // ─ Finance ─
+  { key: 'exp', category: 'finance', name: 'ໃບເບີກຈ່າຍ', prefix: 'EXP', chain: [H_, { dept: 'finance' }, P_], cc: [{ dept: 'acct' }] },
+  { key: 'pay', category: 'finance', name: 'ໃບສຳຄັນຈ່າຍ', prefix: 'PAY', chain: [{ dept: 'finance' }, P_] },
+  { key: 'fnd', category: 'finance', name: 'ໃບຂໍເບີກງົບ', prefix: 'FND', chain: [H_, { dept: 'finance' }, P_] },
+  // ─ Accounting ─
+  { key: 'rct', category: 'acct', name: 'ໃບຮັບເງິນ', prefix: 'RCT', chain: [{ dept: 'acct' }, { dept: 'finance' }] },
+  { key: 'frp', category: 'acct', name: 'ບົດລາຍງານການເງິນປະຈຳເດືອນ', prefix: 'FRP', chain: [{ dept: 'acct' }, { dept: 'finance' }, P_] },
+  { key: 'pur', category: 'acct', name: 'ໃບຂໍຈັດຊື້ຈັດຈ້າງ', prefix: 'PUR', chain: [H_, { dept: 'acct' }, { dept: 'finance' }, P_] },
+  // ─ Budgeting ─
+  { key: 'bud', category: 'budget', name: 'ໃບສະເໜີແຜນງົບປະມານ', prefix: 'BUD', chain: [{ dept: 'budget' }, { dept: 'finance' }, P_] },
+  { key: 'bad', category: 'budget', name: 'ໃບຂໍອະນຸມັດປັບງົບປະມານ', prefix: 'BAD', chain: [{ dept: 'budget' }, { dept: 'finance' }, P_] },
+  // ─ HR and Admin ─
+  { key: 'emp', category: 'hr', name: 'ສັນຍາຈ້າງງານ', prefix: 'EMP', chain: [{ dept: 'hr' }, P_] },
+  { key: 'cert', category: 'hr', name: 'ໃບຢັ້ງຢືນການເຮັດວຽກ', prefix: 'CERT', chain: [{ dept: 'hr' }, P_] },
+  { key: 'cmd', category: 'hr', name: 'ໃບຍ້ອງຍໍ', prefix: 'CMD', chain: [H_, { dept: 'hr' }, P_] },
+  { key: 'disc', category: 'hr', name: 'ໃບຕັກເຕືອນ', prefix: 'DISC', chain: [H_, { dept: 'hr' }, P_] },
+  { key: 'res', category: 'hr', name: 'ໃບຂໍລາອອກ', prefix: 'RES', chain: [H_, { dept: 'hr' }, P_] },
+  // ─ Legal ─
+  { key: 'ctr', category: 'legal', name: 'ສັນຍາທຸລະກິດ / MOU', prefix: 'CTR', chain: [H_, { dept: 'legal' }, { dept: 'bd' }, P_] },
+  { key: 'poa', category: 'legal', name: 'ໜັງສືມອບສິດ', prefix: 'POA', chain: [{ dept: 'legal' }, P_] },
+  { key: 'lgl', category: 'legal', name: 'ເອກະສານທາງກົດໝາຍ', prefix: 'LGL', chain: [H_, { dept: 'legal' }, P_] },
+  // ─ Business Development ─
+  { key: 'quo', category: 'bd', name: 'ໃບສະເໜີລາຄາ', prefix: 'QUO', chain: [H_, { dept: 'bd' }, P_] },
+  { key: 'pro', category: 'bd', name: 'ຂໍ້ສະເໜີໂຄງການ', prefix: 'PRO', chain: [H_, { dept: 'bd' }, P_] },
+  { key: 'svc', category: 'bd', name: 'ສັນຍາບໍລິການ', prefix: 'SVC', chain: [H_, { dept: 'legal' }, { dept: 'bd' }, P_] },
+  // ─ Construction ─
+  { key: 'con', category: 'construction', name: 'ສັນຍາກໍ່ສ້າງ', prefix: 'CON', chain: [H_, { dept: 'legal' }, P_] },
+  { key: 'acc', category: 'construction', name: 'ໃບກວດຮັບວຽກ', prefix: 'ACC', chain: [H_, { dept: 'audit' }, P_] },
+  { key: 'dwg', category: 'construction', name: 'ໃບຂໍອະນຸມັດແບບກໍ່ສ້າງ', prefix: 'DWG', chain: [H_, P_] },
+  // ─ Internal Audit ─
+  { key: 'aud', category: 'audit', name: 'ບົດລາຍງານກວດສອບພາຍໃນ', prefix: 'AUD', chain: [H_, { dept: 'audit' }, P_] },
+  { key: 'ast', category: 'audit', name: 'ໃບກວດສອບຊັບສິນ', prefix: 'AST', chain: [{ dept: 'audit' }, P_] },
+  // ─ Corporate Affairs ─
+  { key: 'out', category: 'corp', name: 'ໜັງສືອອກພາຍນອກ', prefix: 'OUT', chain: [H_, { dept: 'corp' }, P_] },
+  { key: 'let', category: 'corp', name: 'ໜັງສືເຊີນ', prefix: 'LET', chain: [{ dept: 'corp' }, P_] },
+  // ─ Digital Studio ─
+  { key: 'med', category: 'studio', name: 'ໃບຂໍອະນຸມັດງານສື່', prefix: 'MED', chain: [H_, { dept: 'studio' }, P_] },
+  // ─ IT / Infrastructure ─
+  { key: 'itp', category: 'it', name: 'ໃບຂໍອະນຸມັດໂຄງການ IT', prefix: 'ITP', chain: [H_, P_] },
+  { key: 'ita', category: 'it', name: 'ໃບຂໍຈັດຊື້ອຸປະກອນ IT', prefix: 'ITA', chain: [H_, { dept: 'acct' }, { dept: 'finance' }, P_] },
+]
+
+function resolveChainStep(step, meId) {
+  const rec = DIRECTORY.find((p) => p.id === meId)
+  if (step === 'president') return DIRECTORY.find((p) => p.id === 'C')
+  if (step === 'creatorHead') return headOf(rec?.dept, meId)
+  if (step && step.person) return DIRECTORY.find((p) => p.id === step.person) // Tab 6 override — ກຳນົດຄົນຄົງທີ່
+  if (step && step.dept) return headOf(step.dept, meId)
+  return null
+}
+// ອະທິບາຍ step ແບບບໍ່ອີງໃສ່ meId — ໃຊ້ສະແດງໃນໜ້າຕັ້ງຄ່າ Tab 6 (Flow Signature Approval Setting)
+export function stepLabel(step) {
+  if (step === 'president') { const p = DIRECTORY.find((x) => x.id === 'C'); return { label: 'ຜູ້ອຳນວຍການ (ຄົງທີ່)', person: p, dynamic: false } }
+  if (step === 'creatorHead') return { label: 'ຫົວໜ້າພະແນກຜູ້ສ້າງເອກະສານ', person: null, dynamic: true }
+  if (step && step.person) { const p = DIRECTORY.find((x) => x.id === step.person); return { label: `ກຳນົດເອງ: ${p?.name || step.person}`, person: p, dynamic: false } }
+  if (step && step.dept) { const p = headOf(step.dept); return { label: `ຫົວໜ້າ ${DEPTS[step.dept] || step.dept}`, person: p, dynamic: false } }
+  return { label: '—', person: null, dynamic: false }
+}
+// "ຊະນິດ" ຂອງ step — ໃຊ້ Tab 6 ເລືອກສະຫຼັບປະເພດ step (creatorHead/president/dept/person)
+export const stepKindOf = (step) => {
+  if (step === 'president') return 'president'
+  if (step === 'creatorHead') return 'creatorHead'
+  if (step && step.person) return 'person'
+  if (step && step.dept) return 'dept'
+  return 'creatorHead'
+}
+export const STEP_KIND_LABEL = {
+  creatorHead: 'ຫົວໜ້າພະແນກຜູ້ສ້າງ (Dynamic)',
+  president: 'ຜູ້ອຳນວຍການ (ຄົງທີ່)',
+  dept: 'ຫົວໜ້າພະແນກທີ່ກຳນົດ (ຄົງທີ່)',
+  person: 'ກຳນົດຄົນສະເພາະ (ຄົງທີ່)',
+}
+// ຄຳອະທິບາຍແຕ່ລະຊະນິດ — Lucky ຖາມ 18/07 ວ່າ "ຊະນິດ" ໝາຍເຖິງຫຍັງ → ຕ້ອງອະທິບາຍໃນ UI ໃຫ້ເຂົ້າໃຈເອງໄດ້
+export const STEP_KIND_DESC = {
+  creatorHead: 'ລະບົບເລືອກໃຫ້ອັດຕະໂນມັດ — ເອົາຫົວໜ້າພະແນກຂອງ "ຜູ້ສ້າງເອກະສານ" ມາໃສ່ຂັ້ນນີ້ (ປ່ຽນຄົນຕາມຜູ້ສ້າງ)',
+  president: 'ຜູ້ອຳນວຍການຄົນດຽວກັນສະເໝີ ບໍ່ວ່າໃຜເປັນຜູ້ສ້າງ',
+  dept: 'ຫົວໜ້າຂອງພະແນກທີ່ທ່ານເລືອກ — ຄົງທີ່ ບໍ່ຂຶ້ນກັບຜູ້ສ້າງ',
+  person: 'ເລືອກຄົນສະເພາະເຈາະຈົງ — ຄົງທີ່ ບໍ່ຂຶ້ນກັບຜູ້ສ້າງ',
+}
+// ຄືนเส้นทาง (No-Dynamic) ຂອງເอกสารย่อย — ใช้ subtypes state (Tab 6 แก้ได้) ไม่ใช่ DEFAULT_DOC_SUBTYPES ตรงๆ
+export function subtypeRoute(subtypeKey, meId, subtypes = DEFAULT_DOC_SUBTYPES) {
+  const sub = subtypes.find((s) => s.key === subtypeKey)
+  const mk = (p, role) => p && { id: p.id, name: p.name, email: p.email, hasSig: !!p.hasSig, role, locked: true }
+  if (!sub || !sub.chain.length) return { chain: [], cc: [], lockAll: false }
+  const resolved = sub.chain.map((step) => resolveChainStep(step, meId))
+  const seen = new Set([meId])
+  const uniq = resolved.filter(Boolean).filter((p) => !seen.has(p.id) && seen.add(p.id))
+  if (!uniq.length) return { chain: [], cc: [], lockAll: false }
+  const chain = uniq.map((p, i) => mk(p, i === uniq.length - 1 ? 'signer' : 'approver')).map((p, i) => ({ ...p, step: i + 1 }))
+  const ccResolved = (sub.cc || []).map((c) => resolveChainStep(c, meId)).filter(Boolean).filter((p) => !seen.has(p.id))
+  const cc = ccResolved.map((p) => ({ ...mk(p, 'cc'), step: null }))
+  return { chain, cc, lockAll: !!sub.lockAll }
+}
+// ปะเภทเอกสาร (11 ประเภทเดิม) ที่หมวดของเอกสารย่อยนี้ควร map เป็น — ใช้คง E11/E15/filter เดิมไว้
+export const legacyTypeOfCategory = (category) => CATEGORY_TO_LEGACY_TYPE[category] || 'ເອກະສານທົ່ວໄປ'
+// ⚠ ເອກະສານລັບ (lockAll) ຕ້ອງ map ເປັນ "ເອກະສານລັບ" ສະເໝີ ບໍ່ວ່າຢູ່ໝວດໃດ — canSeeDoc/@mention/ສີ/filter ທັງໝົດ key ໃສ່ docType ນີ້
+// (ຖ້າ map ຕາມໝວດຢ່າງດຽວ subtype cfd ໃນໝວດ general ຈະກາຍເປັນ "ທົ່ວໄປ" → ຄວາມລັບຮົ່ວ)
+export const legacyTypeOfSubtype = (sub) => (sub?.lockAll ? 'ເອກະສານລັບ' : legacyTypeOfCategory(sub?.category))
+// rank ที่เข้า Tab 6 (Flow Signature Approval Setting) ได้ — VP(deputy) + Super Admin(director) (E8)
+export const canManageFlowSettings = (meId) => {
+  const rec = DIRECTORY.find((p) => p.id === meId)
+  return rec?.rank === 'deputy' || rec?.rank === 'director'
+}
+// ── ໂຄງສ້າງ flow: ພະນັກງານສ້າງ → ຫົວໜ້າພະແນກ → ຜູ້ອຳນວຍການ(C) approve ສຸດທ້າຍ → C ເຊັນຫຼາຍສຸດ ──
+export function initialDocs() {
+  return [
+    // ════════ A (Anoulack) ສ້າງ ════════
+    // [tab1] A ສ້າງເອງ ແລະ ເປັນຜູ້ເຊັນຄົນທຳອິດ (ຮອບຂອງຕົນເອງ) — ຕ້ອງມີປຸ່ມ "ລົງນາມ"
+    { id: 'd24', title: 'ໂຄງການ Superwork (ຂ້ອຍຮ່ວມເຊັນ)', creatorId: 'A', date: '14/07/2026', ts: 14,
+      files: [{ name: 'super-work-invitation.pdf', pages: 1 }, { name: 'super-work-agreement.pdf', pages: 1 }], attachments: [{ name: 'WhatsApp Image 2026-07-14.jpeg' }], cc: [],
+      signers: [{ id: 'A', step: 1, status: 'pending', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // [tab1] SEQUENTIAL 4 ຂັ້ນ (ບໍ່ພ້ອມກັນ): A→Decha→Chanon→Pheutsapha
+    { id: 'd13', title: 'ໃບຂໍອະນຸມັດໂຄງການ ພັດທະນາ App', creatorId: 'A', date: '13/07/2026', ts: 13,
+      files: [{ name: 'app_project.pdf', pages: 4, summary: 'ໂຄງການພັດທະນາແອັບ e-Signature ພາຍໃນ ກຳນົດຂອບເຂດ, ງົບປະມານ ແລະ ແຜນເວລາ 6 ເດືອນ.' }], attachments: [], cc: ['E'],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 09:00', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver' }, { id: 'F', step: 3, status: 'pending', role: 'signer' }, { id: 'C', step: 4, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // [tab1] PARALLEL (Decha+Chanon ພ້ອມກັນ ຂັ້ນ 2) — Decha ມອບໝາຍໃຫ້ Pimlada ອະນຸມັດແທນ (seed demo E3/E12: B ເຫັນ "ມອບໄປ", u1 ເຫັນ "ໄດ້ຮັບມອບ")
+    { id: 'd14', title: 'ໃບສະເໜີແຜນງົບປະມານ ປີ 2027', creatorId: 'A', date: '13/07/2026', ts: 13,
+      files: [{ name: 'budget_2027.pdf', pages: 6, summary: 'ແຜນງົບປະມານປະຈຳປີ 2027 ແຍກຕາມພະແນກ ພ້ອມເປົ້າໝາຍການໃຊ້ຈ່າຍ.' }], attachments: [], cc: [],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 08:30', role: 'signer' }, { id: 'B', step: 2, status: 'pending', role: 'approver', assignedTo: 'u1' }, { id: 'F', step: 2, status: 'pending', role: 'signer' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // [tab1] A ຍົກເລີກເອງ — CARD ຍົກເລີກ
+    { id: 'd15', title: 'ໃບຂໍຊື້ອຸປະກອນ ຫ້ອງປະຊຸມ', creatorId: 'A', date: '10/07/2026', ts: 10,
+      files: [{ name: 'meeting_equip.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'B', step: 1, status: 'pending', role: 'approver' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'cancelled' },
+
+    // [tab1] Decha ປະຕິເສດ — CARD ຖືກປະຕິເສດ
+    { id: 'd16', title: 'ໃບເບີກຄ່າ ຝຶກອົບຮົມ', creatorId: 'A', date: '09/07/2026', ts: 9,
+      files: [{ name: 'training_claim.pdf', pages: 2 }], attachments: [], cc: [],
+      // seed E3/E12: B ມອບໃຫ້ Pimlada(u1) ອະນຸມັດແທນ ແລ້ວ u1 ປະຕິເສດ → ເຄສ "ມອບໝາຍ + ປະຕິເສດ" ມີໃຫ້ເບິ່ງ
+      signers: [{ id: 'B', step: 1, status: 'rejected', reason: 'ຂໍ້ມູນຄ່າໃຊ້ຈ່າຍບໍ່ຄົບ ກະລຸນາແກ້ໄຂ', role: 'approver', assignedTo: 'u1' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'rejected' },
+
+    // [tab2·A] CARD: ຫຼາຍคน ບໍ່ພ້ອມກັນ (SEQ 3) + CC · done
+    { id: 'd1', title: 'ໃບສະເໜີລາຄາຕິດຕັ້ງ Cloud ປະຈຳປີ', creatorId: 'A', date: '12/07/2026', ts: 12,
+      files: [{ name: 'cloud_quote.pdf', pages: 2, summary: 'ໃບສະເໜີລາຄາຕິດຕັ້ງລະບົບ Cloud ລວມຄ່າ hardware, license ແລະ ບໍລິການ ຕະຫຼອດ 12 ເດືອນ. ຍອດລວມ 45 ລ້ານກີບ.' }], attachments: [], cc: ['E'],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '12/07 · 09:00', role: 'signer' }, { id: 'B', step: 2, status: 'signed', time: '12/07 · 11:00', role: 'approver' }, { id: 'C', step: 3, status: 'signed', time: '12/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·A] CARD: ຫຼາຍคน ມีพร้อมกัน (PARALLEL) + CC + ໄຟລ໌ແนบ · done
+    { id: 'd2', title: 'ໃບອະນຸມັດງົບປະມານ ໄຕມາດ 3', creatorId: 'A', date: '11/07/2026', ts: 11,
+      files: [{ name: 'q3_budget.pdf', pages: 3, summary: 'ສະຫຼຸບງົບປະມານໄຕມາດ 3 ແຍກຕາມພະແນກ ພ້ອມການວິເຄາະການໃຊ້ຈ່າຍ ທຽບກັບແຜນ.' }], attachments: [{ name: 'breakdown.xlsx' }, { name: 'chart.png' }], cc: ['E', 'D'],
+      // seed E3/E12: F ມອບໃຫ້ G ເຊັນແທນ ແລະ G ເຊັນແລ້ວ → F ເຫັນ "ມອບໄປ·ແລ້ວ", G ເຫັນ "ໄດ້ຮັບມອບ·ແລ້ວ"
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '11/07 · 10:00', role: 'signer' }, { id: 'F', step: 1, status: 'signed', time: '11/07 · 10:20', role: 'signer', assignedTo: 'G' }, { id: 'C', step: 2, status: 'signed', time: '11/07 · 16:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·A] CARD: ເຊັນครบ (done, ງ่าย)
+    { id: 'd4', title: 'ບົດລາຍງານປະຈຳເດືອນ ພະແນກ Tech', creatorId: 'A', date: '05/07/2026', ts: 5,
+      files: [{ name: 'report.pdf', pages: 4 }], attachments: [], cc: [],
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '05/07 · 09:00', role: 'approver' }, { id: 'C', step: 2, status: 'signed', time: '05/07 · 14:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // ═══ seed ມອບໝາຍ ຂອງ A (user ເລີ່ມຕົ້ນ — ຕ້ອງເຫັນຕົວຢ່າງທັນທີ ບໍ່ຕ້ອງສະຫຼັບ user, Lucky ຕິ 18/07) ═══
+    // [ມອບໝາຍ·A out ຍັງບໍ່ເຮັດ] A ຖືກໃສ່ເປັນຜູ້ອະນຸມັດ ແຕ່ມອບໃຫ້ Take(G) ອະນຸມັດແທນ — G ຍັງບໍ່ໄດ້ເຮັດ
+    { id: 'd31', title: 'ໃບຂໍອະນຸມັດ ຄ່າໂຄສະນາ Facebook', creatorId: 'D', date: '15/07/2026', ts: 15,
+      files: [{ name: 'fb_ads.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'D', step: 1, status: 'signed', time: '15/07 · 09:30', role: 'signer' }, { id: 'A', step: 2, status: 'pending', role: 'approver', assignedTo: 'G' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+    // [ມອບໝາຍ·A out ເຮັດແລ້ວ] A ມອບໃຫ້ Chanon(F) ອະນຸມັດແທນ ແລະ F ອະນຸມັດແລ້ວ
+    { id: 'd32', title: 'ໃບເບີກຄ່ານ້ຳມັນ ພາຫະນະສ່ວນກາງ', creatorId: 'E', date: '14/07/2026', ts: 14, docType: 'ການເງິນ-ເບີກຈ່າຍ',
+      files: [{ name: 'fuel_claim.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'E', step: 1, status: 'signed', time: '14/07 · 08:45', role: 'signer' }, { id: 'A', step: 2, status: 'signed', time: '14/07 · 11:20', role: 'approver', assignedTo: 'F' }, { id: 'C', step: 3, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // ════════ B (Decha · ຫົວໜ້า Tech) ສ້າງ ════════
+    // [tab1·B] · [tab2·A] CARD: ຍັງບໍ່ครบ ແต่ A ເຊັນแล้ว (partial)
+    { id: 'd3', title: 'ໃບເບີກຄ່າໃຊ້ຈ່າຍ ເດີນທາງ', creatorId: 'B', date: '14/07/2026', ts: 14,
+      files: [{ name: 'travel_claim.pdf', pages: 2, summary: 'ໃບເບີກຄ່າເດີນທາງ ລວມຄ່າຍົນ, ໂຮງແຮມ ແລະ ຄ່າໃຊ້ຈ່າຍປະຈຳວັນ 3 ມື້.' }], attachments: [], cc: [],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '13/07 · 10:30', role: 'signer' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [{ id: 'c1', byId: 'B', time: '08/07 · 12:00', text: 'ຮົບກວນກວດຄ່າໃຊ້ຈ່າຍໃຫ້ແດ່ ຂອບໃຈ' }], status: 'progress' },
+
+    // [tab2·B] B ສ້າງ done + CC
+    { id: 'd6', title: 'ແຜນພັດທະນາລະບົບ ໄຕມາດ 4', creatorId: 'B', date: '07/07/2026', ts: 7,
+      files: [{ name: 'q4_plan.pdf', pages: 3 }], attachments: [], cc: ['E'],
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '07/07 · 09:00', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '07/07 · 16:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab1·B] B ສ້າງ progress
+    { id: 'd19', title: 'ໃບຂໍອະນຸມັດ ຈ້າງພະນັກງານ', creatorId: 'B', date: '06/07/2026', ts: 6,
+      files: [{ name: 'hire_request.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'A', step: 1, status: 'viewed', role: 'signer' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // ════════ C (Pheutsapha · ຜู้อำนวยการ) ສ້າງ ════════
+    // [tab2·C] C ສ້າງ done PARALLEL + CC
+    { id: 'd7', title: 'ນະໂຍບາຍຄວາມປອດໄພຂໍ້ມູນ ອົງກອນ', creatorId: 'C', date: '09/07/2026', ts: 9,
+      files: [{ name: 'security_policy.pdf', pages: 5, summary: 'ນະໂຍບາຍຄວາມປອດໄພຂໍ້ມູນ ກຳນົດການເຂົ້າເຖິງ, ການເກັບຮັກສາ ແລະ ການປົກປ້ອງຂໍ້ມູນຂອງອົງກອນ.' }], attachments: [], cc: ['A', 'D'],
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '09/07 · 11:00', role: 'signer' }, { id: 'F', step: 1, status: 'signed', time: '09/07 · 11:30', role: 'signer' }],
+      comments: [], status: 'done' },
+
+    // [tab1·C] · [tab2·F] C ສ້າງ progress, F ເຊັນแล้ว (partial)
+    { id: 'd8', title: 'ຄູ່ມືປະຕິບັດງານ ພະແນກ BD', creatorId: 'C', date: '10/07/2026', ts: 10,
+      files: [{ name: 'bd_manual.pdf', pages: 8 }], attachments: [], cc: ['A'],
+      signers: [{ id: 'F', step: 1, status: 'signed', time: '10/07 · 13:00', role: 'signer' }, { id: 'G', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // ════════ F (Chanon Leng · ຫົວໜ້า BD) ສ້າງ ════════
+    // [tab2·F] F ສ້າງ done + CC + ໄຟລ໌ແนบ
+    { id: 'd9', title: 'ໃບສະເໜີແຜນການຕະຫຼາດ ພະແນກ BD', creatorId: 'F', date: '06/07/2026', ts: 6,
+      files: [{ name: 'bd_plan.pdf', pages: 3, summary: 'ແຜນການຕະຫຼາດ ພະແນກ BD ໄຕມາດ 4 ລວມກຸ່ມເປົ້າໝາຍ, ຊ່ອງທາງ ແລະ ງົບປະມານ.' }], attachments: [{ name: 'market_data.xlsx' }], cc: ['A'],
+      signers: [{ id: 'G', step: 1, status: 'signed', time: '06/07 · 10:00', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '06/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab1·F] · [tab2·G] F ສ້າງ progress, G ເຊັນแล้ว (partial)
+    { id: 'd18', title: 'ໃບເບີກຄ່າ ກິດຈະກຳ BD', creatorId: 'F', date: '08/07/2026', ts: 8,
+      files: [{ name: 'bd_event.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'G', step: 1, status: 'signed', time: '08/07 · 09:30', role: 'signer' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // ════════ G (Take · ພະນັກງານ BD) ສ້າງ ════════
+    // [tab2·G] G ສ້າງ done
+    { id: 'd10', title: 'ໃບຂໍງົບກິດຈະກຳ ພະແນກ BD', creatorId: 'G', date: '04/07/2026', ts: 4,
+      files: [{ name: 'bd_budget.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'F', step: 1, status: 'signed', time: '04/07 · 10:00', role: 'approver' }, { id: 'C', step: 2, status: 'signed', time: '04/07 · 14:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab1·G] G ສ້າງ progress
+    { id: 'd20', title: 'ໃບຂໍງົບ ຝຶກອົບຮົມ BD', creatorId: 'G', date: '05/07/2026', ts: 5,
+      files: [{ name: 'bd_training.pdf', pages: 1 }], attachments: [], cc: [],
+      signers: [{ id: 'F', step: 1, status: 'pending', role: 'approver' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // ════════ ຄົນອື່ນ (D·ວິໄລ, E·ບຸນມີ) ສ້າງ — ໃຫ້ C ເຊັນຫຼາຍ ════════
+    // [tab2·A,C] done
+    { id: 'd5', title: 'ຂໍ້ຕົກລົງຮ່ວມມື MOU', creatorId: 'D', date: '08/07/2026', ts: 8,
+      files: [{ name: 'mou.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '08/07 · 11:00', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '08/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·A,C] done
+    { id: 'd11', title: 'ສັນຍາບໍລິການ ລະບົບ IT', creatorId: 'E', date: '03/07/2026', ts: 3,
+      files: [{ name: 'it_service.pdf', pages: 3 }], attachments: [], cc: ['B'],
+      signers: [{ id: 'A', step: 1, status: 'signed', time: '03/07 · 09:00', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '03/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·B,C] done
+    { id: 'd12', title: 'ໃບອະນຸມັດຈັດຊື້ ອຸປະກອນ', creatorId: 'D', date: '02/07/2026', ts: 2,
+      files: [{ name: 'purchase.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '02/07 · 10:00', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '02/07 · 14:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·F,C] · [tab1... D ສ້າง] F ເຊັນแล้ว, C pending (partial ສຳລັບ F)
+    { id: 'd17', title: 'ຂໍ້ຕົກລົງ BD ກັບ Vendor', creatorId: 'D', date: '09/07/2026', ts: 9,
+      files: [{ name: 'bd_vendor.pdf', pages: 2 }], attachments: [], cc: [],
+      signers: [{ id: 'F', step: 1, status: 'signed', time: '09/07 · 10:00', role: 'signer' }, { id: 'C', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+
+    // [tab2·G,F,C] CARD ຫຼາຍคน ບໍ່พร้อม (SEQ 3) + CC · done — ໃຫ້ BD users ມີเคส 1
+    { id: 'd21', title: 'ສັນຍາຮ່ວມມື ຍຸດທະສາດ ອົງກອນ', creatorId: 'E', date: '10/07/2026', ts: 10,
+      files: [{ name: 'partnership.pdf', pages: 3, summary: 'ສັນຍາຮ່ວມມືທາງຍຸດທະສາດ ໄລຍະ 3 ປີ ກວມເອົາ ການຕະຫຼາດ, ເຕັກໂນໂລຊີ ແລະ ບຸກຄະລາກອນ.' }], attachments: [], cc: ['A', 'D'],
+      signers: [{ id: 'G', step: 1, status: 'signed', time: '10/07 · 09:00', role: 'signer' }, { id: 'F', step: 2, status: 'signed', time: '10/07 · 11:00', role: 'approver' }, { id: 'C', step: 3, status: 'signed', time: '10/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·G,F,C] CARD ຫຼາຍคน ມีพร้อม (PARALLEL) + CC · done — ໃຫ້ BD users ມີเคส 2
+    { id: 'd22', title: 'ໃບອະນຸມັດໂຄງການ ຮ່ວມທຶນ', creatorId: 'D', date: '11/07/2026', ts: 11,
+      files: [{ name: 'joint_venture.pdf', pages: 4 }], attachments: [{ name: 'terms.xlsx' }], cc: ['A', 'E'],
+      signers: [{ id: 'G', step: 1, status: 'signed', time: '11/07 · 09:00', role: 'signer' }, { id: 'F', step: 1, status: 'signed', time: '11/07 · 09:30', role: 'signer' }, { id: 'C', step: 2, status: 'signed', time: '11/07 · 15:00', role: 'approver' }],
+      comments: [], status: 'done' },
+
+    // [tab2·B,C partial] B+C ເຊັນແລ້ວ (ขั้น1 พร้อม) A pending — ໃຫ້ B,C ມีเคส 4
+    { id: 'd23', title: 'ໃບເບີກຄ່າ ຈັດສຳມະນາ', creatorId: 'D', date: '12/07/2026', ts: 12,
+      files: [{ name: 'seminar.pdf', pages: 2 }], attachments: [], cc: ['E'],
+      signers: [{ id: 'B', step: 1, status: 'signed', time: '12/07 · 10:00', role: 'signer' }, { id: 'C', step: 1, status: 'signed', time: '12/07 · 10:30', role: 'approver' }, { id: 'A', step: 2, status: 'pending', role: 'approver' }],
+      comments: [], status: 'progress' },
+  ]
+}
+
+// ── helpers ──
+export const isSignedDoc = (d) => d.status === 'done'
+// E3/E12: ถ้า signer ใบนี้ ຖືກ "ມອບໝາຍ" ໃຫ້ຄົນອື່ນເຊັນ/ອະນຸມັດແທນ → actingId = ຄົນທີ່ຕ້ອງ act ຈິງ (ບໍ່ແມ່ນ owner ເດີມ)
+export const actingId = (s) => s.assignedTo || s.id
+// ใช้ตอนต้องนับ "เกี่ยวข้องด้วยไหม" แบบกว้าง (Overview/History/CC-check) — นับทั้งเจ้าของที่นั่งเดิม + ผู้รับมอบ
+export const isInvolved = (s, me) => s.id === me || actingId(s) === me
+export const mySigner = (d, me) => d.signers.find((s) => actingId(s) === me)
+// ໜ້ານີ້ເປັນຮอบของ me ບໍ (step ปัจจุบันที่ยังไม่เซ็น + เป็นของ me — รวมที่ถูกมอบหมายมาด้วย)
+export function isMyTurn(d, me) {
+  if (d.status !== 'progress') return false
+  const s = mySigner(d, me)
+  if (!s || s.status === 'signed' || s.status === 'rejected') return false
+  const minPending = Math.min(...d.signers.filter((x) => x.status !== 'signed' && x.status !== 'rejected').map((x) => x.step))
+  return s.step === minPending
+}
+export function progress(d) {
+  const done = d.signers.filter((s) => s.status === 'signed').length
+  return { done, total: d.signers.length, pct: Math.round((done / d.signers.length) * 100) }
+}
+// ── ໂຄງການ → ກິດຈະກຳ → ໜ້າວຽກ (ຟອມໂອທີ: ເລືອກໂຄງການ → ກິດຈະກຳ → ຕິກໜ້າວຽກ ໄດ້ຫຼາຍອັນ) ──
+export const PROJECTS = [
+  { name: 'Super Work', activities: [
+    { name: 'Work board', tasks: ['ອອກແບບ UI ໜ້າ board', 'ເຊື່ອມ API', 'ແກ້ໄຂ drag & drop', 'ທົດສອບ'] },
+    { name: 'Dashboard', tasks: ['ກຣາຟສະຫຼຸບ', 'Filter ຕາມທີມ', 'Export Excel'] },
+    { name: 'ລະບົບຄຳຂໍ', tasks: ['ຟອມລາພັກ', 'ຟອມໂອທີ', 'ສາຍອະນຸມັດ', 'ແຈ້ງເຕືອນ'] },
+    { name: 'ແກ້ໄຂ Bug', tasks: ['Bug ໜ້າ login', 'Bug ແຈ້ງເຕືອນ', 'Bug ອັບໂຫລດໄຟລ໌'] },
+  ] },
+  { name: 'e-Signature App', activities: [
+    { name: 'UI Prototype', tasks: ['ໜ້າສ້າງຄຳຂໍ', 'ໜ້າວາງລາຍເຊັນ', 'ໜ້າກວດ/ສົ່ງ'] },
+    { name: 'PDF Viewer', tasks: ['Render PDF', 'ວາງກ່ອງລາຍເຊັນ', 'QR ທ້າຍໜ້າ'] },
+    { name: 'ທົດສອບລະບົບ', tasks: ['ທົດສອບ flow ເຊັນ', 'ທົດສອບ LANIT', 'ທົດສອບ ແຈ້ງເຕືອນ'] },
+  ] },
+  { name: 'FDI / BOL System', activities: [
+    { name: 'Master Test Cases', tasks: ['ຂຽນ TC ໂມດູນ Mobile', 'ຂຽນ TC ໂມດູນ BOL', 'ທົບທວນ TC'] },
+    { name: 'UAT', tasks: ['ກຽມຂໍ້ມູນ UAT', 'ຮັນ UAT ຮອບ 1', 'ສະຫຼຸບຜົນ'] },
+    { name: 'ແກ້ໄຂ Bug', tasks: ['Bug ຈາກ UAT', 'Bug ຈາກລູກຄ້າ'] },
+  ] },
+  { name: 'AIDC work', activities: [
+    { name: 'ງານທົ່ວໄປ', tasks: ['ປະຊຸມທີມ', 'ເອກະສານ', 'ຊ່ວຍງານອື່ນ'] },
+    { name: 'ບຳລຸງຮັກສາລະບົບ', tasks: ['ອັບເດດ server', 'ສຳຮອງຂໍ້ມູນ', 'ກວດ log'] },
+  ] },
+]
+// ປະເພດວັນ (ອັດຕາໂອທີຕ່າງກັນ) — ຕາມລະບົບຈິງ 4 ແບບ
+export const DAY_TYPES = [
+  { v: 'ວັນທຳມະດາ', dot: '#1f3fb5' },
+  { v: 'ວັນເສົາ-ອາທິດ', dot: '#7c3aed' },
+  { v: 'ວັນພັກລັດຖະການ', dot: '#dc2626' },
+  { v: 'ວັນພິເສດ', dot: '#f59e0b' },
+]
+
+// ── ຄິດເວລາຄຳຂໍ (ໃຊ້ຮ່ວມ: ຟອມສ້າງ · ການ໌ດ · ໜ້າລາຍລະອຽດ) ──
+// ພັກທ່ຽງ 12:00–13:00 ບໍ່ນັບ ຖ້າຊ່ວງເວລາຄ້ອມ
+const LUNCH = { from: 12 * 60, to: 13 * 60 }
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m }
+export const daysBetween = (a, b) => {
+  const [d1, m1, y1] = a.split('/').map(Number); const [d2, m2, y2] = b.split('/').map(Number)
+  return Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 864e5) + 1
+}
+export const fmtH = (mins) => `${Math.floor(mins / 60)}h ${mins % 60}m`
+// ── ຊ່ວງວັນທີ ແບບສັ້ນ: ຕັດປີ/ເດືອນທີ່ຊ້ຳອອກ → "03 – 07/08/2026" (ບໍ່ຕົກແຖວ) ──
+export const fmtRange = (a, b) => {
+  if (!b || b === a) return a
+  const [d1, m1, y1] = a.split('/'); const [d2, m2, y2] = b.split('/')
+  if (y1 !== y2) return `${a} – ${b}`
+  if (m1 !== m2) return `${d1}/${m1} – ${d2}/${m2}/${y2}`
+  return `${d1} – ${d2}/${m2}/${y2}`
+}
+// r = { date, dateTo?, from, to } → { days, cut, perDay, total, totalText }
+export function reqTime(r) {
+  const days = r.dateTo && r.dateTo !== r.date ? Math.max(1, daysBetween(r.date, r.dateTo)) : 1
+  if (!r.from || !r.to) return { days, cut: 0, perDay: 0, total: 0, totalText: '' }
+  let mins = toMin(r.to) - toMin(r.from)
+  if (mins < 0) mins += 24 * 60
+  const cut = Math.max(0, Math.min(toMin(r.to), LUNCH.to) - Math.max(toMin(r.from), LUNCH.from))
+  const perDay = Math.max(0, mins - cut)
+  return { days, cut, perDay, total: perDay * days, totalText: fmtH(perDay * days) }
+}
+
+// ── ຈັດລຳດັບລາຍການ (ໃຊ້ຮ່ວມ: ອະນຸມັດ · ຄຳຂໍ · ຄວາມຮູ້) ──
+// ທີ່ຍັງລໍຖ້າ ຂຶ້ນກ່ອນສະເໝີ ແລ້ວຮຽງຕາມວັນທີ (ໃກ້ຮອດກ່ອນ) · ທີ່ຈົບແລ້ວ = ໃໝ່ສຸດກ່ອນ
+// ── ວັນທີ/ເວລາ ຈິງ (realtime) — ໃຊ້ຕອນສ້າງ request/ເອກະສານ ໃໝ່ທຸກໂມດູນ ──
+const pad2 = (n) => String(n).padStart(2, '0')
+export const nowDate = () => { const d = new Date(); return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}` }
+export const nowTime = () => { const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}` }
+
+const dnum = (d) => { const [dd, mm, yy] = String(d || '').split('/').map(Number); return (yy || 0) * 10000 + (mm || 0) * 100 + (dd || 0) }
+const isPending = (m) => m.status === 'progress' || m.status === 'esign'
+// ວັນທີໃຊ້ຮຽງ = ວັນທີສ້າງ (createdAt ຂອງ request ໃໝ່) ຫຼື date ຂອງ seed
+const sortDate = (m) => m.createdAt || m.date
+export const sortPendingFirst = (list) => [...list].sort((a, b) => {
+  if (isPending(a) !== isPending(b)) return isPending(a) ? -1 : 1
+  // ທັງສອງກຸ່ມ: ສ້າງໃໝ່ສຸດ ຂຶ້ນກ່ອນ (Lucky ສັ່ງ 17/07)
+  return dnum(sortDate(b)) - dnum(sortDate(a))
+})
+
+// ── ສາຍອະນຸມັດຄຳຂໍ — ຕ່າງກັນຕາມປະເພດ ──
+//   ລາພັກ / ວຽກນອກສະຖານທີ → ຫົວໜ້າພະແນກ → HR (2 ຂັ້ນ)
+//   ໂອທີ                  → ຫົວໜ້າພະແນກ ຢ່າງດຽວ (1 ຂັ້ນ)
+// ໃຊ້ຮ່ວມ ຟອມສ້າງ ແລະ ໜ້າລາຍລະອຽດ → ສາຍທີ່ໂຊຕອນສ້າງ ກັບ ຕອນເບິ່ງ ຕ້ອງກົງກັນ
+export const approvalChain = (byId, kind = 'leave') => {
+  const rec = DIRECTORY.find((p) => p.id === byId)
+  const head = DIRECTORY.find((p) => p.dept === rec?.dept && p.rank === 'head' && p.id !== byId)
+  const hr = DIRECTORY.find((p) => p.id === 'u1') // Pimlada — HR ແລະ ບໍລິຫານ
+  const chain = [head && { id: head.id, name: head.name, role: 'ຫົວໜ້າພະແນກ' }]
+  if (kind !== 'ot') chain.push(hr && { id: hr.id, name: hr.name, role: 'HR ແລະ ບໍລິຫານ' })
+  // ກັນຄົນດຽວກັນຊ້ຳ 2 ຂັ້ນ (ເຊັ່ນ ພະນັກງານ HR: ຫົວໜ້າຕົ້ນສັງກັດ = Pimlada = HR ເອງ)
+  return chain.filter(Boolean).filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i)
+}
+
+// ── ອະນຸມັດຫຼາຍຂັ້ນ: r.approvedBy = ລາຍ id ທີ່ອະນຸມັດແລ້ວ ຕາມລຳດັບ ──
+// ຄິວປັດຈຸບັນ = chain[approvedBy.length] — ໃຊ້ຮ່ວມ ປຸ່ມອະນຸມັດ · badge · timeline ທຸກໂມດູນ
+export const approvedCount = (r) => (r.approvedBy || []).length
+export const currentApprover = (r, kind) =>
+  (r.status === 'progress' ? approvalChain(r.byId, kind)[approvedCount(r)] || null : null)
+
+// ── ນັບແຍກ role: ຜູ້ລົງນາມ (ມີຊ່ອງເຊັນໃນເອກະສານ) / ຜູ້ອະນຸມັດ (ບໍ່ມີຊ່ອງ — ອະນຸມັດຢ່າງດຽວ) ──
+// ໃຊ້ຮ່ວມທຸກທີ່ ເພື່ອໃຫ້ຕົວເລກ ກົງກັບ ຈຳນວນຊ່ອງເຊັນ ໃນເອກະສານສະເໝີ
+export const roleCount = (d) => ({
+  signers: d.signers.filter((s) => s.role !== 'approver').length,
+  approvers: d.signers.filter((s) => s.role === 'approver').length,
+})
+// ປ້າຍສະຫຼຸບ: "ຜູ້ລົງນາມ 1 · ຜູ້ອະນຸມັດ 1"
+export const rolesLabel = (d) => {
+  const { signers, approvers } = roleCount(d)
+  return [signers ? `ຜູ້ລົງນາມ ${signers}` : '', approvers ? `ຜູ້ອະນຸມັດ ${approvers}` : ''].filter(Boolean).join(' · ')
+}

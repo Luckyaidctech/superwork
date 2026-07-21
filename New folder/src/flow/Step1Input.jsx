@@ -1,0 +1,520 @@
+import { useState, useRef, useMemo } from 'react'
+import {
+  Icon, MAX_TITLE, sanitizeTitle, uid, DIRECTORY, DEPTS, normalizeSteps,
+  isOrdered, ROLE_LABEL, RANK_TITLE, directorySections, Header, Stepper, SectionHead, FileList, LoadingRow, initials, signerColor,
+} from './shared.jsx'
+import FilePreviewModal from './FilePreviewModal.jsx'
+import AiSummary from './AiSummary.jsx'
+import { DOC_CATEGORIES, DEFAULT_DOC_SUBTYPES, subtypeRoute, legacyTypeOfSubtype } from '../home/data.js'
+
+// ─────────────── Directory picker (ໂຄງສ້າງອົງກອນ + sticky headers) ───────────────
+function DirectoryPicker({ open, onClose, signers, onAdd, me }) {
+  const [q, setQ] = useState('')
+  const [dept, setDept] = useState('') // '' = ທຸກພະແນກ
+  const [deptOpen, setDeptOpen] = useState(false)
+  if (!open) return null
+  const added = new Map(signers.map((s) => [s.id, s.role]))
+  const sections = directorySections(me, q, dept)
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <b><Icon.book /> ເລືອກຈາກລາຍຊື່</b>
+          <button className="icon-mini" onClick={onClose}><Icon.x /></button>
+        </div>
+        {/* ຄົ້ນຫາ + ກອງຕາມພະແນກ (dropdown) */}
+        <div className="dir-fltrow">
+          <div className="modal-search">
+            <Icon.search />
+            <input placeholder="ຄົ້ນຫາຊື່ ຫຼື ອີເມວ..." value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <button className={`home-filter dir-flt ${dept ? 'on' : ''}`} onClick={() => setDeptOpen(true)}>
+            <Icon.users /><span>{dept ? DEPTS[dept] : 'ທຸກພະແນກ'}</span>
+          </button>
+        </div>
+        {deptOpen && (
+          <div className="fsheet-overlay" onClick={(e) => { e.stopPropagation(); setDeptOpen(false) }}>
+            <div className="fsheet" onClick={(e) => e.stopPropagation()}>
+              <p className="fsheet-title">ກອງຕາມພະແນກ</p>
+              <button className={`sort-opt ${dept === '' ? 'on' : ''}`} onClick={() => { setDept(''); setDeptOpen(false) }}>
+                ທຸກພະແນກ{dept === '' && <Icon.check />}
+              </button>
+              {Object.entries(DEPTS).map(([k, label]) => (
+                <button key={k} className={`sort-opt ${dept === k ? 'on' : ''}`} onClick={() => { setDept(k); setDeptOpen(false) }}>
+                  {label}{dept === k && <Icon.check />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="modal-list">
+          {sections.length === 0 && <p className="muted" style={{ textAlign: 'center', padding: '20px' }}>ບໍ່ພົບຊື່</p>}
+          {sections.map((sec) => (
+            <div className="dir-sec" key={sec.key}>
+              <p className="dir-sec-head">{sec.label}<span>{sec.people.length}</span></p>
+              {sec.people.map((p) => {
+                const role = added.get(p.id)
+                return (
+                  <div className="dir-row" key={p.id}>
+                    <div className={`dir-avatar rk-${p.rank}`}>{initials(p.name)}</div>
+                    <div className="dir-info">
+                      <b>{p.name}{p.id === me && <span className="me-tag">ຕົວຂ້ອຍ</span>}</b>
+                      <span>{RANK_TITLE[p.rank]} · {p.email}</span>
+                    </div>
+                    {role ? (
+                      <span className={`role-tag ${role}`}>{ROLE_LABEL[role]} <Icon.check /></span>
+                    ) : (
+                      <div className="dir-actions">
+                        <button className="pick-btn signer" onClick={() => onAdd(p, 'signer')}>ລົງນາມ</button>
+                        <button className="pick-btn approver" onClick={() => onAdd(p, 'approver')}>ອະນຸມັດ</button>
+                        <button className="pick-btn cc" onClick={() => onAdd(p, 'cc')}>CC</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────── ແຜ່ນເລືອກປະເພດເອກະສານ (E7/E8/E10) — ໝວດ → ເອກະສານຍ່ອຍ (2 ຊັ້ນ) ───────────────
+function DocTypeSheet({ open, value, subtypes, categories = DOC_CATEGORIES, onPick, onClose }) {
+  if (!open) return null
+  return (
+    <div className="fsheet-overlay" onClick={onClose}>
+      <div className="fsheet subtype-sheet" onClick={(e) => e.stopPropagation()}>
+        <p className="fsheet-title">ປະເພດເອກະສານ — ເລືອກເອກະສານຍ່ອຍ</p>
+        <div className="modal-list">
+          {Object.entries(categories).map(([catKey, cat]) => {
+            const subs = subtypes.filter((s) => s.category === catKey)
+            if (!subs.length) return null
+            return (
+              <div className="dir-sec" key={catKey}>
+                <p className="dir-sec-head" style={{ color: cat.main }}>{cat.label}<span>{subs.length}</span></p>
+                {subs.map((s) => (
+                  <button key={s.key} className={`dtype-opt ${value === s.key ? 'on' : ''}`} onClick={() => onPick(s.key)}>
+                    <div className="dtype-info">
+                      <b>{s.name}{s.lockAll && <em className="dtype-auto"><Icon.lock /> ລັບ</em>}</b>
+                      <span>{s.prefix} · {s.chain.length > 0 ? `ຂັ້ນບັງຄັບ ${s.chain.length} ຂັ້ນ` : 'ບໍ່ມີເສັ້ນທາງບັງຄັບ'}</span>
+                    </div>
+                    {value === s.key && <Icon.check />}
+                  </button>
+                ))}
+              </div>
+            )
+          })}
+          {/* E10: "ອື່ນໆ" — ພິມຊື່ປະເພດເອງ (ບໍ່ມີເສັ້ນທາງບັງຄັບ) */}
+          <div className="dir-sec">
+            <p className="dir-sec-head" style={{ color: '#64748b' }}>ອື່ນໆ<span>1</span></p>
+            <button className={`dtype-opt ${value === 'other' ? 'on' : ''}`} onClick={() => onPick('other')}>
+              <div className="dtype-info">
+                <b>ອື່ນໆ (ພິມຊື່ເອງ)</b>
+                <span>OTH · ບໍ່ມີເສັ້ນທາງບັງຄັບ — ເລືອກຜູ້ລົງນາມເອງ</span>
+              </div>
+              {value === 'other' && <Icon.check />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────── inline role segmented control ───────────────
+function RoleSeg({ role, onChange }) {
+  return (
+    <div className="seg">
+      <button className={`seg-btn ${role === 'signer' ? 'on signer' : ''}`} onClick={() => onChange('signer')}>ລົງນາມ</button>
+      <button className={`seg-btn ${role === 'approver' ? 'on approver' : ''}`} onClick={() => onChange('approver')}>ອະນຸມັດ</button>
+      <button className={`seg-btn ${role === 'cc' ? 'on cc' : ''}`} onClick={() => onChange('cc')}>CC</button>
+    </div>
+  )
+}
+
+export default function Step1Input({ store, me = 'A', docSubtypes, docCategories, onNext, onBack }) {
+  const {
+    title, setTitle, docType, setDocType, docSubtype, setDocSubtype, otherTypeName, setOtherTypeName, docNoPreview,
+    pdfs, setPdfs, attachments, setAttachments, signers, setSigners,
+  } = store
+  // ໃຊ້ subtypes/ໝວດ ຈາກ App (Tab 6 ອາດແກ້ໄວ້) — ບໍ່ມີ prop ສົ່ງມາ → fallback default
+  const subtypes = docSubtypes || DEFAULT_DOC_SUBTYPES
+  const cats = docCategories || DOC_CATEGORIES
+
+  const [titleCleaned, setTitleCleaned] = useState(false)
+  const [loading, setLoading] = useState({ pdf: false, attach: false })
+  const [showErrors, setShowErrors] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [typeOpen, setTypeOpen] = useState(false)
+  const [previewFile, setPreviewFile] = useState(null)
+  const [dragId, setDragId] = useState(null)
+  // E7/E10: Direct (ໃຊ້ເສັ້ນທາງມາດຕະຖານ ຈາກ Tab 6) ↔ Dynamic (ເລືອກຜູ້ລົງນາມເອງ)
+  // ຄ່າເລີ່ມຕົ້ນ: ມີຂັ້ນ lock ຄ້າງໃນ signers = Direct · ນອກນັ້ນ Dynamic (ປະເພດເລີ່ມຕົ້ນ GEN ບໍ່ມີເສັ້ນທາງ config)
+  const [dynamicMode, setDynamicMode] = useState(() => !signers.some((s) => s.locked))
+
+  // E10: "ອື່ນໆ" = ປະເພດພິມຊື່ເອງ — ບໍ່ຢູ່ໃນ catalog, ບໍ່ມີເສັ້ນທາງບັງຄັບ, prefix OTH
+  const isOther = docSubtype === 'other'
+  const currentSub = isOther
+    ? { key: 'other', category: 'general', name: otherTypeName?.trim() || 'ອື່ນໆ (ພິມຊື່ເອງ)', prefix: 'OTH', chain: [], lockAll: false }
+    : (subtypes.find((s) => s.key === docSubtype) || subtypes[0])
+  const currentCat = cats[currentSub.category] || {}
+  // ເສັ້ນທາງມາດຕະຖານຂອງປະເພດນີ້ (ບໍ່ຂຶ້ນກັບ mode) — ໃຊ້ຕັດສິນວ່າຄວນໂຊ toggle ຫຼືບໍ່
+  const baseRoute = isOther ? { chain: [], cc: [], lockAll: false } : subtypeRoute(docSubtype, me, subtypes)
+  // E7/E8/E10: ໝວດ+ຍ່ອຍ → ເສັ້ນທາງບັງຄັບ (Dynamic mode = ບໍ່ລ໋ອກ, ເລືອກເອງໝົດ)
+  const route = dynamicMode ? { chain: [], cc: [], lockAll: false } : baseRoute
+  const lockAll = route.lockAll
+
+  const pdfInput = useRef(null)
+  const attachInput = useRef(null)
+  const cardRef = useRef({})
+
+  const signatories = signers.filter((s) => isOrdered(s.role))
+  const docSigners = signers.filter((s) => s.role === 'signer')
+  const ccList = signers.filter((s) => s.role === 'cc')
+
+  const valid = useMemo(() => ({
+    title: title.trim().length > 0,
+    pdf: pdfs.length > 0,
+    signer: signatories.length > 0,
+  }), [title, pdfs, signatories.length])
+  const canNext = valid.title && valid.pdf && valid.signer
+
+  const onTitleChange = (raw) => {
+    const { cleaned, changed } = sanitizeTitle(raw)
+    setTitle(cleaned); setTitleCleaned(changed)
+  }
+
+  const pickFiles = (fileList, kind) => {
+    const arr = Array.from(fileList || [])
+    if (!arr.length) return
+    const key = kind === 'pdf' ? 'pdf' : 'attach'
+    setLoading((l) => ({ ...l, [key]: true }))
+    setTimeout(() => {
+      const mapped = arr.map((f) => ({ id: uid(), name: f.name, size: f.size, file: f }))
+      if (kind === 'pdf') setPdfs((p) => [...p, ...mapped])
+      else setAttachments((a) => [...a, ...mapped])
+      setLoading((l) => ({ ...l, [key]: false }))
+    }, 600)
+  }
+  const viewFile = (f) => setPreviewFile(f)
+
+  // ── ຈັດ signers ໃຫ້ signatory ຢູ່ໜ້າ (ຮຽງ step) + cc ຢູ່ຫຼັງ ──
+  const rebuild = (list) => {
+    const norm = normalizeSteps(list)
+    const sig = norm.filter((s) => isOrdered(s.role)).sort((a, b) => a.step - b.step)
+    const cc = norm.filter((s) => !isOrdered(s.role))
+    return [...sig, ...cc]
+  }
+
+  // ── ວາງເສັ້ນທາງບັງຄັບໃໝ່ (ຂັ້ນ lock ຢູ່ໜ້າ · ຄົນທີ່ຜູ້ໃຊ້ເພີ່ມເອງ ຕໍ່ທ້າຍ) ──
+  const applyLockedChain = (r) => {
+    setSigners((prev) => {
+      const lockedIds = new Set([...r.chain, ...r.cc].map((p) => p.id))
+      // ເອກະສານລັບ: ລ້າງທຸກຄົນທີ່ເພີ່ມເອງ · ປະເພດອື່ນ: ຮັກສາໄວ້ (ຕັດຄົນທີ່ຊ້ຳກັບຂັ້ນບັງຄັບ)
+      const userAdded = r.lockAll ? [] : prev.filter((s) => !s.locked && !lockedIds.has(s.id))
+      const k = r.chain.length
+      const rest = userAdded.map((s) => (isOrdered(s.role) ? { ...s, step: (s.step || 1) + k } : s))
+      return rebuild([...r.chain, ...rest, ...r.cc])
+    })
+  }
+
+  // ── ເລືອກເອກະສານຍ່ອຍ → ຕັ້ງ legacy docType (backward-compat E11/E15/filter) + ໃສ່ເສັ້ນທາງ (ຖ້າບໍ່ແມ່ນ Dynamic) ──
+  const applySubtype = (key) => {
+    setDocSubtype(key)
+    if (key === 'other') {
+      // E10 "ອື່ນໆ": ບໍ່ມີເສັ້ນທາງ config — ບັງຄັບ Dynamic, ລ້າງຂັ້ນ lock ເກົ່າອອກ
+      setDocType('ເອກະສານທົ່ວໄປ')
+      setDynamicMode(true)
+      setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
+    } else {
+      const sub = subtypes.find((s) => s.key === key)
+      // legacyTypeOfSubtype: subtype ລັບ (lockAll) → "ເອກະສານລັບ" ສະເໝີ (ກັນ visibility/@mention ຮົ່ວ)
+      setDocType(legacyTypeOfSubtype(sub))
+      // ຄ່າເລີ່ມຕົ້ນຂອງ mode ຕາມປະເພດ: ມີເສັ້ນທາງ config → Direct · ບໍ່ມີ → Dynamic · ເອກະສານລັບ → Direct ສະເໝີ
+      const r = subtypeRoute(key, me, subtypes)
+      const dyn = sub?.lockAll ? false : r.chain.length === 0
+      setDynamicMode(dyn)
+      if (dyn) setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
+      else applyLockedChain(r)
+    }
+    setShowErrors(false)
+    setTypeOpen(false)
+  }
+
+  // ── ສະຫຼັບ Dynamic ↔ No-Dynamic — ລ໋ອກ/ປົດລ໋ອກເສັ້ນທາງຂອງເອກະສານຍ່ອຍປັດຈຸບັນ ──
+  const toggleDynamic = (dyn) => {
+    setDynamicMode(dyn)
+    if (dyn) setSigners((prev) => rebuild(prev.filter((s) => !s.locked)))
+    else applyLockedChain(subtypeRoute(docSubtype, me, subtypes))
+  }
+
+  const addFromDirectory = (person, role) => {
+    setSigners((prev) => {
+      if (prev.some((s) => s.id === person.id)) return prev
+      const maxStep = prev.filter((s) => isOrdered(s.role)).reduce((m, s) => Math.max(m, s.step), 0)
+      const entry = { id: person.id, name: person.name, email: person.email, role, hasSig: !!person.hasSig, step: isOrdered(role) ? maxStep + 1 : null }
+      return rebuild([...prev, entry])
+    })
+    setShowErrors(false)
+  }
+  const removeSigner = (id) => setSigners((prev) => rebuild(prev.filter((s) => s.id !== id)))
+  const changeStep = (id, dir) => setSigners((prev) => rebuild(prev.map((s) =>
+    s.id === id ? { ...s, step: Math.max(1, (s.step || 1) + dir) } : s)))
+
+  // ── ປ່ຽນ role ເທິງກາດ (signer ↔ approver ↔ cc) ──
+  const changeRole = (id, role) => setSigners((prev) => {
+    const maxStep = prev.filter((s) => isOrdered(s.role)).reduce((m, s) => Math.max(m, s.step || 0), 0)
+    return rebuild(prev.map((s) => {
+      if (s.id !== id) return s
+      return isOrdered(role) ? { ...s, role, step: s.step || maxStep + 1 } : { ...s, role, step: null }
+    }))
+  })
+
+  // preset ປັບສະເພາະຄົນທີ່ຜູ້ໃຊ້ເພີ່ມເອງ — ຂັ້ນບັງຄັບ (locked) ຄົງລຳດັບເດີມສະເໝີ
+  const applyPreset = (kind) => setSigners((prev) => {
+    const lockedK = prev.filter((s) => s.locked && isOrdered(s.role)).length
+    let i = 0
+    return rebuild(prev.map((s) => {
+      if (!isOrdered(s.role) || s.locked) return s
+      i += 1
+      return { ...s, step: kind === 'parallel' ? lockedK + 1 : lockedK + i }
+    }))
+  })
+
+  // ── drag & drop ຈັດລຳดับ (pointer-based ໃຊ້ໄດ້ເທິງມືຖື) ──
+  const beginDrag = (id) => (e) => { e.preventDefault(); setDragId(id) }
+  const dragMove = (e) => {
+    if (!dragId) return
+    const y = e.clientY
+    setSigners((prev) => {
+      const sig = prev.filter((s) => isOrdered(s.role))
+      const cc = prev.filter((s) => !isOrdered(s.role))
+      const dragged = sig.find((s) => s.id === dragId)
+      if (!dragged || dragged.locked) return prev
+      // ຂັ້ນບັງຄັບ (locked) ປັກຢູ່ໜ້າສະເໝີ — ລາກຈັດລຳດັບໄດ້ສະເພາະຄົນທີ່ເພີ່ມເອງ
+      const lockedSig = sig.filter((s) => s.locked)
+      const others = sig.filter((s) => !s.locked && s.id !== dragId)
+      let idx = others.length
+      for (let i = 0; i < others.length; i++) {
+        const el = cardRef.current[others[i].id]
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        if (y < r.top + r.height / 2) { idx = i; break }
+      }
+      const next = [...others]
+      next.splice(idx, 0, dragged)
+      const merged = [...lockedSig, ...next]
+      if (merged.length === sig.length && merged.every((s, i) => s.id === sig[i].id)) return prev
+      return [...merged.map((s, i) => ({ ...s, step: i + 1 })), ...cc]
+    })
+  }
+  const endDrag = () => setDragId(null)
+
+  const handleNext = () => {
+    if (!canNext) { setShowErrors(true); return }
+    onNext()
+  }
+
+  return (
+    <div className="app">
+      <Header title="ເອກະສານ E-Signature ໃໝ່" subtitle="ສ້າງ ແລະ ສົ່ງເພື່ອຂໍລາຍເຊັນ" onBack={onBack || (() => {})} />
+      <div className="scroll">
+        <Stepper current={1} />
+
+        {/* ── ປະເພດເອກະສານ (E7/E8/E10) — ເລືອກປະເພດ + ກຳນົດເສັ້ນທາງ ຢູ່ບ່ອນດຽວກັນ (Lucky ສັ່ງ 18/07: ຢ່າເອົາໄປໄວ້ໂຊນຜູ້ເຊັນ/CC) ── */}
+        <div className="card">
+          <SectionHead icon={<Icon.layers />} title="ປະເພດເອກະສານ" sub="ເລືອກປະເພດ" />
+          <button className="dtype-btn" onClick={() => setTypeOpen(true)}>
+            <span className="dtype-btn-ic" style={{ background: currentCat.soft, color: currentCat.main }}>{Icon[currentCat.icon] ? Icon[currentCat.icon]() : <Icon.doc />}</span>
+            <div className="dtype-btn-info">
+              <b>{currentSub.name}</b>
+              <span>{currentCat.label}{isOther ? ' · ພິມຊື່ເອງ' : ''}</span>
+            </div>
+            <Icon.chevron />
+          </button>
+          {/* E10 "ອື່ນໆ": ຊ່ອງພິມຊື່ປະເພດເອງ */}
+          {isOther && (
+            <input className="other-type-input" value={otherTypeName || ''} maxLength={60}
+              placeholder="ພິມຊື່ປະເພດເອກະສານ ເຊັ່ນ ໃບຂໍຢືມອຸປະກອນ..."
+              onChange={(e) => setOtherTypeName(e.target.value)} />
+          )}
+          {/* ເລກທີເອກະສານ — ໂຊເລກເຕັມຈິງເລີຍ (Lucky 18/07: ບໍ່ໃຊ້ xxx) */}
+          <div className="docno-box" style={{ background: currentCat.soft }}>
+            <span className="docno-box-ic" style={{ background: currentCat.main, color: '#fff' }}>{Icon[currentCat.icon] ? Icon[currentCat.icon]() : <Icon.doc />}</span>
+            <div className="docno-box-txt">
+              <span>ເລກທີເອກະສານ</span>
+              <b style={{ color: currentCat.main }}>{docNoPreview}</b>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ຫົວຂໍ້ການເຊັນ ── */}
+        <div className="card">
+          <SectionHead icon={<Icon.doc />} title="ຫົວຂໍ້ການເຊັນ" sub="ຕັ້ງຫົວຂໍ້ໃຫ້ຊັດເຈນ" />
+          <textarea className={`title-input ${showErrors && !valid.title ? 'invalid' : ''}`}
+            placeholder="ປ້ອນຫົວຂໍ້ການເຊັນ..." maxLength={MAX_TITLE} value={title} rows={2}
+            onChange={(e) => onTitleChange(e.target.value)} />
+          {titleCleaned && (<span className="hint-text"><Icon.warn /> ໄດ້ລຶບຕົວອັກສອນພິເສດ ( \ / : * ? " &lt; &gt; | ) ແລະ emoji ອອກໂດຍອັດຕະໂນມັດ</span>)}
+          <div className="row-between">
+            {showErrors && !valid.title ? <span className="err-text">ກະລຸນາປ້ອນຫົວຂໍ້</span> : <span />}
+            <span className="counter">{title.length}/{MAX_TITLE}</span>
+          </div>
+        </div>
+
+        {/* ── ເລືອກໄຟລ໌ເຊັນ (PDF) ── */}
+        <div className={`card ${showErrors && !valid.pdf ? 'card-invalid' : ''}`}>
+          <SectionHead icon={<Icon.pdf />} title="ເລືອກໄຟລ໌ເຊັນ" sub="ໄຟລ໌ເຊັນຕ້ອງເປັນ PDF ເທົ່ານັ້ນ" />
+          <FileList items={pdfs} onRemove={(id) => setPdfs((p) => p.filter((x) => x.id !== id))} onView={viewFile} empty="ແຕະເພື່ອເລືອກໄຟລ໌ PDF" />
+          {loading.pdf && <LoadingRow text="ກຳລັງອັບໂຫລດ..." />}
+          <input ref={pdfInput} type="file" accept="application/pdf" multiple hidden
+            onChange={(e) => { pickFiles(e.target.files, 'pdf'); e.target.value = '' }} />
+          <button className="add-btn" onClick={() => pdfInput.current?.click()} disabled={loading.pdf}><Icon.plus /> ເພີ່ມໄຟລ໌ PDF</button>
+          {showErrors && !valid.pdf && <span className="err-text">ຕ້ອງມີໄຟລ໌ PDF ຢ່າງໜ້ອຍ 1 ໄຟລ໌</span>}
+        </div>
+
+        {/* ── Summary by AI ── */}
+        <AiSummary files={pdfs} />
+
+        {/* ── ເອກະສານແนบ ── */}
+        <div className="card">
+          <div className="attach-head">
+            <span className="attach-title"><Icon.clip /> <b>ເອກະສານແນບ</b> <i>(ບໍ່ບັງຄັບ)</i></span>
+            <button className="link-btn" onClick={() => attachInput.current?.click()} disabled={loading.attach}><Icon.plus /> ເພີ່ມ</button>
+          </div>
+          <p className="muted">ແນບເອກະສານປະກອບ — ເບິ່ງໄດ້ ແຕ່ບໍ່ຕ້ອງເຊັນ</p>
+          <input ref={attachInput} type="file" multiple hidden onChange={(e) => { pickFiles(e.target.files, 'attach'); e.target.value = '' }} />
+          {loading.attach && <LoadingRow text="ກຳລັງອັບໂຫລດ..." />}
+          <FileList items={attachments} onRemove={(id) => setAttachments((a) => a.filter((x) => x.id !== id))} onView={viewFile} />
+        </div>
+
+        {/* ── ເສັ້ນທາງການເຊັນ (E7) — ຢູ່ທ້າຍຟອມ ຫຼັງກອກຂໍ້ມູນຄົບ (Lucky ເຄາະ 18/07):
+            Direct (ໃຊ້ເສັ້ນທາງມາດຕະຖານ) = ໃຊ້ຄົນທີ່ config ໃນ Tab 6 ອັດຕະໂນມັດ — ບໍ່ໂຊຫ້ອງເລືອກຄົນ
+            Dynamic (ເລືອກຜູ້ລົງນາມເອງ) = ຄ່ອຍເປີດຫ້ອງ "ຜູ້ລົງນາມ & ຮັບສຳເນົາ" ໃຫ້ເລືອກເອງ */}
+        <div className={`card ${showErrors && !valid.signer && !dynamicMode ? 'card-invalid' : ''}`}>
+          <SectionHead icon={<Icon.layers />} title="ເສັ້ນທາງການເຊັນ" sub={currentSub.lockAll ? 'ເອກະສານລັບ — ສົ່ງກົງຫາຜູ້ອຳນວຍການ' : 'ເລືອກວິທີສົ່ງ'} />
+          {!currentSub.lockAll && (
+            <div className="seg">
+              <button className={`seg-btn ${!dynamicMode ? 'on approver' : ''}`} onClick={() => toggleDynamic(false)}>ໃຊ້ເສັ້ນທາງມາດຕະຖານ</button>
+              <button className={`seg-btn ${dynamicMode ? 'on signer' : ''}`} onClick={() => toggleDynamic(true)}>ເລືອກຜູ້ລົງນາມເອງ</button>
+            </div>
+          )}
+          {!dynamicMode && route.chain.length > 0 && (
+            <div className="route-preview">
+              <p className="route-preview-head"><Icon.lock /> ເສັ້ນທາງມາດຕະຖານ {route.chain.length} ຂັ້ນ{lockAll ? ' · ຫ້າມເພີ່ມຜູ້ອື່ນ ແລະ CC' : ''}</p>
+              {route.chain.map((p, i) => (
+                <div className="route-step" key={p.id}>
+                  <span className="route-step-n">{i + 1}</span>
+                  <b>{p.name}</b>
+                  <span className="route-step-role">{p.role === 'approver' ? 'ອະນຸມັດ' : 'ເຊັນ'}</span>
+                </div>
+              ))}
+              {route.cc.length > 0 && (
+                <p className="route-preview-cc"><Icon.users /> CC ອັດຕະໂນມັດ: {route.cc.map((c) => c.name).join(', ')}</p>
+              )}
+            </div>
+          )}
+          {!dynamicMode && !currentSub.lockAll && route.chain.length === 0 && (
+            <p className="dtype-note"><Icon.warn /> ປະເພດນີ້ຍັງບໍ່ໄດ້ຕັ້ງຄ່າເສັ້ນທາງມາດຕະຖານ — ກະລຸນາເລືອກ "ເລືອກຜູ້ລົງນາມເອງ"</p>
+          )}
+          {showErrors && !valid.signer && !dynamicMode && <span className="err-text">ຍັງບໍ່ມີຜູ້ລົງນາມ</span>}
+        </div>
+
+        {/* ── ຜູ້ລົງນາມ + CC — ໂຊສະເພາະໂໝດ Dynamic (Direct ໃຊ້ config ຈາກ Tab 6 ບໍ່ຕ້ອງເລືອກ) ── */}
+        {dynamicMode && (
+        <div className={`card ${showErrors && !valid.signer ? 'card-invalid' : ''}`}>
+          <SectionHead icon={<Icon.addUser />} title="ຜູ້ລົງນາມ & ຮັບສຳເນົາ" sub="ເລືອກຄົນຈາກລາຍຊື່" />
+          <button className="add-btn" onClick={() => setPickerOpen(true)}><Icon.book /> ເພີ່ມຈາກລາຍຊື່</button>
+
+          {signatories.length > 0 && (
+            <>
+              <div className="order-head">
+                <span className="order-title"><Icon.layers /> ລຳດັບການລົງນາມ</span>
+                <div className="order-preset">
+                  <button className="preset-btn" onClick={() => applyPreset('sequential')}>ຕາມລຳດັບ</button>
+                  <button className="preset-btn" onClick={() => applyPreset('parallel')}>ພ້ອມກັນ</button>
+                </div>
+              </div>
+              <p className="order-hint"><Icon.grip /> ລາກເພື່ອຈັດລຳດັບ · ຄົນຂັ້ນດຽວກັນ = ເຊັນພ້ອມກັນ · ປ່ຽນບົດບາດໄດ້ເທິງກາດ</p>
+
+              <div className={`sig-list ${dragId ? 'dragging' : ''}`} onPointerMove={dragMove} onPointerUp={endDrag} onPointerLeave={endDrag} onPointerCancel={endDrag}>
+                {signatories.map((s, idx) => {
+                  const isApprover = s.role === 'approver'
+                  const c = isApprover ? { main: '#7c3aed' } : signerColor(docSigners.findIndex((x) => x.id === s.id))
+                  const sameAsPrev = idx > 0 && signatories[idx - 1].step === s.step
+                  return (
+                    <div key={s.id}
+                      ref={(el) => { if (el) cardRef.current[s.id] = el; else delete cardRef.current[s.id] }}
+                      className={`sig-card ${s.locked ? 'locked' : ''} ${dragId === s.id ? 'dragging' : ''} ${sameAsPrev ? 'grouped' : ''}`}>
+                      <div className="sig-row1">
+                        {s.locked
+                          ? <span className="sig-grip lock" title="ຂັ້ນບັງຄັບຕາມປະເພດເອກະສານ"><Icon.lock /></span>
+                          : <span className="sig-grip" title="ລາກເພື່ອຈັດລຳດັບ" onPointerDown={beginDrag(s.id)}><Icon.grip /></span>}
+                        <div className="signer-avatar" style={{ background: c.main }}>{initials(s.name)}</div>
+                        <div className="signer-info">
+                          <b>{s.name}</b>
+                          <span className="signer-email">{isApprover ? 'ອະນຸມັດ · ບໍ່ໂຊລາຍເຊັນ' : s.email}</span>
+                        </div>
+                        <span className="sig-step">ຂັ້ນທີ່ {s.step}{sameAsPrev && <em>· ພ້ອມກັນ</em>}</span>
+                        {!s.locked && <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>}
+                      </div>
+                      {s.locked ? (
+                        <div className="sig-row2"><span className="sig-locktag"><Icon.lock /> ຂັ້ນບັງຄັບ — {isApprover ? 'ຜູ້ກວດ/ອະນຸມັດ' : 'ຜູ້ເຊັນປາຍທາງ'} ຕາມປະເພດ "{currentSub.name}"</span></div>
+                      ) : (
+                        <div className="sig-row2">
+                          <RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} />
+                          <div className="step-ctrl">
+                            <button className="icon-mini" onClick={() => changeStep(s.id, -1)} disabled={s.step <= 1}><Icon.minus /></button>
+                            <button className="icon-mini" onClick={() => changeStep(s.id, +1)}><Icon.plus /></button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── CC ── */}
+          {ccList.length > 0 && (
+            <div className="cc-block">
+              <div className="cc-head"><Icon.mail /> <b>ຮັບສຳເນົາ (CC)</b> <i>· ບໍ່ຕ້ອງເຊັນ</i></div>
+              {ccList.map((s) => (
+                <div className={`sig-card cc ${s.locked ? 'locked' : ''}`} key={s.id}>
+                  <div className="sig-row1">
+                    <div className="signer-avatar cc">{initials(s.name)}</div>
+                    <div className="signer-info">
+                      <b>{s.name}</b>
+                      <span className="signer-email">{s.email}</span>
+                    </div>
+                    {s.locked
+                      ? <span className="sig-locktag sm"><Icon.lock /> CC ອັດຕະໂນມັດ</span>
+                      : <button className="icon-mini danger" onClick={() => removeSigner(s.id)}><Icon.trash /></button>}
+                  </div>
+                  {!s.locked && <div className="sig-row2"><RoleSeg role={s.role} onChange={(r) => changeRole(s.id, r)} /></div>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showErrors && !valid.signer && <span className="err-text">ຕ້ອງມີຜູ້ລົງນາມຢ່າງໜ້ອຍ 1 ຄົນ</span>}
+        </div>
+        )}
+      </div>
+
+      <div className="footer">
+        <button className={`btn primary ${!canNext ? 'disabled' : ''}`} onClick={handleNext}>
+          {canNext ? 'ຕໍ່ໄປ' : 'ຕື່ມຂໍ້ມູນໃຫ້ຄົບ'}
+        </button>
+      </div>
+
+      <DirectoryPicker open={pickerOpen && !lockAll} onClose={() => setPickerOpen(false)} signers={signers} onAdd={addFromDirectory} me={me} />
+      <DocTypeSheet open={typeOpen} value={docSubtype} subtypes={subtypes} categories={cats} onPick={applySubtype} onClose={() => setTypeOpen(false)} />
+      <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+    </div>
+  )
+}
