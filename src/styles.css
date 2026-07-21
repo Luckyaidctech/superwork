@@ -800,6 +800,10 @@ button, input, textarea, select { font-family: inherit; }
 .chain-actions .pick-btn { padding: 6px 7px; }
 .chain-move { display: flex; gap: 4px; }
 .chain-move .icon-mini { width: 26px; height: 26px; }
+/* ຂັ້ນສາຍອະນຸມັດ Tab 6 (Lucky 21/07): dir-row ເດີມ + RoleSeg (ລົງນາມ/ອະນຸມັດ/CC) ຂ້າງລຸ່ມ */
+.chain-row-wrap { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+.chain-row-wrap .dir-row { border: none; padding: 0; }
+.chain-row-wrap .dir-info b { white-space: normal; }
 
 /* approver role */
 .role-tag.approver { background: #eef1f6; color: #64748b; font-size: 10px; padding: 1px 7px; }

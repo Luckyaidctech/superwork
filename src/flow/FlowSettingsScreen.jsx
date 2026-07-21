@@ -3,7 +3,19 @@ import { Icon, Header, DIRECTORY, DEPTS, RANK_TITLE, initials } from './shared.j
 import { DOC_CATEGORIES, stepLabel, stepKindOf, STEP_KIND_LABEL, STEP_KIND_DESC } from '../home/data.js'
 
 const slugify = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 8) || 'new'
-const BLANK_SUB = { key: '', name: '', prefix: '', category: Object.keys(DOC_CATEGORIES)[0], chain: [], cc: [], lockAll: false }
+const BLANK_SUB = { key: '', name: '', prefix: '', category: Object.keys(DOC_CATEGORIES)[0], chain: [], chainRoles: [], cc: [], lockAll: false }
+
+// ─────────────── ເລືອກບົດບາດແຕ່ລະຂັ້ນ — ລົງນາມ/ອະນຸມັດ/CC (Lucky 21/07) ───────────────
+// ໜ້າຕາດຽວກັບ RoleSeg ໃນ Step1Input.jsx (ຄົນສ້າງເອກະສານເລືອກເອງ) — ຢູ່ Tab 6 ນີ້ຄືກຳນົດ default ໃຫ້ທຸກໃບຂອງປະເພດນີ້
+function RoleSeg({ role, onChange }) {
+  return (
+    <div className="seg">
+      <button className={`seg-btn ${role === 'signer' ? 'on signer' : ''}`} onClick={() => onChange('signer')}>ລົງນາມ</button>
+      <button className={`seg-btn ${role === 'approver' ? 'on approver' : ''}`} onClick={() => onChange('approver')}>ອະນຸມັດ</button>
+      <button className={`seg-btn ${role === 'cc' ? 'on cc' : ''}`} onClick={() => onChange('cc')}>CC</button>
+    </div>
+  )
+}
 
 // ─────────────── ເລືອກຄົນສະເພາະ ແທນຂັ້ນຕອນໜຶ່ງ ───────────────
 function PersonPickSheet({ open, onPick, onClose }) {
@@ -179,6 +191,12 @@ function SubtypeEditSheet({ sub, isNew, defaultSub, categories = DOC_CATEGORIES,
   const cur = isNew ? draft : sub
   const cat = categories[cur.category] || {}
   const chain = cur.chain || []
+  // role ຕໍ່ຂັ້ນ (Lucky 21/07) — parallel array ຕິດ index ດຽວກັບ chain, ຄ່າວ່າງ = ໃຊ້ກະຕິກາເດີມ (ຂັ້ນສຸດທ້າຍ=signer)
+  const chainRoles = cur.chainRoles || []
+  const roleOf = (idx) => {
+    const r = chainRoles[idx]
+    return r === 'signer' || r === 'approver' ? r : (idx === chain.length - 1 ? 'signer' : 'approver')
+  }
 
   const commit = (patch) => {
     if (isNew) setDraft((d) => ({ ...d, ...patch }))
@@ -198,12 +216,23 @@ function SubtypeEditSheet({ sub, isNew, defaultSub, categories = DOC_CATEGORIES,
   const moveStep = (idx, dir) => {
     const j = idx + dir
     if (j < 0 || j >= chain.length) return
-    const next = [...chain]
-    ;[next[idx], next[j]] = [next[j], next[idx]]
-    setChain(next)
+    const nextChain = [...chain]; [nextChain[idx], nextChain[j]] = [nextChain[j], nextChain[idx]]
+    const nextRoles = [...chainRoles]; [nextRoles[idx], nextRoles[j]] = [nextRoles[j], nextRoles[idx]]
+    commit({ chain: nextChain, chainRoles: nextRoles })
   }
-  const removeStep = (idx) => setChain(chain.filter((_, i) => i !== idx))
+  const removeStep = (idx) => commit({ chain: chain.filter((_, i) => i !== idx), chainRoles: chainRoles.filter((_, i) => i !== idx) })
   const addStep = () => setChain([...chain, 'creatorHead'])
+  // ເລືອກ "ລົງນາມ/ອະນຸມັດ" → ບັນທຶກ override ຂອງຂັ້ນນັ້ນ · ເລືອກ "CC" → ຍ້າຍອອກຈາກສາຍ ໄປເປັນ CC ອັດຕະໂນມັດແທນ (ບໍ່ຕ້ອງເຊັນ/ອະນຸມັດອີກ)
+  const setStepRole = (idx, role) => {
+    if (role === 'cc') {
+      const moved = chain[idx]
+      commit({ chain: chain.filter((_, i) => i !== idx), chainRoles: chainRoles.filter((_, i) => i !== idx) })
+      setCc([...(cur.cc || []), moved])
+      return
+    }
+    const nextRoles = [...chainRoles]; nextRoles[idx] = role
+    commit({ chainRoles: nextRoles })
+  }
 
   // ── CC ອັດຕະໂນມັດ — add/remove/ປ່ຽນຊະນິດ ຄືກັບ chain ──
   const ccSteps = cur.cc || []
@@ -255,25 +284,30 @@ function SubtypeEditSheet({ sub, isNew, defaultSub, categories = DOC_CATEGORIES,
           </div>
 
           <p className="dd-section" style={{ marginTop: 8 }}><Icon.layers /> ສາຍອະນຸມັດ</p>
+          <p className="muted" style={{ margin: '0 0 8px', fontSize: 11.5 }}>ແຕ່ລະຂັ້ນເລືອກໄດ້ວ່າຈະ <b>ລົງນາມ</b> (ຕົວຈິງ ມີ OTP), <b>ອະນຸມັດ</b> (ຜ່ານ/ບໍ່ຜ່ານ ບໍ່ມີລາຍເຊັນ), ຫຼື <b>CC</b> (ຍ້າຍໄປຮັບສຳເນົາ ບໍ່ຕ້ອງດຳເນີນການ) — ບໍ່ໄດ້ເລືອກ = ຂັ້ນສຸດທ້າຍເປັນຜູ້ລົງນາມໂດຍອັດຕະໂນມັດ</p>
           {chain.length === 0 && <p className="muted" style={{ textAlign: 'center', padding: '12px' }}>ບໍ່ມີເສັ້ນທາງບັງຄັບ — ຜູ້ສ້າງເລືອກຜູ້ລົງນາມເອງໄດ້ໝົດ</p>}
           {chain.map((step, idx) => {
             const info = stepLabel(step)
             const isLast = idx === chain.length - 1
+            const role = roleOf(idx)
             return (
-              <div className="dir-row chain-row" key={idx}>
-                <div className="dir-avatar rk-head">{idx + 1}</div>
-                <div className="dir-info">
-                  <b>{info.label}{isLast && <em className="dtype-auto"> · ຜູ້ເຊັນສຸດທ້າຍ</em>}</b>
-                  <span>{info.person ? info.person.name : 'ຂຶ້ນກັບຜູ້ສ້າງເອກະສານ (dynamic)'}</span>
-                </div>
-                <div className="dir-actions chain-actions">
-                  <div className="chain-move">
-                    <button className="icon-mini flip" disabled={idx === 0} onClick={() => moveStep(idx, -1)}><Icon.chevron /></button>
-                    <button className="icon-mini" disabled={isLast} onClick={() => moveStep(idx, 1)}><Icon.chevron /></button>
+              <div className="chain-row-wrap" key={idx}>
+                <div className="dir-row">
+                  <div className="dir-avatar rk-head">{idx + 1}</div>
+                  <div className="dir-info">
+                    <b>{info.label}{role === 'signer' && <em className="dtype-auto"> · ຜູ້ລົງນາມ</em>}</b>
+                    <span>{info.person ? info.person.name : 'ຂຶ້ນກັບຜູ້ສ້າງເອກະສານ (dynamic)'}</span>
                   </div>
-                  <button className="pick-btn approver" onClick={() => setKindPickIdx(idx)}>ຊະນິດ</button>
-                  <button className="pick-btn cc" onClick={() => removeStep(idx)}><Icon.trash /></button>
+                  <div className="dir-actions chain-actions">
+                    <div className="chain-move">
+                      <button className="icon-mini flip" disabled={idx === 0} onClick={() => moveStep(idx, -1)}><Icon.chevron /></button>
+                      <button className="icon-mini" disabled={isLast} onClick={() => moveStep(idx, 1)}><Icon.chevron /></button>
+                    </div>
+                    <button className="pick-btn approver" onClick={() => setKindPickIdx(idx)}>ຊະນິດ</button>
+                    <button className="pick-btn cc" onClick={() => removeStep(idx)}><Icon.trash /></button>
+                  </div>
                 </div>
+                <RoleSeg role={role} onChange={(r) => setStepRole(idx, r)} />
               </div>
             )
           })}

@@ -362,16 +362,23 @@ export const STEP_KIND_DESC = {
   dept: 'ຫົວໜ້າຂອງພະແນກທີ່ທ່ານເລືອກ — ຄົງທີ່ ບໍ່ຂຶ້ນກັບຜູ້ສ້າງ',
   person: 'ເລືອກຄົນສະເພາະເຈາະຈົງ — ຄົງທີ່ ບໍ່ຂຶ້ນກັບຜູ້ສ້າງ',
 }
-// ຄືนเส้นทาง (No-Dynamic) ຂອງເอกสารย่อย — ใช้ subtypes state (Tab 6 แก้ได้) ไม่ใช่ DEFAULT_DOC_SUBTYPES ตรงๆ
+// ຄืนเส้นทาง (No-Dynamic) ຂອງເอกสารย่อย — ใช้ subtypes state (Tab 6 แก้ได้) ไม่ใช่ DEFAULT_DOC_SUBTYPES ตรงๆ
+// role ต่อขั้น (Lucky 21/07): Tab 6 เลือกได้เองว่าขั้นไหนเป็นผู้ลงนามจริง/ผู้อนุมัติ — เก็บใน sub.chainRoles (parallel array ตรง index กับ sub.chain)
+//   ไม่ได้ตั้งไว้ (undefined) → fallback กติกาเดิม: ขั้นสุดท้าย = signer, ก่อนหน้า = approver (ย้อนหลังเข้ากันได้กับ default subtypes ทั้งหมด)
 export function subtypeRoute(subtypeKey, meId, subtypes = DEFAULT_DOC_SUBTYPES) {
   const sub = subtypes.find((s) => s.key === subtypeKey)
   const mk = (p, role) => p && { id: p.id, name: p.name, email: p.email, hasSig: !!p.hasSig, role, locked: true }
   if (!sub || !sub.chain.length) return { chain: [], cc: [], lockAll: false }
-  const resolved = sub.chain.map((step) => resolveChainStep(step, meId))
+  // ຮັກສາ index ຕົ້ນສະບັບໄວ້ (ຜ່ານ filter) ເພື່ອອ້າງ chainRoles[origIdx] ໄດ້ຖືກຕ້ອງ
+  const resolved = sub.chain.map((step, origIdx) => ({ p: resolveChainStep(step, meId), origIdx }))
   const seen = new Set([meId])
-  const uniq = resolved.filter(Boolean).filter((p) => !seen.has(p.id) && seen.add(p.id))
+  const uniq = resolved.filter((r) => r.p).filter((r) => !seen.has(r.p.id) && seen.add(r.p.id))
   if (!uniq.length) return { chain: [], cc: [], lockAll: false }
-  const chain = uniq.map((p, i) => mk(p, i === uniq.length - 1 ? 'signer' : 'approver')).map((p, i) => ({ ...p, step: i + 1 }))
+  const chain = uniq.map((r, i) => {
+    const override = (sub.chainRoles || [])[r.origIdx]
+    const role = override === 'signer' || override === 'approver' ? override : (i === uniq.length - 1 ? 'signer' : 'approver')
+    return { ...mk(r.p, role), step: i + 1 }
+  })
   const ccResolved = (sub.cc || []).map((c) => resolveChainStep(c, meId)).filter(Boolean).filter((p) => !seen.has(p.id))
   const cc = ccResolved.map((p) => ({ ...mk(p, 'cc'), step: null }))
   return { chain, cc, lockAll: !!sub.lockAll }
