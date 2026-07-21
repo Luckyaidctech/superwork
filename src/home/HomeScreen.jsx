@@ -599,11 +599,12 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
       <p className="ac-note">* ໂອທີ, ລາພັກ, ການຈອງ, ຄວາມຮູ້, ຄະແນນ = request ຈາກ Superwork (ຕົວຢ່າງ)</p>
       {acFlash && <div className="ac-flash"><Icon.checkCircle /> {acFlash}</div>}
       {acDetail && (() => {
-        // ປະຫວັດກິດຈະກຳ (i): esign ມີໜ້າຂອງຕົນເອງ (DocDetail.jsx) · points/knowledge ໂຊ inline ໃນ body ຢູ່ແລ້ວ
-        // → ຍັງເຫຼືອ leave/offsite/ot/booking ທີ່ຍັງບໍ່ມີ (Lucky 19/07: ຕິ — ຕ້ອງເພີ່ມໃຫ້ຄົບ)
-        const showHistoryBtn = acDetail.kind && KIND_META[acDetail.kind] && acDetail.kind !== 'knowledge'
-        const liveKindReq = showHistoryBtn ? ((reqs[acDetail.kind] || []).find((r) => r.id === acDetail.id) || acDetail) : null
-        const acChain = liveKindReq ? approvalChain(liveKindReq.byId, acDetail.kind) : []
+        // ປະຫວັດກິດຈະກຳ (i): esign ມີໜ້າຂອງຕົນເອງ (DocDetail.jsx) — ນອກນັ້ນທຸກປະເພດ (leave/offsite/ot/booking/knowledge/points)
+        // ເປີດຈາກປຸ່ມ (i) ເທິງ header ດຽວກັນໝົດ (Lucky 21/07: ReqActivityHistory ເປັນ modal ລ້ວນແລ້ວ ຫ້າມຝັງ inline)
+        const isPoints = !!detailReq
+        const showHistoryBtn = isPoints || (acDetail.kind && KIND_META[acDetail.kind])
+        const liveKindReq = !showHistoryBtn ? null : isPoints ? detailReq : (reqs[acDetail.kind] || []).find((r) => r.id === acDetail.id) || acDetail
+        const acChain = !liveKindReq ? [] : isPoints ? [{ id: director, name: nameOf(director), role: 'ຜູ້ອຳນວຍການ' }] : approvalChain(liveKindReq.byId, acDetail.kind)
         return (
         <ScreenPortal>
         <div className="app ac-detail-screen">
@@ -643,8 +644,6 @@ function ApprovalCenter({ docs, me, onOpen, pointsReqs = [], director, onPointsC
                       <div className={`ptd-tl-item ${detailReq.status !== 'progress' ? 'done' : 'now'}`}><span className={`ptd-tl-dot ${detailReq.status === 'rejected' ? 'rej' : ''}`}>{detailReq.status === 'approved' ? <Icon.check /> : detailReq.status === 'rejected' ? <Icon.x /> : <Icon.clock />}</span><div><b>{detailReq.status === 'approved' ? 'ອະນຸມັດແລ້ວ' : detailReq.status === 'rejected' ? 'ຖືກປະຕິເສດ' : 'ລໍຖ້າອະນຸມັດ'}</b><span>{nameOf(director)}</span></div></div>
                     </div>
                   </div>
-                  {/* ປະຫວັດກິດຈະກຳ — ໃຜເຮັດຫຍັງ ເມື່ອໃດ (Lucky 19/07 — ທຸກຄຳຂໍ) */}
-                  <ReqActivityHistory req={detailReq} chain={[{ id: director, name: nameOf(director), role: 'ຜູ້ອຳນວຍການ' }]} />
                 </>)
               })() : (
                 // ຄຳຂໍທົ່ວໄປ (ລາພັກ/ວຽກນອກ/ໂອທີ/ຈອງ/ຄວາມຮູ້) → ໃຊ້ໜ້າດຽວກັບໂມດູນ "ຄຳຂໍ" 100%

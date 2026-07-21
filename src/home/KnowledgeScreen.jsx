@@ -42,7 +42,7 @@ function KnCard({ p, me, showStatus, onOpen }) {
 }
 
 // ── ເນື້ອໃນໜ້າລາຍລະອຽດໂພສ — ໃຊ້ຮ່ວມ: ໂມດູນຄວາມຮູ້ ແລະ ໂມດູນອະນຸມັດ ──
-export function KnowledgeDetailBody({ post, me, onPreview }) {
+export function KnowledgeDetailBody({ post, me, onPreview, showHistory, onCloseHistory }) {
   const st = KN_STATUS[post.status] || KN_STATUS.progress
   const t = typeOf(post.type)
   const chain = approvalChain(post.byId, 'knowledge')
@@ -149,8 +149,8 @@ export function KnowledgeDetailBody({ post, me, onPreview }) {
       </div>
     )}
 
-    {/* ປະຫວັດກິດຈະກຳ — ໃຜເຮັດຫຍັງ ເມື່ອໃດ (Lucky 19/07 — ທຸກຄຳຂໍ/ໂພສ) */}
-    <ReqActivityHistory req={post} chain={chain} createLabel="ສ້າງໂພສ" />
+    {/* ປະຫວັດກິດຈະກຳ — ເປີດຈາກປຸ່ມ (i) ເທິງ header ເທົ່ານັ້ນ (modal ຢ່າຝັງແບບ inline — ຄ້າງເຕັມໜ້າຈໍ) */}
+    {showHistory && <ReqActivityHistory req={post} chain={chain} createLabel="ສ້າງໂພສ" onClose={onCloseHistory} />}
   </>)
 }
 
@@ -167,6 +167,7 @@ export default function KnowledgeScreen({ me, posts = [], onCreateKn, onSubmitKn
   const [form, setForm] = useState(false)
   const [preview, setPreview] = useState(null)
   const [popup, setPopup] = useState(null)
+  const [showHistory, setShowHistory] = useState(false) // ປະຫວັດກິດຈະກຳ — ເປີດຈາກປຸ່ມ (i) ເທິງ header
   const viewed = useState(() => new Set())[0]
 
   // ມາຈາກແຈ້ງເຕືອນ → ເປີດໂພສນັ້ນເລີຍ
@@ -200,10 +201,11 @@ export default function KnowledgeScreen({ me, posts = [], onCreateKn, onSubmitKn
     return (
       <ScreenPortal>
       <div className="ac-detail-screen">
-        <Header title="ລາຍລະອຽດໂພສ" onBack={() => setDetail(null)} />
+        <Header title="ລາຍລະອຽດໂພສ" onBack={() => setDetail(null)}
+          right={<button className="header-help" title="ປະຫວັດກິດຈະກຳ" onClick={() => setShowHistory(true)}><Icon.info /></button>} />
         <div className="scroll">
           <div className="ac-detail">
-            <KnowledgeDetailBody post={live} me={me} onPreview={setPreview} />
+            <KnowledgeDetailBody post={live} me={me} onPreview={setPreview} showHistory={showHistory} onCloseHistory={() => setShowHistory(false)} />
             {live.status === 'approved' && (
               <CommentBox
                 comments={live.comments || []} me={me}
